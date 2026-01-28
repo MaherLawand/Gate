@@ -8,6 +8,7 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+.expo/shared
 
 # Native
 .kotlin/
@@ -38,6 +39,16 @@ yarn-error.*
 
 app-example
 
+#firebase
+.firebase/
+*.log
+
 # generated native folders
 /ios
 /android
+serviceAccountKey.json
+
+#android / ios
+android/build/
+ios/build/
+*.keystore
