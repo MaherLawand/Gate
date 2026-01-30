@@ -242,7 +242,7 @@ export default function TrainerScheduleScreen() {
         clientPackageId: session.clientPackageId,
         mode,
       });
-
+      console.log("uid: ", uid);
       // 🔄 reload schedule
       const snap = await firestore()
         .collection("trainer_schedules")

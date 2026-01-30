@@ -2,13 +2,7 @@ import { useRouter, useSegments } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { colors } from "../theme/colors";
 
-const CLIENT_ROUTES = {
-  home: "/client/home",
-  Sessions: "/client/Sessions",
-  Info: "/client/Info",
-} as const;
-
-type ClientRoute = keyof typeof CLIENT_ROUTES;
+type ClientRoute = "home" | "ClientWeeklyPreferencesScreen" | "Info";
 
 export default function ClientFooter() {
   const router = useRouter();
@@ -17,14 +11,15 @@ export default function ClientFooter() {
   const navigate = (path: ClientRoute) => {
     const current = segments[segments.length - 1];
     if (current !== path) {
-      router.push(CLIENT_ROUTES[path]);
+      console.log(`Navigating to /client/${path}`);
+      router.push(`/client/${path}` as const);
     }
   };
 
   return (
     <View style={styles.container}>
       <FooterButton title="home" onPress={() => navigate("home")} />
-      <FooterButton title="Sessions" onPress={() => navigate("Sessions")} />
+      <FooterButton title="Sessions" onPress={() => navigate("ClientWeeklyPreferencesScreen")} />
       <FooterButton title="Info" onPress={() => navigate("Info")} />
     </View>
   );

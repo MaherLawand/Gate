@@ -1,223 +1,289 @@
+import { useClient } from "@/src/components/ClientContext";
 import { colors } from "@/src/theme/colors";
-import { useMemo, useState } from "react";
+import auth from "@react-native-firebase/auth";
+import firestore from "@react-native-firebase/firestore";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Alert,
+  Animated,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Alert,
 } from "react-native";
 
-/* ---------------- CONSTANTS ---------------- */
+/* ------------------ CONFIG ------------------ */
 
-const DAYS = [
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-  "saturday",
+const TRAINING_DAYS = [
+  { key: "monday", label: "Monday" },
+  { key: "tuesday", label: "Tuesday" },
+  { key: "wednesday", label: "Wednesday" },
+  { key: "thursday", label: "Thursday" },
+  { key: "friday", label: "Friday" },
 ];
 
-const TIME_SLOTS = [
-  "07:00",
-  "08:00",
-  "09:00",
-  "10:00",
-  "11:00",
-  "16:00",
-  "17:00",
-  "18:00",
-  "19:00",
-  "20:00",
-];
+const HOURS = Array.from({ length: 12 }, (_, i) => `${8 + i}:00`); // 08 → 19
 
-/* ---------------- HELPERS ---------------- */
+/* ------------------ HELPERS ------------------ */
 
-function getWeekRange() {
-  const today = new Date();
-  const day = today.getDay(); // 0 = Sunday
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + diffToMonday);
-
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-
-  return {
-    start: monday.toDateString(),
-    end: sunday.toDateString(),
-  };
+// Week starts on SATURDAY
+function getCurrentWeekKey() {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun ... 6=Sat
+  const diff = day === 6 ? 0 : -(day + 1);
+  const saturday = new Date(now);
+  saturday.setDate(now.getDate() + diff);
+  return saturday.toISOString().split("T")[0];
 }
 
-/* ---------------- COMPONENT ---------------- */
+/* ------------------ COMPONENT ------------------ */
 
 export default function ClientWeeklyPreferencesScreen() {
-  // 🔢 example value — later comes from package
-  const sessionsPerWeek = 3;
+  const user = auth().currentUser;
+  const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
 
-  const [selectedDays, setSelectedDays] = useState<string[]>([]);
-  const [timeSlots, setTimeSlots] = useState<{
-    [day: string]: string[];
-  }>({});
+  const { clientId, clientloading } = useClient();
+  const [sessionsPerWeek, setSessionsPerWeek] = useState(0);
+  const [preferences, setPreferences] = useState<Record<string, string[]>>({});
+  const [loading, setLoading] = useState(true);
 
-  const week = useMemo(() => getWeekRange(), []);
+  const weekKey = useMemo(() => getCurrentWeekKey(), []);
 
-  /* ---------------- DAY TOGGLE ---------------- */
+  /* ------------------ ANIMATION ------------------ */
 
-  function toggleDay(day: string) {
-    if (selectedDays.includes(day)) {
-      // remove day
-      setSelectedDays((prev) => prev.filter((d) => d !== day));
+  const animatedHeights = useRef<Record<string, Animated.Value>>({}).current;
 
-      setTimeSlots((prev) => {
-        const copy = { ...prev };
-        delete copy[day];
-        return copy;
-      });
-    } else {
-      if (selectedDays.length >= sessionsPerWeek) {
-        Alert.alert(
-          "Limit reached",
-          `You can only select ${sessionsPerWeek} days this week`
-        );
-        return;
-      }
-
-      setSelectedDays((prev) => [...prev, day]);
+  const getHeight = (day: string) => {
+    if (!animatedHeights[day]) {
+      animatedHeights[day] = new Animated.Value(0);
     }
-  }
+    return animatedHeights[day];
+  };
 
-  /* ---------------- TIME TOGGLE ---------------- */
+  const toggleDay = (day: string) => {
+    setExpandedDays((prev) => {
+      const isOpen = !!prev[day];
 
-  function toggleTime(day: string, time: string) {
-    setTimeSlots((prev) => {
-      const current = prev[day] || [];
-
-      const updated = current.includes(time)
-        ? current.filter((t) => t !== time)
-        : [...current, time];
+      Animated.timing(getHeight(day), {
+        toValue: isOpen ? 0 : 1,
+        duration: 250,
+        useNativeDriver: false,
+      }).start();
 
       return {
         ...prev,
-        [day]: updated,
+        [day]: !isOpen,
       };
     });
+  };
+
+  /* ------------------ DERIVED LOGIC ------------------ */
+
+  const selectedDaysCount = Object.keys(preferences).filter(
+    (day) => preferences[day]?.length > 0
+  ).length;
+
+  const maxDaysReached = selectedDaysCount >= sessionsPerWeek;
+
+  function getDateForWeekday(weekKey: string, dayIndex: number) {
+    const base = new Date(weekKey); // Saturday
+    const date = new Date(base);
+
+    // Monday starts at +2 from Saturday
+    date.setDate(base.getDate() + dayIndex + 2);
+
+    return date.toISOString().split("T")[0];
   }
 
-  /* ---------------- SAVE ---------------- */
+  /* ------------------ LOAD CLIENT + PACKAGE ------------------ */
 
-  function handleSave() {
-    if (selectedDays.length !== sessionsPerWeek) {
-      Alert.alert(
-        "Incomplete selection",
-        `Please select exactly ${sessionsPerWeek} days`
-      );
-      return;
-    }
+  useEffect(() => {
+    if (!user) return;
 
-    for (const day of selectedDays) {
-      if (!timeSlots[day] || timeSlots[day].length === 0) {
-        Alert.alert(
-          "Missing time",
-          `Please select at least one time for ${day}`
-        );
-        return;
+    const load = async () => {
+      try {
+        console.log("clientId" , clientId);
+
+        const pkgSnap = await firestore()
+          .collection("clients")
+          .doc(clientId || "")
+          .collection("packages")
+          .where("status", "==", "active")
+          .limit(1)
+          .get();
+
+        if (pkgSnap.empty) {
+          Alert.alert("No active package");
+          return;
+        }
+
+        const pkg = pkgSnap.docs[0].data();
+
+        // ✅ STEP 3 — derive sessions per week
+        const derivedSessionsPerWeek = Math.ceil(pkg.totalSessions / (1 * 4));
+
+        setSessionsPerWeek(derivedSessionsPerWeek);
+
+        const prefSnap = await firestore()
+          .collection("clients")
+          .doc(clientId || "")
+          .collection("weekly_preferences")
+          .doc(weekKey)
+          .get();
+
+        if (prefSnap.exists()) {
+          const data = prefSnap.data();
+
+          if (
+            data &&
+            typeof data === "object" &&
+            data.preferences &&
+            typeof data.preferences === "object"
+          ) {
+            setPreferences(data.preferences as Record<string, string[]>);
+          } else {
+            setPreferences({});
+          }
+        } else {
+          setPreferences({});
+        }
+      } catch (e: any) {
+        Alert.alert("Error", e.message);
+      } finally {
+        setLoading(false);
       }
-    }
-
-    const payload = {
-      weekStart: week.start,
-      weekEnd: week.end,
-      sessionsPerWeek,
-      preferences: timeSlots,
     };
 
-    console.log("✅ Weekly preferences payload:", payload);
+    load();
+  }, [user, weekKey]);
 
-    Alert.alert("Saved", "Your training preferences were saved");
+  /* ------------------ TOGGLE TIME (DAY-BASED LOGIC) ------------------ */
+
+  const toggleTime = (dateKey: string, time: string) => {
+    setPreferences((prev) => {
+      const times = prev[dateKey] ?? [];
+      const exists = times.includes(time);
+
+      const updatedTimes = exists
+        ? times.filter((t) => t !== time)
+        : [...times, time];
+
+      const updated = { ...prev };
+
+      if (updatedTimes.length === 0) {
+        delete updated[dateKey];
+      } else {
+        updated[dateKey] = updatedTimes;
+      }
+
+      return updated;
+    });
+  };
+
+  /* ------------------ SAVE ------------------ */
+
+  const handleSave = async () => {
+    if (!clientId) return;
+
+    await firestore()
+      .collection("clients")
+      .doc(clientId)
+      .collection("weekly_preferences")
+      .doc(weekKey)
+      .set({
+        weekKey,
+        preferences,
+        updatedAt: firestore.FieldValue.serverTimestamp(),
+      });
+
+    Alert.alert("Saved", "Your preferences were saved for this week");
+  };
+
+  /* ------------------ UI ------------------ */
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.text}>Loading...</Text>
+      </View>
+    );
   }
 
-  /* ---------------- RENDER ---------------- */
-
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      {/* HEADER */}
+    <ScrollView style={styles.container}>
       <Text style={styles.title}>Weekly Training Preferences</Text>
-      <Text style={styles.subTitle}>
-        {week.start} – {week.end}
-      </Text>
+      <Text style={styles.subtitle}>Week starting Saturday: {weekKey}</Text>
 
-      <Text style={styles.info}>
-        Sessions this week:{" "}
-        <Text style={styles.bold}>{sessionsPerWeek}</Text>
-      </Text>
+      <Text style={styles.info}>Training days allowed: {sessionsPerWeek}</Text>
 
-      {/* DAYS */}
-      <Text style={styles.sectionTitle}>Choose your training days</Text>
+      {TRAINING_DAYS.map((day, index) => {
+        const dateKeyForDay = getDateForWeekday(weekKey, index);
+        console.log("dateKeyForDay ", dateKeyForDay);
+        const selectedTimes = preferences[dateKeyForDay] ?? [];
+        console.log("preferences ", preferences);
+        console.log("selectedTimes ", selectedTimes);
 
-      <View style={styles.daysRow}>
-        {DAYS.map((day) => {
-          const selected = selectedDays.includes(day);
-          const disabled =
-            !selected && selectedDays.length >= sessionsPerWeek;
+        const isActive = selectedTimes.length > 0;
+        console.log("isActive ", isActive);
 
-          return (
+        const disabled = !isActive && maxDaysReached;
+
+        const heightAnim = getHeight(day.key);
+        const height = heightAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 120],
+        });
+
+        return (
+          <View key={day.key} style={styles.dayCard}>
             <TouchableOpacity
-              key={day}
-              onPress={() => toggleDay(day)}
               disabled={disabled}
-              style={[
-                styles.dayChip,
-                selected && styles.dayChipActive,
-                disabled && { opacity: 0.3 },
-              ]}
+              onPress={() => toggleDay(day.key)}
+              style={[styles.dayHeader, disabled && styles.dayDisabled]}
             >
-              <Text style={styles.dayText}>
-                {day.slice(0, 3).toUpperCase()}
+              <Text style={styles.dayTitle}>{day.label}</Text>
+              <Text style={styles.dayHint}>
+                {isActive ? "Selected" : "Tap to choose"}
               </Text>
             </TouchableOpacity>
-          );
-        })}
-      </View>
 
-      {/* TIME SLOTS */}
-      {selectedDays.map((day) => (
-        <View key={day} style={styles.daySection}>
-          <Text style={styles.dayTitle}>{day.toUpperCase()}</Text>
+            <Animated.View style={{ height, overflow: "hidden" }}>
+              <View style={styles.hoursRow}>
+                {HOURS.map((hour) => {
+                  const selected = selectedTimes.includes(hour);
 
-          <View style={styles.timeGrid}>
-            {TIME_SLOTS.map((time) => {
-              const active = timeSlots[day]?.includes(time);
-
-              return (
-                <TouchableOpacity
-                  key={time}
-                  onPress={() => toggleTime(day, time)}
-                  style={[
-                    styles.timeSlot,
-                    active && styles.timeSlotActive,
-                  ]}
-                >
-                  <Text style={styles.timeText}>{time}</Text>
-                </TouchableOpacity>
-              );
-            })}
+                  return (
+                    <TouchableOpacity
+                      key={hour}
+                      onPress={() => toggleTime(dateKeyForDay, hour)}
+                      style={[styles.hourBtn, selected && styles.hourSelected]}
+                    >
+                      <Text
+                        style={[
+                          styles.hourText,
+                          selected && styles.hourTextSelected,
+                        ]}
+                      >
+                        {hour}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </Animated.View>
           </View>
-        </View>
-      ))}
+        );
+      })}
 
-      {/* SAVE */}
       <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-        <Text style={styles.saveText}>Save Weekly Preferences</Text>
+        <Text style={styles.saveText}>Save Preferences</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
-/* ---------------- STYLES ---------------- */
+/* ------------------ STYLES ------------------ */
 
 const styles = StyleSheet.create({
   container: {
@@ -225,103 +291,85 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: 16,
   },
-
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  text: {
+    color: colors.textPrimary,
+  },
   title: {
-    color: colors.textPrimary,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
+    color: colors.textPrimary,
+    marginBottom: 4,
   },
-
-  subTitle: {
+  subtitle: {
     color: colors.textSecondary,
-    marginTop: 4,
-    fontSize: 13,
+    marginBottom: 12,
   },
-
   info: {
-    marginTop: 10,
-    color: colors.textSecondary,
-  },
-
-  bold: {
-    color: colors.textPrimary,
-    fontWeight: "700",
-  },
-
-  sectionTitle: {
-    marginTop: 24,
-    marginBottom: 10,
-    color: colors.textPrimary,
+    color: colors.primary,
     fontWeight: "600",
+    marginBottom: 16,
   },
-
-  daysRow: {
+  dayCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+  },
+  dayHeader: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-
-  dayChip: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    backgroundColor: "#222",
-  },
-
-  dayChipActive: {
-    backgroundColor: colors.primary,
-  },
-
-  dayText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 12,
-  },
-
-  daySection: {
-    marginTop: 24,
-  },
-
   dayTitle: {
     color: colors.textPrimary,
     fontWeight: "700",
-    marginBottom: 8,
   },
-
-  timeGrid: {
+  dayHint: {
+    color: colors.textSecondary,
+    fontSize: 12,
+  },
+  dayDisabled: {
+    opacity: 0.4,
+  },
+  hoursRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
+    marginTop: 10,
   },
-
-  timeSlot: {
+  hourBtn: {
     paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: "#333",
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-
-  timeSlotActive: {
-    backgroundColor: "#22C55E",
+  hourSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
-
-  timeText: {
-    color: "#fff",
+  hourText: {
+    color: colors.textPrimary,
     fontSize: 12,
+  },
+  hourTextSelected: {
+    color: "#fff",
     fontWeight: "600",
   },
-
   saveBtn: {
-    marginTop: 32,
+    marginTop: 20,
     backgroundColor: colors.primary,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 10,
     alignItems: "center",
   },
-
   saveText: {
     color: "#fff",
     fontWeight: "700",
-    fontSize: 14,
   },
 });

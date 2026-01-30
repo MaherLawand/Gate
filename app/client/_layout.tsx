@@ -1,12 +1,15 @@
+import ClientFooter from "@/src/components/ClientFooter";
 import { Stack } from "expo-router";
+import React from "react";
 import { View } from "react-native";
-import Header from "@/src/components/AppHeader";
-
+import {ClientProvider} from "@/src/components/ClientContext";
 export default function RootLayout() {
   return (
     <View style={{ flex: 1 }}>
-      <Header />
-      <Stack screenOptions={{ headerShown: false }} />
+      <ClientProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+        <ClientFooter />
+      </ClientProvider>
     </View>
   );
 }

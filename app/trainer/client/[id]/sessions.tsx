@@ -1,9 +1,9 @@
+import { getExercises } from "@/src/services/ExerciseService";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,7 +11,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import DropDownPicker from "react-native-dropdown-picker";
 import AppButton from "../../../../src/components/AppButton";
 import {
   getActivePackage,
@@ -19,16 +18,12 @@ import {
   updateSession,
 } from "../../../../src/services/ClientService";
 import { colors } from "../../../../src/theme/colors";
-import { SessionExercise, SessionWithId } from "../../../../src/types/models";
-
-/* ------------------ CONSTANTS ------------------ */
-
-const EXERCISES = [
-  { id: 1, name: "Squat" },
-  { id: 2, name: "Bench Press" },
-  { id: 3, name: "Deadlift" },
-  { id: 4, name: "Overhead Press" },
-];
+import {
+  Exercise,
+  ExerciseSet,
+  SessionExercise,
+  SessionWithId,
+} from "../../../../src/types/models";
 
 /* ------------------ DATE HELPERS ------------------ */
 
@@ -62,7 +57,9 @@ export default function ClientSessionsScreen() {
   const canEditWorkout = attendance === "attended";
   const params = useLocalSearchParams();
   const clientId = typeof params.id === "string" ? params.id : params.id?.[0];
-
+  const [editingExerciseIndex, setEditingExerciseIndex] = useState<
+    number | null
+  >(null);
   const [sessions, setSessions] = useState<SessionWithId[]>([]);
   const [activeDate, setActiveDate] = useState(new Date());
 
@@ -76,12 +73,59 @@ export default function ClientSessionsScreen() {
   /* ------------------ LOAD SESSIONS ------------------ */
   const [exerciseModalVisible, setExerciseModalVisible] = useState(false);
 
-  const [selectedExerciseId, setSelectedExerciseId] = useState<number | null>(
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(
     null
   );
-  const [sets, setSets] = useState("");
-  const [reps, setReps] = useState("");
-  const [weightKg, setWeightKg] = useState("");
+  const [allExercises, setAllExercises] = useState<Exercise[]>([]);
+
+  const [setCountInput, setSetCountInput] = useState("0");
+  const [setCount, setSetCount] = useState(0);
+
+  const [setInputs, setSetInputs] = useState<ExerciseSet[]>([]);
+  const handleSetCountChange = (count: number) => {
+    setSetCount(count);
+
+    setSetInputs(
+      Array.from({ length: count }, () => ({
+        reps: 0,
+        weightKg: 0,
+      }))
+    );
+  };
+  const onChangeSetCount = (text: string) => {
+    // allow clearing input
+    if (text === "") {
+      setSetCountInput("");
+      setSetCount(0);
+      setSetInputs([]);
+      return;
+    }
+
+    // digits only
+    const numeric = text.replace(/[^0-9]/g, "");
+    let count = Number(numeric);
+
+    // clamp min/max
+    if (count < 1) count = 1;
+    if (count > 5) count = 5;
+
+    setSetCountInput(String(count));
+    setSetCount(count);
+
+    setSetInputs((prev) => {
+      const next = [...prev];
+
+      if (count > prev.length) {
+        for (let i = prev.length; i < count; i++) {
+          next.push({ reps: 0, weightKg: 0 });
+        }
+      } else {
+        next.length = count;
+      }
+
+      return next;
+    });
+  };
 
   const [exerciseOpen, setExerciseOpen] = useState(false);
 
@@ -89,11 +133,6 @@ export default function ClientSessionsScreen() {
     id: string;
     sessionsRemaining: number;
   } | null>(null);
-
-  const exerciseItems = EXERCISES.map((ex) => ({
-    label: ex.name,
-    value: ex.id,
-  }));
 
   useEffect(() => {
     if (!clientId) return;
@@ -119,6 +158,35 @@ export default function ClientSessionsScreen() {
     load();
   }, [clientId]);
 
+  useEffect(() => {
+    const loadExercises = async () => {
+      const data = await getExercises();
+      console.log("data: ", data);
+      setAllExercises(data);
+      setFilteredExercises(data);
+    };
+
+    loadExercises();
+  }, []);
+
+  const [search, setSearch] = useState<string>(""); // 👈 must be ""
+  const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
+
+  const onSearchChange = (text: string) => {
+    setSearch(text);
+
+    if (!text.trim()) {
+      setFilteredExercises([]);
+      return;
+    }
+
+    const lower = text.toLowerCase();
+
+    setFilteredExercises(
+      allExercises.filter((ex) => ex.name.toLowerCase().includes(lower))
+    );
+  };
+
   /* ------------------ WEEK DATA ------------------ */
 
   const weekDays = useMemo(() => getWeekDays(activeDate), [activeDate]);
@@ -135,6 +203,7 @@ export default function ClientSessionsScreen() {
 
   const onDayPress = (dateKey: string) => {
     const existing = sessions.find((s) => s.date === dateKey);
+    console.log("existing? ", existing);
 
     // 🚫 NO MANUAL CREATION
     if (!existing) {
@@ -155,23 +224,28 @@ export default function ClientSessionsScreen() {
 
   const openAddExercise = () => {
     setSelectedExerciseId(null);
-    setSets("");
-    setReps("");
-    setWeightKg("");
+    setSetCount(0);
+    setSetInputs([]);
     setExerciseModalVisible(true);
   };
 
   const confirmAddExercise = () => {
-    if (!selectedExerciseId || !sets || !reps || !weightKg) {
-      if (Platform.OS === "web") {
-        if (window.confirm("Missing fields. Fill all exercise fields")) return;
-      } else {
-        Alert.alert("Missing fields", "Fill all exercise fields");
-        return;
-      }
+    if (!selectedExerciseId || setInputs.length === 0) {
+      Alert.alert("Missing data", "Select exercise and sets");
+      return;
     }
 
-    const exercise = EXERCISES.find((e) => e.id === selectedExerciseId);
+    const hasInvalidSet = setInputs.some((s) => s.reps <= 0 || s.weightKg <= 0);
+
+    if (hasInvalidSet) {
+      Alert.alert(
+        "Invalid sets",
+        "Each set must have reps and weight greater than 0"
+      );
+      return;
+    }
+
+    const exercise = allExercises.find((e) => e.id === selectedExerciseId);
     if (!exercise) return;
 
     setDraftExercises((prev) => [
@@ -179,11 +253,14 @@ export default function ClientSessionsScreen() {
       {
         exerciseId: exercise.id,
         name: exercise.name,
-        sets: Number(sets),
-        reps: Number(reps),
-        weightKg: Number(weightKg),
+        sets: setInputs,
       },
     ]);
+
+    // reset modal state
+    setSelectedExerciseId(null);
+    setSetInputs([]);
+    setSearch("");
 
     setExerciseModalVisible(false);
   };
@@ -239,7 +316,7 @@ export default function ClientSessionsScreen() {
       {/* HEADER */}
       <View style={styles.weekHeader}>
         <Pressable onPress={() => changeWeek(-1)}>
-          <Text style={styles.nav}> ‹ </Text>
+          <Text style={styles.nav}>‹</Text>
         </Pressable>
 
         <Text style={styles.monthTitle}>
@@ -254,33 +331,24 @@ export default function ClientSessionsScreen() {
         </Pressable>
       </View>
 
-      {/* WEEK CALENDAR */}
-      {/* WEEK CALENDAR */}
+      {/* WEEK GRID */}
       <View style={styles.calendarCenter}>
         <View style={styles.weekGrid}>
           {weekDays.map((d) => {
             const key = formatDateKey(d);
             const hasSession = sessions.some((s) => s.date === key);
-            const isSelected = key === selectedDate;
-            const isToday = key === formatDateKey(new Date());
 
             return (
               <Pressable
                 key={key}
                 disabled={!hasSession}
                 onPress={() => onDayPress(key)}
-                style={[
-                  styles.dayCard,
-                  isSelected && styles.selectedDay,
-                  isToday && styles.today,
-                ]}
+                style={styles.dayCard}
               >
                 <Text style={styles.weekDay}>
                   {d.toLocaleDateString("en-US", { weekday: "short" })}
                 </Text>
-
                 <Text style={styles.dayNumber}>{d.getDate()}</Text>
-
                 {hasSession && <View style={styles.sessionIndicator} />}
               </Pressable>
             );
@@ -288,109 +356,234 @@ export default function ClientSessionsScreen() {
         </View>
       </View>
 
-      {/* MODAL */}
+      {/* SESSION MODAL */}
       <Modal visible={modalVisible} animationType="slide">
         <View style={styles.modal}>
           <Pressable onPress={cancel}>
             <Text style={styles.back}>← Back</Text>
           </Pressable>
 
-          <Text style={styles.modalTitle}>Edit Session • {selectedDate}</Text>
-
           <ScrollView>
-            {draftExercises.map((ex, i) => (
-              <View key={i} style={styles.exerciseCard}>
-                <Text style={styles.exerciseName}>{ex.name}</Text>
+            {draftExercises.map((ex, exIndex) => {
+              const isEditing = editingExerciseIndex === exIndex;
 
-                <View style={styles.row}>
-                  <TextInput
-                    style={styles.input}
-                    keyboardType="numeric"
-                    placeholder="Sets"
-                    placeholderTextColor={colors.textSecondary}
-                    value={String(ex.sets)}
-                    onChangeText={(v) => updateExercise(i, "sets", Number(v))}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    keyboardType="numeric"
-                    placeholder="Reps"
-                    placeholderTextColor={colors.textSecondary}
-                    value={String(ex.reps)}
-                    onChangeText={(v) => updateExercise(i, "reps", Number(v))}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    keyboardType="numeric"
-                    placeholder="Weight (kg)"
-                    placeholderTextColor={colors.textSecondary}
-                    value={String(ex.weightKg)}
-                    onChangeText={(v) =>
-                      updateExercise(i, "weightKg", Number(v))
-                    }
-                  />
+              return (
+                <View key={exIndex} style={styles.exerciseCard}>
+                  {/* HEADER */}
+                  <View style={styles.exerciseHeader}>
+                    <Text style={styles.exerciseName}>{ex.name}</Text>
+
+                    {!isEditing && (
+                      <View style={styles.exerciseActions}>
+                        <Pressable
+                          onPress={() => setEditingExerciseIndex(exIndex)}
+                        >
+                          <Text style={styles.editBtn}>Edit</Text>
+                        </Pressable>
+
+                        <Pressable
+                          onPress={() =>
+                            Alert.alert(
+                              "Delete exercise",
+                              "Are you sure you want to remove this exercise?",
+                              [
+                                { text: "Cancel", style: "cancel" },
+                                {
+                                  text: "Delete",
+                                  style: "destructive",
+                                  onPress: () =>
+                                    setDraftExercises((prev) =>
+                                      prev.filter((_, i) => i !== exIndex)
+                                    ),
+                                },
+                              ]
+                            )
+                          }
+                        >
+                          <Text style={styles.deleteBtn}>Delete</Text>
+                        </Pressable>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* VIEW MODE */}
+                  {!isEditing && (
+                    <View style={styles.readonlyGroup}>
+                      {ex.sets.map((set, setIndex) => (
+                        <View key={setIndex} style={styles.readonlyRow}>
+                          <Text style={styles.readonlyLabel}>
+                            Set {setIndex + 1}
+                          </Text>
+                          <Text style={styles.readonlyValue}>
+                            {set.reps} reps • {set.weightKg} kg
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* EDIT MODE */}
+                  {isEditing && (
+                    <View style={{ gap: 12 }}>
+                      {ex.sets.map((set, setIndex) => (
+                        <View key={setIndex} style={styles.editRow}>
+                          <Text style={styles.setTitle}>
+                            Set {setIndex + 1}
+                          </Text>
+
+                          <View style={styles.row}>
+                            <TextInput
+                              placeholderTextColor={colors.textSecondary}
+                              style={styles.input}
+                              keyboardType="numeric"
+                              placeholder="Reps"
+                              value={String(set.reps)}
+                              onChangeText={(v) =>
+                                setDraftExercises((prev) =>
+                                  prev.map((exercise, i) =>
+                                    i === exIndex
+                                      ? {
+                                          ...exercise,
+                                          sets: exercise.sets.map((s, si) =>
+                                            si === setIndex
+                                              ? { ...s, reps: Number(v) }
+                                              : s
+                                          ),
+                                        }
+                                      : exercise
+                                  )
+                                )
+                              }
+                            />
+
+                            <TextInput
+                              placeholderTextColor={colors.textSecondary}
+                              style={styles.input}
+                              keyboardType="numeric"
+                              placeholder="kg"
+                              value={String(set.weightKg)}
+                              onChangeText={(v) =>
+                                setDraftExercises((prev) =>
+                                  prev.map((exercise, i) =>
+                                    i === exIndex
+                                      ? {
+                                          ...exercise,
+                                          sets: exercise.sets.map((s, si) =>
+                                            si === setIndex
+                                              ? { ...s, weightKg: Number(v) }
+                                              : s
+                                          ),
+                                        }
+                                      : exercise
+                                  )
+                                )
+                              }
+                            />
+                          </View>
+                        </View>
+                      ))}
+
+                      {/* ACTIONS */}
+                      <View style={styles.editActions}>
+                        <Pressable
+                          onPress={() => setEditingExerciseIndex(null)}
+                        >
+                          <Text style={styles.saveBtn}>Save</Text>
+                        </Pressable>
+
+                        <Pressable
+                          onPress={() => setEditingExerciseIndex(null)}
+                        >
+                          <Text style={styles.cancelBtn}>Cancel</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  )}
                 </View>
-
-                <Pressable onPress={() => deleteExercise(i)}>
-                  <Text style={styles.delete}>Remove</Text>
-                </Pressable>
-              </View>
-            ))}
+              );
+            })}
           </ScrollView>
 
           <AppButton title="Add Exercise" onPress={openAddExercise} />
           <AppButton title="Save Session" onPress={saveSession} />
         </View>
       </Modal>
+
+      {/* ADD EXERCISE MODAL */}
       <Modal visible={exerciseModalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.exerciseModal}>
             <Text style={styles.modalTitle}>Add Exercise</Text>
 
-            {/* Exercise selector */}
-            <DropDownPicker
-              open={exerciseOpen}
-              value={selectedExerciseId}
-              items={exerciseItems}
-              setOpen={setExerciseOpen}
-              setValue={setSelectedExerciseId}
-              placeholder="Select exercise"
-              style={styles.dropdown}
-              dropDownContainerStyle={styles.dropdownContainer}
-              textStyle={styles.dropdownText}
-              zIndex={3000}
-              zIndexInverse={1000}
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search exercise..."
+              placeholderTextColor={colors.textSecondary}
+              value={search}
+              onChangeText={onSearchChange}
             />
+            {search.length > 0 && filteredExercises.length > 0 && (
+              <ScrollView style={styles.searchResults}>
+                {filteredExercises.map((ex) => (
+                  <Pressable
+                    key={ex.id}
+                    style={styles.exerciseOption}
+                    onPress={() => {
+                      setSelectedExerciseId(ex.id);
+                      setSearch(ex.name); // ✅ string
+                      setFilteredExercises([]); // ✅ array
+                    }}
+                  >
+                    <Text style={styles.exerciseOptionText}>{ex.name}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
 
-            {/* Inputs only after exercise selected */}
             {selectedExerciseId && (
-              <View style={styles.inputsGroup}>
+              <View style={styles.setsContainer}>
                 <TextInput
-                  style={styles.input}
-                  placeholder="Sets"
-                  placeholderTextColor="#FFFFFF"
+                  placeholderTextColor={colors.textSecondary}
+                  style={styles.setsinput}
+                  placeholder="Number of sets"
                   keyboardType="numeric"
-                  value={sets}
-                  onChangeText={setSets}
+                  value={setCountInput}
+                  onChangeText={onChangeSetCount}
                 />
-
-                <TextInput
-                  style={styles.input}
-                  placeholder="Reps"
-                  keyboardType="numeric"
-                  placeholderTextColor="#FFFFFF"
-                  value={reps}
-                  onChangeText={setReps}
-                />
-
-                <TextInput
-                  style={styles.input}
-                  placeholder="Weight (kg)"
-                  placeholderTextColor="#FFFFFF"
-                  keyboardType="numeric"
-                  value={weightKg}
-                  onChangeText={setWeightKg}
-                />
+                <ScrollView style={{ maxHeight: 260 }}>
+                  {setInputs.map((set, index) => (
+                    <View key={index} style={styles.row}>
+                      <TextInput
+                        placeholderTextColor={colors.textSecondary}
+                        style={styles.input}
+                        placeholder={`Set ${index + 1} reps`}
+                        keyboardType="numeric"
+                        value={String(set.reps)}
+                        onChangeText={(v) =>
+                          setSetInputs((prev) =>
+                            prev.map((s, i) =>
+                              i === index ? { ...s, reps: Number(v) } : s
+                            )
+                          )
+                        }
+                      />
+                      <TextInput
+                        placeholderTextColor={colors.textSecondary}
+                        style={styles.input}
+                        placeholder="kg"
+                        keyboardType="numeric"
+                        value={String(set.weightKg)}
+                        onChangeText={(v) =>
+                          setSetInputs((prev) =>
+                            prev.map((s, i) =>
+                              i === index ? { ...s, weightKg: Number(v) } : s
+                            )
+                          )
+                        }
+                      />
+                    </View>
+                  ))}
+                </ScrollView>
               </View>
             )}
 
@@ -501,16 +694,28 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: "row",
-    gap: 8,
+    gap: 12,
+    marginBottom: 12,
+  },
+  setsinput: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    color: colors.textPrimary,
+    fontSize: 15,
+    borderColor: colors.border,
+    borderWidth: 1,
   },
   input: {
     flex: 1,
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    padding: 8,
-    color: "#FFFFFF",
-    marginBottom: 16,
-    borderColor: "red",
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    color: colors.textPrimary,
+    fontSize: 15,
+    borderColor: colors.border,
     borderWidth: 1,
   },
   delete: {
@@ -581,5 +786,107 @@ const styles = StyleSheet.create({
   inputsGroup: {
     gap: 14, // 🔥 fixes squashed inputs
     marginBottom: 20,
+  },
+  setCard: {
+    backgroundColor: colors.card,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+
+  setTitle: {
+    color: colors.textPrimary,
+    fontWeight: "600",
+    marginBottom: 6,
+  },
+  exerciseHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+
+  editBtn: {
+    color: colors.primary,
+    fontWeight: "700",
+  },
+
+  editRow: {
+    backgroundColor: colors.background,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  editActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 16,
+    marginTop: 10,
+  },
+
+  saveBtn: {
+    color: colors.primary,
+    fontWeight: "700",
+  },
+
+  cancelBtn: {
+    color: "#ef4444",
+    fontWeight: "600",
+  },
+  readonlyGroup: {
+    gap: 10,
+  },
+
+  readonlyRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+
+  readonlyLabel: {
+    color: colors.textSecondary,
+    fontSize: 13,
+  },
+
+  readonlyValue: {
+    color: colors.textPrimary,
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  exerciseActions: {
+    flexDirection: "row",
+    gap: 16,
+  },
+
+  deleteBtn: {
+    color: "#ef4444",
+    fontWeight: "600",
+  },
+  searchInput: {
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    color: colors.textPrimary,
+    fontSize: 15,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+
+  searchResults: {
+    maxHeight: 220,
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  setsContainer: {
+    width: "100%",
+    marginTop: 8,
+    gap: 10,
   },
 });

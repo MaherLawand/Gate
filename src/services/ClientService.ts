@@ -143,6 +143,7 @@ export const getClientSessions = async (
   clientId: string
 ): Promise<SessionWithId[]> => {
   const snap = await collection("clients", clientId, "sessions").get();
+  console.log("Getting sessions for client: " , clientId);
 
   return snap.docs.map((d: FirebaseFirestoreTypes.QueryDocumentSnapshot) => ({
     id: d.id,

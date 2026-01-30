@@ -53,16 +53,20 @@ export interface ClientProfile {
   lastLoginAt?: Timestamp;
 }
 export type Exercise = {
-  id: number;
+  id: string; // 🔥 Firestore doc ID
   name: string;
+  category: "Push" | "Pull" | "Legs";
+};
+
+export type ExerciseSet = {
+  reps: number;
+  weightKg: number;
 };
 
 export type SessionExercise = {
-  exerciseId: number;
+  exerciseId: string;
   name: string;
-  sets: number;
-  reps: number;
-  weightKg: number;
+  sets: ExerciseSet[];
 };
 
 export type SessionData = {

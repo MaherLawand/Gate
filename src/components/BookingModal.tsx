@@ -53,6 +53,57 @@ export default function BookingModal({
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
 
+  const [preferredTimes, setPreferredTimes] = useState<string[]>([]);
+  const [loadingPrefs, setLoadingPrefs] = useState(false);
+
+  function getWeekKeyFromDate(dateKey: string) {
+    const d = new Date(dateKey);
+    const day = d.getDay(); // 0=Sun ... 6=Sat
+    const diff = day === 6 ? 0 : -(day + 1);
+    const saturday = new Date(d);
+    saturday.setDate(d.getDate() + diff);
+    return saturday.toISOString().split("T")[0];
+  }
+
+  useEffect(() => {
+    if (!selectedClient || !dateKey) {
+      setPreferredTimes([]);
+      return;
+    }
+
+    const loadPreferences = async () => {
+      try {
+        setLoadingPrefs(true);
+
+        const weekKey = getWeekKeyFromDate(dateKey);
+
+        const prefSnap = await firestore()
+          .collection("clients")
+          .doc(selectedClient.id)
+          .collection("weekly_preferences")
+          .doc(weekKey)
+          .get();
+
+        if (!prefSnap.exists) {
+          setPreferredTimes([]);
+          return;
+        }
+
+        const data = prefSnap.data();
+        const prefsForDay: string[] = data?.preferences?.[dateKey] ?? [];
+
+        setPreferredTimes(prefsForDay);
+      } catch (e) {
+        console.error("Failed to load client preferences", e);
+        setPreferredTimes([]);
+      } finally {
+        setLoadingPrefs(false);
+      }
+    };
+
+    loadPreferences();
+  }, [selectedClient?.id, dateKey]);
+
   const isEdit = !!editingSession;
 
   // -------- load clients --------
@@ -461,6 +512,36 @@ export default function BookingModal({
                   </View>
                 )}
               </View>
+              {/* Preffered Times */}
+
+              {loadingPrefs && (
+                <Text style={styles.prefLoading}>
+                  Loading client preferences…
+                </Text>
+              )}
+
+              {!loadingPrefs && preferredTimes.length > 0 && (
+                <View style={styles.prefBox}>
+                  <Text style={styles.prefTitle}>Client preferred times</Text>
+
+                  <View style={styles.prefTimesRow}>
+                    {preferredTimes.map((t) => (
+                      <View key={t} style={styles.prefTimeChip}>
+                        <Text style={styles.prefTimeText}>{t}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {!loadingPrefs &&
+                preferredTimes.length === 0 &&
+                selectedClient && (
+                  <Text style={styles.prefEmpty}>
+                    No preferred times for this day
+                  </Text>
+                )}
+
               {/* TIME PICKERS */}
               <View style={styles.timeRow}>
                 <TouchableOpacity
@@ -613,5 +694,52 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     maxHeight: "85%",
+  },
+  prefBox: {
+    marginTop: 12,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: "#1E1E1E",
+    borderWidth: 1,
+    borderColor: "#2A2A2A",
+  },
+
+  prefTitle: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 6,
+  },
+
+  prefTimesRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+
+  prefTimeChip: {
+    backgroundColor: colors.primary,
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+
+  prefTimeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+
+  prefEmpty: {
+    marginTop: 8,
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontStyle: "italic",
+  },
+
+  prefLoading: {
+    marginTop: 8,
+    fontSize: 12,
+    color: colors.textSecondary,
   },
 });
