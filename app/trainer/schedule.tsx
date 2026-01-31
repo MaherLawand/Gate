@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import BookingModal from "../../src/components/BookingModal";
+import { cancelBooking } from "@/src/services/cancelBooking";
 
 type EnrichedScheduledSession = ScheduledSession & {
   clientIsHijabi?: boolean;
@@ -242,6 +243,7 @@ export default function TrainerScheduleScreen() {
         clientPackageId: session.clientPackageId,
         mode,
       });
+
       console.log("uid: ", uid);
       // 🔄 reload schedule
       const snap = await firestore()
@@ -261,29 +263,88 @@ export default function TrainerScheduleScreen() {
     }
   };
 
-  const handleCancelBooking = async (session: ScheduledSession) => {
-    if (!uid) return;
-
-    if (session.attendance !== "pending") {
-      Alert.alert("Cannot cancel", "Only pending bookings can be cancelled.");
-      return;
-    }
-
-    try {
-      await firestore()
-        .collection("trainer_schedules")
-        .doc(uid)
-        .collection("days")
-        .doc(session.date)
-        .collection("sessions")
-        .doc(session.id)
-        .delete();
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
-    }
-  };
+  // const handleCancelBooking = async (session: ScheduledSession) => {
+  
+  //   if (!uid) return;
+  
+  //   if (session.attendance !== "pending") {
+  //     Alert.alert("Cannot cancel", "Only pending bookings can be cancelled.");
+  //     return;
+  //   }
+  
+  //   try {
+  //     const db = firestore();
+  
+  //     // 1️⃣ Delete ALL slot locks for this session
+  //     const slotsSnap = await db
+  //       .collection("gym_time_slots")
+  //       .where("sessionId", "==", session.id)
+  //       .get();
+  
+  //     if (!slotsSnap.empty) {
+  //       const batch = db.batch();
+  //       slotsSnap.docs.forEach((doc) => {
+  //         batch.delete(doc.ref);
+  //       });
+  //       await batch.commit();
+  //     }
+  
+  //     // 2️⃣ Delete the session itself
+  //     await db
+  //       .collection("trainer_schedules")
+  //       .doc(uid)
+  //       .collection("days")
+  //       .doc(session.date)
+  //       .collection("sessions")
+  //       .doc(session.id)
+  //       .delete();
+  
+  //   } catch (e: any) {
+  //     Alert.alert("Error", e.message);
+  //   }
+  // };
 
   // -------- render --------
+  
+  const handleCancelBooking = async (session: ScheduledSession) => {
+    if (!uid) return;
+  
+    // 🔒 Safety: only pending bookings can be cancelled
+    if (session.attendance !== "pending") {
+      Alert.alert(
+        "Cannot cancel",
+        "Only pending bookings can be cancelled."
+      );
+      return;
+    }
+  
+    Alert.alert(
+      "Cancel booking",
+      "This will permanently remove the booking. Are you sure?",
+      [
+        { text: "No", style: "cancel" },
+        {
+          text: "Yes",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await cancelBooking({
+                trainerId: uid,
+                session,
+              });
+  
+              // 🔄 UI refresh is automatic via onSnapshot
+              console.log("✅ Booking cancelled:", session.id);
+            } catch (e: any) {
+              console.error("🔥 Cancel booking failed:", e);
+              Alert.alert("Error", e.message);
+            }
+          },
+        },
+      ]
+    );
+  };
+  
   return (
     <View style={styles.container}>
       {/* HEADER */}

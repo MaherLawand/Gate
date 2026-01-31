@@ -1,3 +1,4 @@
+import { lockGymTimeSlot } from "@/src/services/SlotLockService";
 import { colors } from "@/src/theme/colors";
 import { ScheduledSession } from "@/src/types/models";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -17,6 +18,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { bookSession } from "@/src/services/bookingService";
 
 type Client = {
   id: string;
@@ -173,10 +175,21 @@ export default function BookingModal({
   // -------- helpers --------
   function formatTime(d: Date | null) {
     if (!d) return "--:--";
-    return d.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+
+    const hours = d.getHours(); // 0–23 ALWAYS
+    const minutes = d.getMinutes();
+
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
+      2,
+      "0"
+    )}`;
+  }
+  function roundToFiveMinutes(date: Date) {
+    const d = new Date(date);
+    const minutes = d.getMinutes();
+    const rounded = Math.round(minutes / 5) * 5;
+    d.setMinutes(rounded, 0, 0);
+    return d;
   }
 
   function timeToMinutes(time: string) {
@@ -188,274 +201,496 @@ export default function BookingModal({
     console.log(`🧩 [BOOKING DEBUG] ${step}`, data ?? "");
   }
 
-  // -------- save --------
-  const handleSave = async () => {
-    console.log("🚀 handleSave started");
-    console.log("selectedClient2 : ", selectedClient);
+  // -------- old save --------
+  // const handleSave = async () => {
+  //   console.log("🚀 handleSave started");
+  //   console.log("selectedClient2 : ", selectedClient);
 
-    if (!trainerId || !selectedClient || !fromTime || !toTime) {
-      console.warn("❌ Missing required data", {
+  //   if (!trainerId || !selectedClient || !fromTime || !toTime) {
+  //     console.warn("❌ Missing required data", {
+  //       trainerId,
+  //       selectedClient,
+  //       fromTime,
+  //       toTime,
+  //     });
+  //     Alert.alert("Missing data", "Fill all fields");
+  //     return;
+  //   }
+
+  //   if (toTime <= fromTime) {
+  //     console.warn("❌ Invalid time range", { fromTime, toTime });
+  //     Alert.alert("Invalid time", "`To` must be after `From`");
+  //     return;
+  //   }
+
+  //   try {
+  //     /* ---------------- RULE 1 ---------------- */
+
+  //     const scheduleRootRef = firestore()
+  //       .collection("trainer_schedules")
+  //       .doc(trainerId);
+
+  //     console.log("scheduleRootRef: ", scheduleRootRef);
+
+  //     const rootSnap = await scheduleRootRef.get();
+
+  //     console.log("rootSnap: ", rootSnap);
+
+  //     if (!rootSnap.exists) {
+  //       await scheduleRootRef.set({
+  //         createdAt: firestore.FieldValue.serverTimestamp(),
+  //       });
+  //     }
+
+  //     console.log("🔍 RULE 1: Checking existing client booking");
+
+  //     const existingSnap = await firestore()
+  //       .collection("trainer_schedules")
+  //       .doc(trainerId)
+  //       .collection("days")
+  //       .doc(dateKey)
+  //       .collection("sessions")
+  //       .where("clientId", "==", selectedClient.id)
+  //       .get();
+
+  //     console.log("✅ RULE 1 query success. Docs:", existingSnap.docs.length);
+
+  //     const hasConflict = existingSnap.docs.some(
+  //       (doc) => doc.id !== editingSession?.id
+  //     );
+
+  //     console.log("hasConflict:", hasConflict);
+
+  //     if (hasConflict) {
+  //       Alert.alert(
+  //         "Booking conflict",
+  //         "This client already has a session booked on this day."
+  //       );
+  //       return;
+  //     }
+
+  //     /* ---------------- RULE 2 ---------------- */
+  //     console.log("🔍 RULE 2: Checking trainer overlap");
+
+  //     const overlappingSnap = await firestore()
+  //       .collection("trainer_schedules")
+  //       .doc(trainerId)
+  //       .collection("days")
+  //       .doc(dateKey)
+  //       .collection("sessions")
+  //       .get();
+
+  //     console.log(
+  //       "✅ RULE 2 query success. Sessions:",
+  //       overlappingSnap.docs.length
+  //     );
+
+  //     const newStart = fromTime.getHours() * 60 + fromTime.getMinutes();
+  //     const newEnd = toTime.getHours() * 60 + toTime.getMinutes();
+
+  //     console.log("New session minutes:", { newStart, newEnd });
+
+  //     const hasOverlap = overlappingSnap.docs.some((doc) => {
+  //       if (doc.id === editingSession?.id) return false;
+
+  //       const s = doc.data();
+  //       const existingStart = timeToMinutes(s.startTime);
+  //       const existingEnd = timeToMinutes(s.endTime);
+
+  //       console.log("Comparing with session:", {
+  //         sessionId: doc.id,
+  //         existingStart,
+  //         existingEnd,
+  //       });
+
+  //       return newStart < existingEnd && newEnd > existingStart;
+  //     });
+
+  //     console.log("hasOverlap:", hasOverlap);
+
+  //     if (hasOverlap) {
+  //       Alert.alert(
+  //         "Time conflict",
+  //         "This time overlaps with another session."
+  //       );
+  //       return;
+  //     }
+
+  //     /* ---------------- RULE 4 ---------------- */
+  //     console.log("🔍 RULE 4: Hijabi privacy rule");
+
+  //     console.log("Selected client gender data:", {
+  //       gender: selectedClient.gender,
+  //       isHijabi: selectedClient.isHijabi,
+  //     });
+
+  //     if (
+  //       selectedClient.gender === "male" ||
+  //       (selectedClient.gender === "female" && selectedClient.isHijabi)
+  //     ) {
+  //       console.log("➡️ Hijabi rule ACTIVE, loading trainer_schedules");
+
+  //       const trainersSnap = await firestore()
+  //         .collection("trainer_schedules")
+  //         .get();
+
+  //       console.log(
+  //         "✅ trainer_schedules read success. Trainers:",
+  //         trainersSnap.docs.map((d) => d.id)
+  //       );
+
+  //       for (const trainerDoc of trainersSnap.docs) {
+  //         console.log("🔎 Checking trainer:", trainerDoc.id);
+
+  //         const daysRef = trainerDoc.ref
+  //           .collection("days")
+  //           .doc(dateKey)
+  //           .collection("sessions");
+
+  //         const sessionsSnap = await daysRef.get();
+
+  //         console.log(
+  //           `📅 ${trainerDoc.id} sessions on ${dateKey}:`,
+  //           sessionsSnap.docs.length
+  //         );
+
+  //         for (const doc of sessionsSnap.docs) {
+  //           if (doc.id === editingSession?.id) continue;
+
+  //           const s = doc.data();
+  //           console.log("s: ", s);
+  //           const existingStart = timeToMinutes(s.startTime);
+  //           const existingEnd = timeToMinutes(s.endTime);
+
+  //           const overlaps = newStart < existingEnd && newEnd > existingStart;
+
+  //           if (!overlaps) continue;
+
+  //           console.log("⚠️ Overlap found with session:", doc.id);
+
+  //           console.log("Other client gender data:", s);
+
+  //           const isHijabiFemale =
+  //             s?.clientGender === "female" && s.isHijabi === true;
+
+  //           const isMale = s?.clientGender === "male";
+
+  //           if (
+  //             (selectedClient.gender === "male" && isHijabiFemale) ||
+  //             (selectedClient.gender === "female" &&
+  //               selectedClient.isHijabi &&
+  //               isMale)
+  //           ) {
+  //             if (selectedClient.gender === "male") {
+  //               Alert.alert(
+  //                 "Booking restricted",
+  //                 "A hijabi female has already been booked at that time"
+  //               );
+  //             } else {
+  //               Alert.alert(
+  //                 "Booking restricted",
+  //                 "A male has already been booked at that time"
+  //               );
+  //             }
+
+  //             return;
+  //           }
+  //         }
+  //       }
+  //     }
+
+  //     /* ---------------- RULE 5 ---------------- */
+  //     console.log("🔍 RULE 5: Checking active package");
+
+  //     let clientPackageId = editingSession?.clientPackageId;
+
+  //     if (!editingSession) {
+  //       const packageSnap = await firestore()
+  //         .collection("clients")
+  //         .doc(selectedClient.id)
+  //         .collection("packages")
+  //         .where("status", "==", "active")
+  //         .where("sessionsRemaining", ">", 0)
+  //         .limit(1)
+  //         .get();
+
+  //       console.log("📦 Package query result:", packageSnap.docs.length);
+
+  //       if (packageSnap.empty) {
+  //         Alert.alert(
+  //           "No active package",
+  //           "This client has no active package or no sessions remaining."
+  //         );
+  //         return;
+  //       }
+
+  //       clientPackageId = packageSnap.docs[0].id;
+  //     }
+
+  //     /* ---------------- SAVE ---------------- */
+  //     console.log("💾 Saving booking");
+
+  //     const payload = {
+  //       clientId: selectedClient.id,
+  //       clientName: `${selectedClient.firstName} ${selectedClient.lastName}`,
+  //       clientPackageId,
+  //       date: dateKey,
+  //       startTime: formatTime(fromTime),
+  //       endTime: formatTime(toTime),
+  //       clientGender: selectedClient.gender,
+  //       isHijabi: selectedClient.isHijabi ?? false,
+  //       attendance: editingSession ? editingSession.attendance : "pending",
+  //       updatedAt: firestore.FieldValue.serverTimestamp(),
+  //     };
+  //     console.log(payload);
+
+  //     const sessionsRef = firestore()
+  //       .collection("trainer_schedules")
+  //       .doc(trainerId)
+  //       .collection("days")
+  //       .doc(dateKey)
+  //       .collection("sessions");
+
+  //     console.log("sessionRef: ", sessionsRef);
+
+  //     if (editingSession) {
+  //       await sessionsRef.doc(editingSession.id).update(payload);
+  //     } else {
+  //       await sessionsRef.add({
+  //         ...payload,
+  //         createdAt: firestore.FieldValue.serverTimestamp(),
+  //       });
+  //     }
+
+  //     console.log("✅ Booking saved successfully");
+
+  //     onSaved();
+  //     onClose();
+  //   } catch (e: any) {
+  //     console.error("🔥 ERROR saving booking:", e);
+  //     Alert.alert("Error", e.message);
+  //   }
+  // };
+
+  // -------- new save --------
+  // const handleSave = async () => {
+  //   console.log("🚀 handleSave started");
+
+  //   if (!trainerId || !selectedClient || !fromTime || !toTime) {
+  //     Alert.alert("Missing data", "Fill all fields");
+  //     return;
+  //   }
+
+  //   if (toTime <= fromTime) {
+  //     Alert.alert("Invalid time", "`To` must be after `From`");
+  //     return;
+  //   }
+
+  //   const newStart = fromTime.getHours() * 60 + fromTime.getMinutes();
+  //   const newEnd = toTime.getHours() * 60 + toTime.getMinutes();
+
+  //   /* ---------------- PAST DATE / TIME CHECK ---------------- */
+
+  //   const now = new Date();
+
+  //   const bookingDate = new Date(`${dateKey}T00:00:00`);
+  //   const today = new Date();
+  //   today.setHours(0, 0, 0, 0);
+
+  //   // ❌ Past day
+  //   if (bookingDate < today) {
+  //     Alert.alert("Invalid booking", "You cannot book old sessions");
+  //     return;
+  //   }
+
+  //   // ❌ Today but past time
+  //   if (bookingDate.getTime() === today.getTime()) {
+  //     const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  //     if (newStart <= nowMinutes) {
+  //       Alert.alert(
+  //         "Invalid booking",
+  //         "You cannot book a session in the past."
+  //       );
+  //       return;
+  //     }
+  //   }
+
+  //   try {
+  //     /* ---------------- RULE 1: CLIENT SAME DAY ---------------- */
+  //     const sessionsRef = firestore()
+  //       .collection("trainer_schedules")
+  //       .doc(trainerId)
+  //       .collection("days")
+  //       .doc(dateKey)
+  //       .collection("sessions");
+
+  //     const existingClientSnap = await firestore()
+  //       .collection("trainer_schedules")
+  //       .doc(trainerId)
+  //       .collection("days")
+  //       .doc(dateKey)
+  //       .collection("sessions")
+  //       .where("clientId", "==", selectedClient.id)
+  //       .get();
+
+  //     const hasClientConflict = existingClientSnap.docs.some(
+  //       (d) => d.id !== editingSession?.id
+  //     );
+
+  //     if (hasClientConflict) {
+  //       Alert.alert(
+  //         "Booking conflict",
+  //         "This client already has a session booked on this day."
+  //       );
+  //       return;
+  //     }
+
+  //     /* ---------------- RULE 2: TRAINER OVERLAP ---------------- */
+
+  //     const trainerSessionsSnap = await firestore()
+  //       .collection("trainer_schedules")
+  //       .doc(trainerId)
+  //       .collection("days")
+  //       .doc(dateKey)
+  //       .collection("sessions")
+  //       .get();
+
+  //     const trainerOverlap = trainerSessionsSnap.docs.some((doc) => {
+  //       if (doc.id === editingSession?.id) return false;
+
+  //       const s = doc.data();
+  //       const start = timeToMinutes(s.startTime);
+  //       const end = timeToMinutes(s.endTime);
+
+  //       return newStart < end && newEnd > start;
+  //     });
+
+  //     if (trainerOverlap) {
+  //       Alert.alert(
+  //         "Time conflict",
+  //         "This time overlaps with another session."
+  //       );
+  //       return;
+  //     }
+
+  //     /* ---------------- RULE 3: ACTIVE PACKAGE ---------------- */
+
+  //     let clientPackageId = editingSession?.clientPackageId;
+
+  //     if (!editingSession) {
+  //       const packageSnap = await firestore()
+  //         .collection("clients")
+  //         .doc(selectedClient.id)
+  //         .collection("packages")
+  //         .where("status", "==", "active")
+  //         .where("sessionsRemaining", ">", 0)
+  //         .limit(1)
+  //         .get();
+
+  //       if (packageSnap.empty) {
+  //         Alert.alert(
+  //           "No active package",
+  //           "This client has no active package or no sessions remaining."
+  //         );
+  //         return;
+  //       }
+
+  //       clientPackageId = packageSnap.docs[0].id;
+  //     }
+  //     /* ---------------- SESSION ID ---------------- */
+
+  //     const sessionId = editingSession
+  //       ? editingSession.id
+  //       : sessionsRef.doc().id;
+  //     /* ---------------- SLOT LOCK ---------------- */
+
+  //     console.log("🔒 Locking gym time slot");
+
+  //     // If editing, release old slot first
+  //     if (
+  //       editingSession &&
+  //       (editingSession.startTime !== formatTime(fromTime) ||
+  //         editingSession.endTime !== formatTime(toTime))
+  //     ) {
+  //       await firestore()
+  //         .collection("gym_time_slots")
+  //         .doc(editingSession.id)
+  //         .delete()
+  //         .catch(() => {});
+  //     }
+
+  //     await lockGymTimeSlot({
+  //       sessionId,
+  //       date: dateKey,
+  //       startTime: formatTime(fromTime),
+  //       endTime: formatTime(toTime),
+  //       trainerId,
+  //       clientId: selectedClient.id,
+  //       clientGender: selectedClient.gender as "male" | "female",
+  //       clientIsHijabi: selectedClient.isHijabi ?? false,
+  //     });
+
+  //     /* ---------------- SAVE SESSION ---------------- */
+
+  //     const payload = {
+  //       clientId: selectedClient.id,
+  //       clientName: `${selectedClient.firstName} ${selectedClient.lastName}`,
+  //       clientPackageId,
+  //       date: dateKey,
+  //       startTime: formatTime(fromTime),
+  //       endTime: formatTime(toTime),
+  //       clientGender: selectedClient.gender,
+  //       isHijabi: selectedClient.isHijabi ?? false,
+  //       attendance: editingSession ? editingSession.attendance : "pending",
+  //       updatedAt: firestore.FieldValue.serverTimestamp(),
+  //     };
+
+  //     if (editingSession) {
+  //       await sessionsRef.doc(sessionId).update(payload);
+  //     } else {
+  //       await sessionsRef.doc(sessionId).set({
+  //         ...payload,
+  //         createdAt: firestore.FieldValue.serverTimestamp(),
+  //       });
+  //     }
+
+  //     console.log("✅ Booking saved successfully");
+
+  //     onSaved();
+  //     onClose();
+  //   } catch (e: any) {
+  //     console.error("🔥 Booking failed:", e);
+  //     Alert.alert("Booking failed", e.message);
+  //   }
+  // };
+  const handleSave = async () => {
+    try {
+      if (!trainerId || !selectedClient || !fromTime || !toTime) {
+        Alert.alert("Missing data", "Fill all fields");
+        return;
+      }
+  
+      await bookSession({
         trainerId,
-        selectedClient,
+        dateKey,
+        selectedClient: {
+          id: selectedClient.id,
+          firstName: selectedClient.firstName,
+          lastName: selectedClient.lastName,
+          gender: selectedClient.gender as "male" | "female",
+          isHijabi: selectedClient.isHijabi,
+        },
         fromTime,
         toTime,
+        editingSession,
       });
-      Alert.alert("Missing data", "Fill all fields");
-      return;
-    }
-
-    if (toTime <= fromTime) {
-      console.warn("❌ Invalid time range", { fromTime, toTime });
-      Alert.alert("Invalid time", "`To` must be after `From`");
-      return;
-    }
-
-    try {
-      /* ---------------- RULE 1 ---------------- */
-
-      const scheduleRootRef = firestore()
-        .collection("trainer_schedules")
-        .doc(trainerId);
-
-      console.log("scheduleRootRef: ", scheduleRootRef);
-
-      const rootSnap = await scheduleRootRef.get();
-
-      console.log("rootSnap: ", rootSnap);
-
-      if (!rootSnap.exists) {
-        await scheduleRootRef.set({
-          createdAt: firestore.FieldValue.serverTimestamp(),
-        });
-      }
-
-      console.log("🔍 RULE 1: Checking existing client booking");
-
-      const existingSnap = await firestore()
-        .collection("trainer_schedules")
-        .doc(trainerId)
-        .collection("days")
-        .doc(dateKey)
-        .collection("sessions")
-        .where("clientId", "==", selectedClient.id)
-        .get();
-
-      console.log("✅ RULE 1 query success. Docs:", existingSnap.docs.length);
-
-      const hasConflict = existingSnap.docs.some(
-        (doc) => doc.id !== editingSession?.id
-      );
-
-      console.log("hasConflict:", hasConflict);
-
-      if (hasConflict) {
-        Alert.alert(
-          "Booking conflict",
-          "This client already has a session booked on this day."
-        );
-        return;
-      }
-
-      /* ---------------- RULE 2 ---------------- */
-      console.log("🔍 RULE 2: Checking trainer overlap");
-
-      const overlappingSnap = await firestore()
-        .collection("trainer_schedules")
-        .doc(trainerId)
-        .collection("days")
-        .doc(dateKey)
-        .collection("sessions")
-        .get();
-
-      console.log(
-        "✅ RULE 2 query success. Sessions:",
-        overlappingSnap.docs.length
-      );
-
-      const newStart = fromTime.getHours() * 60 + fromTime.getMinutes();
-      const newEnd = toTime.getHours() * 60 + toTime.getMinutes();
-
-      console.log("New session minutes:", { newStart, newEnd });
-
-      const hasOverlap = overlappingSnap.docs.some((doc) => {
-        if (doc.id === editingSession?.id) return false;
-
-        const s = doc.data();
-        const existingStart = timeToMinutes(s.startTime);
-        const existingEnd = timeToMinutes(s.endTime);
-
-        console.log("Comparing with session:", {
-          sessionId: doc.id,
-          existingStart,
-          existingEnd,
-        });
-
-        return newStart < existingEnd && newEnd > existingStart;
-      });
-
-      console.log("hasOverlap:", hasOverlap);
-
-      if (hasOverlap) {
-        Alert.alert(
-          "Time conflict",
-          "This time overlaps with another session."
-        );
-        return;
-      }
-
-      /* ---------------- RULE 4 ---------------- */
-      console.log("🔍 RULE 4: Hijabi privacy rule");
-
-      console.log("Selected client gender data:", {
-        gender: selectedClient.gender,
-        isHijabi: selectedClient.isHijabi,
-      });
-
-      if (
-        selectedClient.gender === "male" ||
-        (selectedClient.gender === "female" && selectedClient.isHijabi)
-      ) {
-        console.log("➡️ Hijabi rule ACTIVE, loading trainer_schedules");
-
-        const trainersSnap = await firestore()
-          .collection("trainer_schedules")
-          .get();
-
-        console.log(
-          "✅ trainer_schedules read success. Trainers:",
-          trainersSnap.docs.map((d) => d.id)
-        );
-
-        for (const trainerDoc of trainersSnap.docs) {
-          console.log("🔎 Checking trainer:", trainerDoc.id);
-
-          const daysRef = trainerDoc.ref
-            .collection("days")
-            .doc(dateKey)
-            .collection("sessions");
-
-          const sessionsSnap = await daysRef.get();
-
-          console.log(
-            `📅 ${trainerDoc.id} sessions on ${dateKey}:`,
-            sessionsSnap.docs.length
-          );
-
-          for (const doc of sessionsSnap.docs) {
-            if (doc.id === editingSession?.id) continue;
-
-            const s = doc.data();
-            console.log("s: ", s);
-            const existingStart = timeToMinutes(s.startTime);
-            const existingEnd = timeToMinutes(s.endTime);
-
-            const overlaps = newStart < existingEnd && newEnd > existingStart;
-
-            if (!overlaps) continue;
-
-            console.log("⚠️ Overlap found with session:", doc.id);
-
-            console.log("Other client gender data:", s);
-
-            const isHijabiFemale =
-              s?.clientGender === "female" && s.isHijabi === true;
-
-            const isMale = s?.clientGender === "male";
-
-            if (
-              (selectedClient.gender === "male" && isHijabiFemale) ||
-              (selectedClient.gender === "female" &&
-                selectedClient.isHijabi &&
-                isMale)
-            ) {
-              if (selectedClient.gender === "male") {
-                Alert.alert(
-                  "Booking restricted",
-                  "A hijabi female has already been booked at that time"
-                );
-              } else {
-                Alert.alert(
-                  "Booking restricted",
-                  "A male has already been booked at that time"
-                );
-              }
-
-              return;
-            }
-          }
-        }
-      }
-
-      /* ---------------- RULE 5 ---------------- */
-      console.log("🔍 RULE 5: Checking active package");
-
-      let clientPackageId = editingSession?.clientPackageId;
-
-      if (!editingSession) {
-        const packageSnap = await firestore()
-          .collection("clients")
-          .doc(selectedClient.id)
-          .collection("packages")
-          .where("status", "==", "active")
-          .where("sessionsRemaining", ">", 0)
-          .limit(1)
-          .get();
-
-        console.log("📦 Package query result:", packageSnap.docs.length);
-
-        if (packageSnap.empty) {
-          Alert.alert(
-            "No active package",
-            "This client has no active package or no sessions remaining."
-          );
-          return;
-        }
-
-        clientPackageId = packageSnap.docs[0].id;
-      }
-
-      /* ---------------- SAVE ---------------- */
-      console.log("💾 Saving booking");
-
-      const payload = {
-        clientId: selectedClient.id,
-        clientName: `${selectedClient.firstName} ${selectedClient.lastName}`,
-        clientPackageId,
-        date: dateKey,
-        startTime: formatTime(fromTime),
-        endTime: formatTime(toTime),
-        clientGender: selectedClient.gender,
-        isHijabi: selectedClient.isHijabi ?? false,
-        attendance: editingSession ? editingSession.attendance : "pending",
-        updatedAt: firestore.FieldValue.serverTimestamp(),
-      };
-      console.log(payload);
-
-      const sessionsRef = firestore()
-        .collection("trainer_schedules")
-        .doc(trainerId)
-        .collection("days")
-        .doc(dateKey)
-        .collection("sessions");
-
-      console.log("sessionRef: ", sessionsRef);
-
-      if (editingSession) {
-        await sessionsRef.doc(editingSession.id).update(payload);
-      } else {
-        await sessionsRef.add({
-          ...payload,
-          createdAt: firestore.FieldValue.serverTimestamp(),
-        });
-      }
-
-      console.log("✅ Booking saved successfully");
-
+  
       onSaved();
       onClose();
     } catch (e: any) {
-      console.error("🔥 ERROR saving booking:", e);
-      Alert.alert("Error", e.message);
+      console.error("🔥 Booking failed:", e);
+      Alert.alert("Booking failed", e.message);
     }
   };
 
@@ -564,8 +799,11 @@ export default function BookingModal({
               {showFromPicker && (
                 <DateTimePicker
                   mode="time"
+                  is24Hour={true}
+                  minuteInterval={5} // ✅ THIS
                   value={fromTime ?? new Date()}
                   display={Platform.OS === "android" ? "spinner" : "default"}
+                  ///dont forget to add date logic to iphone
                   onChange={(_, d) => {
                     setShowFromPicker(false);
                     if (d) setFromTime(d);
@@ -576,6 +814,8 @@ export default function BookingModal({
               {showToPicker && (
                 <DateTimePicker
                   mode="time"
+                  is24Hour={true}
+                  minuteInterval={5} // ✅ THIS
                   value={toTime ?? new Date()}
                   display={Platform.OS === "android" ? "spinner" : "default"}
                   onChange={(_, d) => {

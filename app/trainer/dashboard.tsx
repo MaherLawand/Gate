@@ -2,7 +2,14 @@ import { useFocusEffect  } from "expo-router";
 import { Alert, BackHandler, StyleSheet, Text, View } from "react-native";
 import { colors } from "../../src/theme/colors";
 import { useCallback } from "react";
+
+import { useEffect } from "react";
+
+
 export default function Dashboard() {
+
+
+
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {

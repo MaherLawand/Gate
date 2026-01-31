@@ -1,9 +1,10 @@
 // src/services/firebase.ts
-
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
-import { useEffect } from "react";
+import functions from "@react-native-firebase/functions";
 
-// Re-export native Firebase instances
-export { auth, firestore };
+if (__DEV__) {
+  functions().useEmulator("localhost", 5001);
+}
 
+export { auth, firestore, functions };

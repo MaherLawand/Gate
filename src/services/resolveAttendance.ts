@@ -76,13 +76,13 @@ export async function resolveAttendance({
 
       // ✅ Create client session ONLY if attended
       if (mode === "confirmed") {
-        console.log("innnnn")
+        console.log("innnnn");
         const clientSessionRef = db
           .collection("clients")
           .doc(clientId)
           .collection("sessions")
           .doc();
-          console.log("clientSessionRef", clientSessionRef)
+        console.log("clientSessionRef", clientSessionRef);
         tx.set(clientSessionRef, {
           packageId: clientPackageId,
           date: schedule.date,

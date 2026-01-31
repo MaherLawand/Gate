@@ -6,6 +6,7 @@ import {
   unarchiveClient,
   updateClient,
 } from "@/src/services/ClientService";
+import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -30,6 +31,25 @@ type ClientWithPackageStatus = ClientProfile & {
 };
 
 export default function ClientsScreen() {
+  // useEffect(() => {
+  //   const run = async () => {
+  //     let user = auth().currentUser;
+  
+  //     if (!user) {
+  //       const res = await auth().signInAnonymously();
+  //       user = res.user;
+  //       user.uid="UC7Do8XOqPYOX5vaPG2uDlayg0E3";
+  //     }
+  
+  //     console.log("AUTH UID:", user.uid);
+  
+  //     await testBookSession(user.uid); // ✅ THIS IS THE FIX
+  //   };
+  
+  //   run();
+  // }, []);
+  
+
   const [clients, setClients] = useState<ClientWithPackageStatus[]>([]);
 
   const [loading, setLoading] = useState(true);
