@@ -77,13 +77,10 @@ export const confirmOtp = async (code: string) => {
         lastLoginAt: serverTimestamp(),
       });
 
-      await firestore()
-  .collection("trainer_schedules")
-  .doc(user.uid)
-  .set({
-    trainerId: user.uid,
-    createdAt: firestore.FieldValue.serverTimestamp(),
-  });
+    await firestore().collection("trainer_schedules").doc(user.uid).set({
+      trainerId: user.uid,
+      createdAt: firestore.FieldValue.serverTimestamp(),
+    });
     console.log("New trainer created with UID:", user.uid);
     console.log("Invite data:", inviteSnap.data());
     await inviteSnap.ref.delete();

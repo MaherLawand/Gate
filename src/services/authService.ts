@@ -6,53 +6,112 @@ import { doc, getDoc, setDoc } from "../services/fireStoreHelpers";
 // User roles
 export type UserRole = "client" | "trainer";
 
-// Register user (client or trainer)
+/* -------------------------------------------------------------------------- */
+/*                               REGISTER USER                                 */
+/* -------------------------------------------------------------------------- */
+
 export async function registerUser(
   email: string,
   password: string,
   role: UserRole,
   name: string
 ) {
-  // 1️⃣ Create user in Firebase Auth (native)
-  const credential = await auth().createUserWithEmailAndPassword(
-    email,
-    password
-  );
-
-  const uid = credential.user.uid;
-
-  // 2️⃣ Save additional info in Firestore
-  await setDoc(doc("users", uid), {
-    uid,
+  console.info("[AuthService] registerUser → start", {
     email,
     role,
-    name,
-    createdAt: firestore.FieldValue.serverTimestamp(),
   });
 
-  return { uid, email, role, name };
+  try {
+    // 1️⃣ Create user in Firebase Auth
+    const credential = await auth().createUserWithEmailAndPassword(
+      email,
+      password
+    );
+
+    const uid = credential.user.uid;
+
+    console.info("[AuthService] Auth user created", {
+      uid,
+      email,
+    });
+
+    // 2️⃣ Save user profile in Firestore
+    await setDoc(doc("users", uid), {
+      uid,
+      email,
+      role,
+      name,
+      createdAt: firestore.FieldValue.serverTimestamp(),
+    });
+
+    console.info("[AuthService] Firestore user document created", {
+      uid,
+      role,
+    });
+
+    return { uid, email, role, name };
+  } catch (error: any) {
+    console.error("[AuthService] registerUser → failed", {
+      email,
+      role,
+      message: error?.message,
+      code: error?.code,
+    });
+
+    throw error;
+  }
 }
 
-// Login trainer only
+/* -------------------------------------------------------------------------- */
+/*                               LOGIN TRAINER                                 */
+/* -------------------------------------------------------------------------- */
+
 export async function loginTrainer(email: string, password: string) {
-  const credential = await auth().signInWithEmailAndPassword(
-    email,
-    password
-  );
+  console.info("[AuthService] loginTrainer → start", { email });
 
-  const uid = credential.user.uid;
+  try {
+    // 1️⃣ Firebase Auth login
+    const credential = await auth().signInWithEmailAndPassword(
+      email,
+      password
+    );
 
-  const snap = await getDoc(doc("users", uid));
+    const uid = credential.user.uid;
 
-  if (!snap.exists) {
-    throw new Error("Access denied");
+    console.info("[AuthService] Auth login success", { uid });
+
+    // 2️⃣ Load Firestore user profile
+    const snap = await getDoc(doc("users", uid));
+
+    if (!snap.exists) {
+      console.warn("[AuthService] User document missing", { uid });
+      throw new Error("Access denied");
+    }
+
+    const user = snap.data();
+
+    // 3️⃣ Role validation
+    if (user.role !== "trainer") {
+      console.warn("[AuthService] Role mismatch", {
+        uid,
+        role: user.role,
+      });
+      throw new Error("Not authorized");
+    }
+
+    console.info("[AuthService] Trainer login success", {
+      uid,
+      role: user.role,
+    });
+
+    return user;
+  } catch (error: any) {
+    console.error("[AuthService] loginTrainer → failed", {
+      email,
+      message: error?.message,
+      code: error?.code,
+    });
+
+    throw error;
   }
-
-  const user = snap.data();
-
-  if (user.role !== "trainer") {
-    throw new Error("Not authorized");
-  }
-
-  return user;
 }

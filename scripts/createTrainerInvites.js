@@ -15,7 +15,6 @@ const db = admin.firestore();
 const trainerInvites = [
   {
     role: "trainer",
-
     // Identity
     firstName: "Joelle",
     lastName: "Sakr",
@@ -33,7 +32,6 @@ const trainerInvites = [
   },
   {
     role: "trainer",
-
     // Identity
     firstName: "Nicole",
     lastName: "beainy",
@@ -67,7 +65,7 @@ async function run() {
       continue;
     }
 
-    const ref = db.collection("trainer_invites").doc(phone);
+    const ref = db.collection("trainer_invites").doc(phone)
 
     await ref.set({
       role: "trainer",

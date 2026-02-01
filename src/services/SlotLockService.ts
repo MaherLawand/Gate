@@ -46,6 +46,17 @@ export async function lockGymTimeSlot({
   clientGender,
   clientIsHijabi,
 }: LockSlotParams) {
+  console.info("[SlotLock] START", {
+    sessionId,
+    date,
+    startTime,
+    endTime,
+    trainerId,
+    clientId,
+    clientGender,
+    clientIsHijabi,
+  });
+
   const db = firestore();
   const slotsRef = db.collection("gym_time_slots");
 
@@ -53,44 +64,69 @@ export async function lockGymTimeSlot({
   const newEnd = timeToMinutes(endTime);
 
   if (newEnd <= newStart) {
+    console.error("[SlotLock] Invalid time range", {
+      start: newStart,
+      end: newEnd,
+    });
     throw new Error("Invalid time range");
   }
 
   const bucketIds = generateTimeBuckets(date, newStart, newEnd);
 
+  console.info("[SlotLock] Generated buckets", {
+    count: bucketIds.length,
+    buckets: bucketIds,
+  });
+
   await db.runTransaction(async (tx) => {
     /* ---------- CHECK ALL BUCKETS ---------- */
+
+    console.info("[SlotLock:transaction] Checking buckets");
+
     for (const bucketId of bucketIds) {
       const ref = slotsRef.doc(bucketId);
       const snap = await tx.get(ref);
 
       if (snap.exists()) {
         const s = snap.data();
-
         const existingType = s?.slotType;
+      
         const newType =
           clientGender === "male"
             ? "male"
             : clientIsHijabi
             ? "female-hijabi"
-            : "neutral";
-
+            : "female";
+      
         const privacyConflict =
-          (newType === "male" && existingType === "female-hijabi") ||
-          (newType === "female-hijabi" && existingType === "male");
-
+          (existingType === "male" && newType === "female-hijabi") ||
+          (existingType === "female-hijabi" && newType === "male");
+      
         if (privacyConflict) {
+          console.error("[SlotLock] Privacy conflict detected", {
+            bucketId,
+            existingType,
+            newType,
+          });
+      
           throw new Error(
             "Privacy conflict: a male and a hijabi client cannot overlap."
           );
         }
-
-        throw new Error("Time overlap detected");
+      
+        // ✅ OTHERWISE: overlap is allowed → DO NOTHING
       }
     }
+
     const expiresAt = minutesToDate(date, newEnd);
 
     /* ---------- LOCK ALL BUCKETS ---------- */
+
+    console.info("[SlotLock:transaction] Locking buckets", {
+      bucketCount: bucketIds.length,
+      expiresAt,
+    });
+
     for (const bucketId of bucketIds) {
       tx.set(slotsRef.doc(bucketId), {
         sessionId,
@@ -109,5 +145,12 @@ export async function lockGymTimeSlot({
         createdAt: firestore.FieldValue.serverTimestamp(),
       });
     }
+  });
+
+  console.info("[SlotLock] SUCCESS", {
+    sessionId,
+    date,
+    startTime,
+    endTime,
   });
 }

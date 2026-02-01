@@ -2,13 +2,24 @@ import firestore from "@react-native-firebase/firestore";
 import { Exercise } from "../types/models";
 
 export async function getExercises(): Promise<Exercise[]> {
-  const snap = await firestore().collection("Exercises").orderBy("name").get();
+  console.info("[Exercise:getExercises] start");
 
-  console.log("snmap: ", snap);
+  const snap = await firestore()
+    .collection("Exercises")
+    .orderBy("name")
+    .get();
 
-  return snap.docs.map((d) => ({
+  console.info("[Exercise:getExercises] fetched", {
+    count: snap.docs.length,
+  });
+
+  const exercises = snap.docs.map((d) => ({
     id: d.id,
     name: d.data().name,
     category: d.data().category,
   }));
+
+  console.info("[Exercise:getExercises] success");
+
+  return exercises;
 }

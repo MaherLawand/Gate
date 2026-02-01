@@ -1,3 +1,7 @@
+import ScheduleHeaderSkeleton from "@/src/components/skeletons/Schedule/ScheduleHeaderSkeleton";
+import ScheduleTimeColumnSkeleton from "@/src/components/skeletons/Schedule/ScheduleTimeColumnSkeleton";
+import ScheduleTimelineSkeleton from "@/src/components/skeletons/Schedule/ScheduleTimelineSkeleton";
+import { cancelBooking } from "@/src/services/cancelBooking";
 import { resolveAttendance } from "@/src/services/resolveAttendance";
 import { colors } from "@/src/theme/colors";
 import { ScheduledSession } from "@/src/types/models";
@@ -6,7 +10,6 @@ import firestore from "@react-native-firebase/firestore";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
@@ -15,7 +18,6 @@ import {
   View,
 } from "react-native";
 import BookingModal from "../../src/components/BookingModal";
-import { cancelBooking } from "@/src/services/cancelBooking";
 
 type EnrichedScheduledSession = ScheduledSession & {
   clientIsHijabi?: boolean;
@@ -30,6 +32,7 @@ const DAY_END = END_HOUR * 60; // 21:00 → 1260
 const TIMELINE_HEIGHT = (DAY_END - DAY_START) * MINUTE_HEIGHT;
 const SLOT_MINUTES = 30;
 const SESSION_GAP = 5; // px (try 3–6)
+const DEV_SKELETON_DELAY = 2200; // ms
 
 const slots = Array.from(
   { length: ((END_HOUR - START_HOUR) * 60) / SLOT_MINUTES },
@@ -105,7 +108,9 @@ export default function TrainerScheduleScreen() {
   useEffect(() => {
     if (!uid) return;
 
-    setLoading(true);
+    setTimeout(() => {
+      setLoading(true);
+    }, DEV_SKELETON_DELAY);
 
     const unsubscribe = firestore()
       .collection("trainer_schedules")
@@ -141,11 +146,15 @@ export default function TrainerScheduleScreen() {
           });
 
           setSessions(data);
-          setLoading(false);
+          setTimeout(() => {
+            setLoading(false);
+          }, DEV_SKELETON_DELAY);
         },
         (error) => {
           Alert.alert("Error", error.message);
-          setLoading(false);
+          setTimeout(() => {
+            setLoading(false);
+          }, DEV_SKELETON_DELAY);
         }
       );
 
@@ -264,23 +273,23 @@ export default function TrainerScheduleScreen() {
   };
 
   // const handleCancelBooking = async (session: ScheduledSession) => {
-  
+
   //   if (!uid) return;
-  
+
   //   if (session.attendance !== "pending") {
   //     Alert.alert("Cannot cancel", "Only pending bookings can be cancelled.");
   //     return;
   //   }
-  
+
   //   try {
   //     const db = firestore();
-  
+
   //     // 1️⃣ Delete ALL slot locks for this session
   //     const slotsSnap = await db
   //       .collection("gym_time_slots")
   //       .where("sessionId", "==", session.id)
   //       .get();
-  
+
   //     if (!slotsSnap.empty) {
   //       const batch = db.batch();
   //       slotsSnap.docs.forEach((doc) => {
@@ -288,7 +297,7 @@ export default function TrainerScheduleScreen() {
   //       });
   //       await batch.commit();
   //     }
-  
+
   //     // 2️⃣ Delete the session itself
   //     await db
   //       .collection("trainer_schedules")
@@ -298,26 +307,23 @@ export default function TrainerScheduleScreen() {
   //       .collection("sessions")
   //       .doc(session.id)
   //       .delete();
-  
+
   //   } catch (e: any) {
   //     Alert.alert("Error", e.message);
   //   }
   // };
 
   // -------- render --------
-  
+
   const handleCancelBooking = async (session: ScheduledSession) => {
     if (!uid) return;
-  
+
     // 🔒 Safety: only pending bookings can be cancelled
     if (session.attendance !== "pending") {
-      Alert.alert(
-        "Cannot cancel",
-        "Only pending bookings can be cancelled."
-      );
+      Alert.alert("Cannot cancel", "Only pending bookings can be cancelled.");
       return;
     }
-  
+
     Alert.alert(
       "Cancel booking",
       "This will permanently remove the booking. Are you sure?",
@@ -332,7 +338,7 @@ export default function TrainerScheduleScreen() {
                 trainerId: uid,
                 session,
               });
-  
+
               // 🔄 UI refresh is automatic via onSnapshot
               console.log("✅ Booking cancelled:", session.id);
             } catch (e: any) {
@@ -344,7 +350,7 @@ export default function TrainerScheduleScreen() {
       ]
     );
   };
-  
+
   return (
     <View style={styles.container}>
       {/* HEADER */}
@@ -364,9 +370,19 @@ export default function TrainerScheduleScreen() {
         </TouchableOpacity>
       </View>
       {loading ? (
-        <ActivityIndicator size="large" color={colors.primary} />
+        <>
+          <ScheduleHeaderSkeleton />
+
+          <View style={{ flexDirection: "row" }}>
+            <ScheduleTimeColumnSkeleton />
+            <ScheduleTimelineSkeleton />
+          </View>
+        </>
       ) : (
-        <ScrollView contentContainerStyle={styles.timeline}>
+        <ScrollView
+          contentContainerStyle={styles.timeline}
+          style={{ opacity: loading ? 0.5 : 1 }}
+        >
           {sessions.length === 0 && (
             <Text style={styles.empty}>No bookings for this day yet.</Text>
           )}

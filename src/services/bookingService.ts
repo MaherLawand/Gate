@@ -2,6 +2,8 @@ import firestore from "@react-native-firebase/firestore";
 import auth from "@react-native-firebase/auth";
 import { lockGymTimeSlot } from "./SlotLockService";
 
+/* ---------------- TYPES ---------------- */
+
 type SelectedClient = {
   id: string;
   firstName: string;
@@ -27,6 +29,8 @@ type BookSessionParams = {
   editingSession?: EditingSession;
 };
 
+/* ---------------- HELPERS ---------------- */
+
 const formatTime = (d: Date) => {
   const h = d.getHours();
   const m = d.getMinutes();
@@ -38,6 +42,8 @@ const timeToMinutes = (time: string) => {
   return h * 60 + m;
 };
 
+/* ---------------- MAIN ---------------- */
+
 export async function bookSession({
   trainerId,
   dateKey,
@@ -46,13 +52,24 @@ export async function bookSession({
   toTime,
   editingSession,
 }: BookSessionParams) {
+  console.info("[BookingService] bookSession → start", {
+    trainerId,
+    dateKey,
+    editing: Boolean(editingSession),
+  });
+
   const user = auth().currentUser;
 
   if (!user || user.uid !== trainerId) {
+    console.error("[BookingService] Permission denied", {
+      authUid: user?.uid,
+      trainerId,
+    });
     throw new Error("Permission denied");
   }
 
   if (toTime <= fromTime) {
+    console.warn("[BookingService] Invalid time range");
     throw new Error("Invalid time range");
   }
 
@@ -67,12 +84,14 @@ export async function bookSession({
   today.setHours(0, 0, 0, 0);
 
   if (bookingDate < today) {
+    console.warn("[BookingService] Attempted booking in the past", { dateKey });
     throw new Error("You cannot book old sessions");
   }
 
   if (bookingDate.getTime() === today.getTime()) {
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
     if (newStart <= nowMinutes) {
+      console.warn("[BookingService] Attempted booking earlier today");
       throw new Error("You cannot book a session in the past");
     }
   }
@@ -97,6 +116,9 @@ export async function bookSession({
   );
 
   if (hasClientConflict) {
+    console.warn("[BookingService] Client already booked on this day", {
+      clientId: selectedClient.id,
+    });
     throw new Error("This client already has a session booked on this day");
   }
 
@@ -104,15 +126,17 @@ export async function bookSession({
 
   const trainerSessionsSnap = await sessionsRef.get();
 
+  console.log("TrainerSessionsSnap: ", trainerSessionsSnap)
+
   const trainerOverlap = trainerSessionsSnap.docs.some((doc) => {
     if (doc.id === editingSession?.id) return false;
     const s = doc.data();
-    const start = timeToMinutes(s.startTime);
-    const end = timeToMinutes(s.endTime);
-    return newStart < end && newEnd > start;
+    return newStart < timeToMinutes(s.endTime) &&
+           newEnd > timeToMinutes(s.startTime);
   });
 
   if (trainerOverlap) {
+    console.warn("[BookingService] Trainer time overlap detected");
     throw new Error("This time overlaps with another session");
   }
 
@@ -131,6 +155,9 @@ export async function bookSession({
       .get();
 
     if (packageSnap.empty) {
+      console.warn("[BookingService] No active package", {
+        clientId: selectedClient.id,
+      });
       throw new Error("Client has no active package");
     }
 
@@ -143,6 +170,8 @@ export async function bookSession({
     ? editingSession.id
     : sessionsRef.doc().id;
 
+  console.info("[BookingService] Session ID resolved", { sessionId });
+
   /* ---------------- SLOT LOCK ---------------- */
 
   if (
@@ -150,12 +179,18 @@ export async function bookSession({
     (editingSession.startTime !== formatTime(fromTime) ||
       editingSession.endTime !== formatTime(toTime))
   ) {
+    console.info("[BookingService] Releasing previous slot lock", {
+      sessionId,
+    });
+
     await db
       .collection("gym_time_slots")
       .doc(editingSession.id)
       .delete()
       .catch(() => {});
   }
+
+  console.info("[BookingService] Locking gym time slot");
 
   await lockGymTimeSlot({
     sessionId,
@@ -191,6 +226,8 @@ export async function bookSession({
       createdAt: firestore.FieldValue.serverTimestamp(),
     });
   }
+
+  console.info("[BookingService] Booking saved successfully", { sessionId });
 
   return { success: true, sessionId };
 }
