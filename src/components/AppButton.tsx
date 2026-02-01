@@ -1,5 +1,13 @@
 import { useEffect, useRef } from "react";
-import { Animated, StyleSheet, Text, TouchableOpacity } from "react-native";
+import {
+  Animated,
+  StyleProp,
+  StyleSheet,
+  Text,
+  TextStyle,
+  TouchableOpacity,
+  ViewStyle,
+} from "react-native";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
@@ -10,6 +18,8 @@ type Props = {
   onPress: () => void;
   variant?: "primary" | "small";
   disabled?: boolean;
+  style?: StyleProp<ViewStyle>; // 👈 ADD
+  textStyle?: StyleProp<TextStyle>; // 👈 OPTIONAL (but smart)
 };
 
 export default function AppButton({
@@ -17,6 +27,8 @@ export default function AppButton({
   onPress,
   variant = "primary",
   disabled = false,
+  style,
+  textStyle,
 }: Props) {
   const anim = useRef(new Animated.Value(disabled ? 0 : 1)).current;
 
@@ -46,9 +58,16 @@ export default function AppButton({
             outputRange: ["#2A2A2A", colors.primary],
           }),
         },
+        style, // 👈 MUST BE LAST
       ]}
     >
-      <Text style={[styles.text, variant === "small" && styles.smallText]}>
+      <Text
+        style={[
+          styles.text,
+          variant === "small" && styles.smallText,
+          textStyle, // 👈 optional override
+        ]}
+      >
         {title}
       </Text>
     </AnimatedTouchable>

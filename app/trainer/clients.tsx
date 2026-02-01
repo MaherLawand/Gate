@@ -777,7 +777,7 @@ export default function ClientsScreen() {
                 width: 44,
                 height: 5,
                 borderRadius: 3,
-                backgroundColor: "#ef4444", // 🔴 red handle
+                backgroundColor: colors.primary, // 🔴 red handle
                 alignSelf: "center",
                 marginBottom: 16,
               }}

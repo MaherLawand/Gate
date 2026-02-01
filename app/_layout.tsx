@@ -1,9 +1,9 @@
 // app/_layout.tsx
+globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
 import { ResizeMode, Video } from "expo-av";
 import { Stack } from "expo-router";
 import { useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
-
 export default function RootLayout() {
   const videoRef = useRef<Video>(null);
   const [ready, setReady] = useState(false);

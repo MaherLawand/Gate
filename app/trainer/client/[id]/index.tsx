@@ -13,16 +13,7 @@ import {
   View,
 } from "react-native";
 import AppButton from "../../../../src/components/AppButton";
-import {
-  addClientPackage,
-  cancelPackage,
-  deletePackage,
-  getActivePackage,
-  getClientPackages,
-  reactivatePackage,
-  renewPackage,
-  updatePackage,
-} from "../../../../src/services/ClientService";
+
 import { auth } from "../../../../src/services/firebase";
 import {
   addDoc,
@@ -35,7 +26,6 @@ import {
 } from "../../../../src/services/fireStoreHelpers";
 import { colors } from "../../../../src/theme/colors";
 
-import { ClientPackage } from "../../../../src/types/models";
 
 export default function ClientDetailsScreen() {
   const { id, expired } = useLocalSearchParams<{
@@ -49,42 +39,6 @@ export default function ClientDetailsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [newNote, setNewNote] = useState("");
   const [editingNote, setEditingNote] = useState<any>(null);
-
-  const [activePackage, setActivePackage] = useState<ClientPackage | null>(
-    null
-  );
-  const [packageModalVisible, setPackageModalVisible] = useState(false);
-
-  // Package form
-  const [packagePrice, setPackagePrice] = useState("");
-  const [packageSessions, setPackageSessions] = useState("");
-  const [packagePaid, setPackagePaid] = useState(false);
-  const [editingPackage, setEditingPackage] = useState(false);
-  const [packages, setPackages] = useState<ClientPackage[]>([]);
-  const latestPackage = packages.length
-    ? [...packages].sort((a, b) => {
-        const aDate = a.createdAt?.toDate?.() ?? new Date(0);
-        const bDate = b.createdAt?.toDate?.() ?? new Date(0);
-        return bDate.getTime() - aDate.getTime();
-      })[0]
-    : null;
-
-  const needsRenewal = latestPackage?.status === "completed";
-  const [highlightAddPackage, setHighlightAddPackage] = useState(false);
-  useEffect(() => {
-    if (expired === "1") {
-      Alert.alert(
-        "Package expired",
-        "This client has no remaining sessions. Please add a new package."
-      );
-
-      setHighlightAddPackage(true);
-
-      // auto-remove highlight after 2 seconds
-      const t = setTimeout(() => setHighlightAddPackage(false), 2000);
-      return () => clearTimeout(t);
-    }
-  }, [expired]);
 
   // Fetch client info
   const fetchClient = async () => {
@@ -126,155 +80,21 @@ export default function ClientDetailsScreen() {
     }
   };
 
-  const fetchActivePackage = async () => {
-    if (!id) return;
-    const pkg = await getActivePackage(id);
-    setActivePackage(pkg);
-  };
 
-  const fetchPackages = async () => {
-    if (!id) return;
 
-    const all = await getClientPackages(id);
-    console.log("Fetched packages:");
-    console.log(all);
-    setPackages(all);
-    setActivePackage(all.find((p) => p.status === "active") ?? null);
-  };
 
   useEffect(() => {
     const loadData = async () => {
       await fetchClient();
       await fetchNotes(id!);
-      await fetchPackages();
       setLoading(false);
     };
     loadData();
   }, [id]);
 
-  const handleAddPackage = async () => {
-    if (!packagePrice || !packageSessions) {
-      Alert.alert("Missing fields", "Fill all package fields");
-      return;
-    }
 
-    await addClientPackage(id!, {
-      price: Number(packagePrice),
-      totalSessions: Number(packageSessions),
-      sessionsRemaining: Number(packageSessions),
-      isPaid: packagePaid,
-    });
 
-    setPackageModalVisible(false);
-    setPackagePrice("");
-    setPackageSessions("");
-    setPackagePaid(false);
-
-    fetchActivePackage();
-  };
-
-  const handleSavePackage = async () => {
-    if (!packagePrice || !packageSessions) {
-      Alert.alert("Missing fields");
-      return;
-    }
-    const hasCancelled = packages.some((p) => p.status === "cancelled");
-
-    if (!editingPackage && hasCancelled) {
-      if (Platform.OS === "web") {
-        if (
-          window.confirm(
-            "Cancelled package exists. You must reactivate or resolve the cancelled package first."
-          )
-        )
-          return;
-      } else {
-        Alert.alert(
-          "Cancelled package exists",
-          "You must reactivate or resolve the cancelled package first."
-        );
-        return;
-      }
-    }
-    if (editingPackage && activePackage) {
-      // EDIT existing package
-      await updatePackage(id!, activePackage.id!, {
-        price: Number(packagePrice),
-        totalSessions: Number(packageSessions),
-        sessionsRemaining: activePackage.sessionsRemaining,
-        isPaid: packagePaid,
-        paidAt: packagePaid ? serverTimestamp() : null,
-      });
-    } else {
-      // RENEW (new package)
-      await renewPackage(id!, {
-        price: Number(packagePrice),
-        totalSessions: Number(packageSessions),
-        isPaid: packagePaid,
-      });
-    }
-
-    setPackageModalVisible(false);
-    setEditingPackage(false);
-    await fetchPackages();
-  };
-
-  const handleCancelPackage = () => {
-    if (!activePackage || !id) return;
-
-    const confirmCancel = async () => {
-      await cancelPackage(id!, activePackage.id!);
-      await fetchPackages();
-    };
-
-    if (Platform.OS === "web") {
-      const ok = window.confirm(
-        "Cancel package?\n\nThis will stop future sessions but keep the package."
-      );
-      if (ok) confirmCancel();
-    } else {
-      Alert.alert(
-        "Cancel package?",
-        "This will stop future sessions but keep the package.",
-        [
-          { text: "No", style: "cancel" },
-          {
-            text: "Cancel Package",
-            style: "destructive",
-            onPress: confirmCancel,
-          },
-        ]
-      );
-    }
-  };
-
-  const handleReactivatePackage = (pkgId: string) => {
-    if (!id) return;
-
-    const confirmReactivate = async () => {
-      await reactivatePackage(id!, pkgId);
-      await fetchPackages(); // refresh list + activePackage
-    };
-
-    if (Platform.OS === "web") {
-      const ok = window.confirm(
-        "Reactivate package?\n\nThis will make this package active again."
-      );
-      if (ok) confirmReactivate();
-    } else {
-      Alert.alert(
-        "Reactivate package?",
-        "This will make this package active again.",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Reactivate",
-            onPress: confirmReactivate,
-          },
-        ]
-      );
-    }
-  };
+ 
 
   // Add note
   const handleAddNote = async (clientId: string, content: string) => {
@@ -354,11 +174,7 @@ export default function ClientDetailsScreen() {
         {client?.firstName} {client?.lastName}
       </Text>
 
-      {needsRenewal && (
-        <Text style={styles.renewWarning}>
-          Package expired — renewal required
-        </Text>
-      )}
+      
 
       <Text style={styles.label}>Phone:</Text>
       <Text style={styles.value}>{client?.phone || "N/A"}</Text>
@@ -374,227 +190,7 @@ export default function ClientDetailsScreen() {
         />
         <AppButton title="+ Add Note" onPress={() => setModalVisible(true)} />
 
-        <View style={{ marginTop: 24 }}>
-          <Text style={styles.sectionTitle}>Package</Text>
-
-          {activePackage ? (
-            <View style={styles.packageCard}>
-              <Text style={styles.packageText}>
-                Sessions remaining:
-                <Text style={styles.packageStrong}>
-                  {activePackage.sessionsRemaining} /
-                  {activePackage.totalSessions}
-                </Text>
-              </Text>
-
-              <Text style={styles.packageText}>
-                Price: ${activePackage.price}
-              </Text>
-
-              <Text style={styles.packageText}>
-                Created:
-                {activePackage.createdAt?.toDate
-                  ? activePackage.createdAt.toDate().toISOString().split("T")[0]
-                  : "—"}
-              </Text>
-
-              <Text style={styles.packageText}>
-                Paid:
-                {activePackage.paidAt?.toDate
-                  ? activePackage.paidAt.toDate().toISOString().split("T")[0]
-                  : "Not paid"}
-              </Text>
-
-              {/* STATUS LABEL */}
-              <Text
-                style={{
-                  marginTop: 6,
-                  marginBottom: 10,
-                  color:
-                    activePackage.status === "active"
-                      ? "#22c55e"
-                      : activePackage.status === "expired"
-                      ? "#ef4444"
-                      : "#f59e0b",
-                  fontWeight: "700",
-                }}
-              >
-                Status: {activePackage.status.toUpperCase()}
-              </Text>
-
-              {/* MARK AS PAID */}
-              {!activePackage.isPaid && (
-                <AppButton
-                  title="Mark as Paid"
-                  variant="small"
-                  onPress={async () => {
-                    await updatePackage(id!, activePackage.id!, {
-                      isPaid: true,
-                      paidAt: serverTimestamp(),
-                    });
-                    fetchPackages();
-                  }}
-                />
-              )}
-
-              {/* EDIT — ONLY IF ACTIVE */}
-              {activePackage.status === "active" && (
-                <AppButton
-                  title="Edit Package"
-                  variant="small"
-                  onPress={() => {
-                    setPackagePrice(String(activePackage.price));
-                    setPackageSessions(String(activePackage.totalSessions));
-                    setPackagePaid(activePackage.isPaid);
-                    setEditingPackage(true);
-                    setPackageModalVisible(true);
-                  }}
-                />
-              )}
-
-              {/* CANCEL — ONLY IF ACTIVE */}
-              {activePackage.status === "active" && (
-                <AppButton
-                  title="Cancel Package"
-                  variant="small"
-                  onPress={handleCancelPackage}
-                />
-              )}
-
-              {/* REACTIVATE — ONLY IF CANCELLED */}
-              {activePackage.status === "cancelled" && (
-                <AppButton
-                  title="Reactivate Package"
-                  variant="small"
-                  onPress={async () => {
-                    await reactivatePackage(id!, activePackage.id!);
-                    fetchPackages();
-                  }}
-                />
-              )}
-
-              {/* RENEW — ONLY IF EXPIRED */}
-              {activePackage.status === "expired" && (
-                <AppButton
-                  title="Renew Package"
-                  variant="small"
-                  onPress={() => {
-                    setPackagePrice("");
-                    setPackageSessions("");
-                    setPackagePaid(false);
-                    setEditingPackage(false);
-                    setPackageModalVisible(true);
-                  }}
-                />
-              )}
-
-              {/* DELETE — DANGER ZONE */}
-              <View style={{ marginTop: 16 }}>
-                <AppButton
-                  title="Delete Package"
-                  onPress={() => {
-                    Alert.alert(
-                      "Delete package?",
-                      "This should only be used for admin fixes.",
-                      [
-                        { text: "Cancel", style: "cancel" },
-                        {
-                          text: "Delete",
-                          style: "destructive",
-                          onPress: async () => {
-                            await deletePackage(id!, activePackage.id!);
-                            fetchPackages();
-                          },
-                        },
-                      ]
-                    );
-                  }}
-                />
-              </View>
-            </View>
-          ) : (
-            <View
-              style={[
-                highlightAddPackage && {
-                  borderWidth: 2,
-                  borderColor: colors.primary,
-                  borderRadius: 14,
-                  shadowColor: colors.primary,
-                  shadowOpacity: 0.8,
-                  shadowRadius: 10,
-                },
-              ]}
-            >
-              <AppButton
-                title="+ Add Package"
-                onPress={() => setPackageModalVisible(true)}
-              />
-            </View>
-          )}
-
-          {packages.length >= 1 && (
-            <View style={{ marginTop: 16 }}>
-              <Text style={styles.sectionTitle}>Past Packages</Text>
-
-              {packages
-                .filter((p) => p.status !== "active")
-                .map((pkg) => (
-                  <View
-                    key={pkg.id}
-                    style={[
-                      styles.packageCard,
-                      !pkg.isPaid && styles.unpaidHighlight,
-                    ]}
-                  >
-                    <Text style={styles.packageText}>
-                      {pkg.totalSessions} sessions — ${pkg.price}
-                    </Text>
-
-                    <Text style={styles.packageText}>
-                      Created:
-                      {pkg.createdAt?.toDate
-                        ? pkg.createdAt.toDate().toISOString().split("T")[0]
-                        : "—"}
-                    </Text>
-
-                    <Text style={styles.packageText}>
-                      Paid:
-                      {pkg.paidAt?.toDate
-                        ? pkg.paidAt.toDate().toISOString().split("T")[0]
-                        : "Not paid"}
-                    </Text>
-
-                    <Text style={styles.packageText}>Status: {pkg.status}</Text>
-
-                    {pkg.status === "cancelled" && (
-                      <AppButton
-                        title="Reactivate Package"
-                        variant="small"
-                        onPress={() => handleReactivatePackage(pkg.id!)}
-                      />
-                    )}
-                    {!pkg.isPaid && (
-                      <>
-                        <Text style={styles.unpaidBadge}>⚠ Unpaid</Text>
-
-                        <AppButton
-                          title="Mark as Paid"
-                          variant="small"
-                          onPress={async () => {
-                            await updatePackage(id!, pkg.id!, {
-                              isPaid: true,
-                              paidAt: serverTimestamp(),
-                            });
-                            fetchPackages();
-                          }}
-                        />
-                      </>
-                    )}
-                  </View>
-                ))}
-            </View>
-          )}
-        </View>
+        
 
         {notes.length === 0 ? (
           <Text style={styles.noNotes}>No notes yet</Text>
@@ -674,50 +270,7 @@ export default function ClientDetailsScreen() {
           </View>
         </View>
       </Modal>
-      <Modal
-        transparent
-        visible={packageModalVisible}
-        animationType="slide"
-        onRequestClose={() => setPackageModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.title}>Add Package</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Total Sessions (e.g. 16)"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="numeric"
-              value={packageSessions}
-              onChangeText={setPackageSessions}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Price (e.g. 240)"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="numeric"
-              value={packagePrice}
-              onChangeText={setPackagePrice}
-            />
-
-            <AppButton
-              title={packagePaid ? "Paid ✓" : "Mark as Paid"}
-              onPress={() => setPackagePaid(!packagePaid)}
-            />
-
-            <AppButton
-              title={editingPackage ? "Update Package" : "Create Package"}
-              onPress={handleSavePackage}
-            />
-            <AppButton
-              title="Cancel"
-              onPress={() => setPackageModalVisible(false)}
-            />
-          </View>
-        </View>
-      </Modal>
+      
     </ScrollView>
   );
 }
@@ -802,19 +355,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     gap: 8, // space between Edit and Delete buttons
     marginTop: 12,
-  },
-  packageCard: {
-    backgroundColor: colors.card,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  packageText: {
-    color: colors.textPrimary,
-    marginBottom: 6,
-  },
-  packageStrong: {
-    fontWeight: "700",
   },
   unpaidHighlight: {
     borderWidth: 2,
