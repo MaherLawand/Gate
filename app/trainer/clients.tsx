@@ -270,6 +270,56 @@ export default function ClientsScreen() {
 
   const dragY = useRef(new Animated.Value(0)).current;
 
+  const allowCloseRef = useRef(false);
+
+  const originalFormRef = useRef({
+    firstName: "",
+    lastName: "",
+    phoneRaw: "",
+    gender: null as "male" | "female" | null,
+    isHijabi: false,
+    hasPackage: false,
+    packageSessions: "",
+    packagePrice: "",
+    packagePaid: false,
+  });
+
+  const resetClientForm = () => {
+    setFirstName("");
+    setLastName("");
+    setPhone("");
+    setPhoneRaw("");
+    setGender(null);
+    setIsHijabi(false);
+
+    setHasPackage(false);
+    setPackageSessions("");
+    setPackagePrice("");
+    setPackagePaid(false);
+
+    originalFormRef.current = {
+      firstName: "",
+      lastName: "",
+      phoneRaw: "",
+      gender: null,
+      isHijabi: false,
+      hasPackage: false,
+      packageSessions: "",
+      packagePrice: "",
+      packagePaid: false,
+    };
+  };
+  const hasUnsavedChanges =
+    firstName !== originalFormRef.current.firstName ||
+    lastName !== originalFormRef.current.lastName ||
+    phoneRaw !== originalFormRef.current.phoneRaw ||
+    gender !== originalFormRef.current.gender ||
+    isHijabi !== originalFormRef.current.isHijabi ||
+    hasPackage !== originalFormRef.current.hasPackage ||
+    packageSessions !== originalFormRef.current.packageSessions ||
+    packagePrice !== originalFormRef.current.packagePrice ||
+    packagePaid !== originalFormRef.current.packagePaid;
+
   const formatLebanesePhone = (input: string) => {
     // Remove everything except digits
     let digits = input.replace(/\D/g, "");
@@ -458,18 +508,10 @@ export default function ClientsScreen() {
         });
       }
 
-      // 3️⃣ Reset form
-      setFirstName("");
-      setLastName("");
-      setPhone("");
-      setPhoneRaw("");
-      setHasPackage(false);
-      setPackageSessions("");
-      setPackagePrice("");
-      setPackagePaid(false);
-      setGender(null);
-      setIsHijabi(false);
-      closeModal();
+      // ✅ AFTER successful creation
+      allowCloseRef.current = true; // 🔓 allow close
+      resetClientForm(); // 🧼 neutralize dirty state
+      sheetRef.current?.hide(); // ✅ close silently
       fetchClients();
 
       if (Platform.OS === "web") {
@@ -598,11 +640,25 @@ export default function ClientsScreen() {
     });
   };
   const closeSheet = () => {
+    allowCloseRef.current = true;
+    resetClientForm();
     sheetRef.current?.hide();
     contentAnim.setValue(0);
   };
 
   const openAddClient = () => {
+    originalFormRef.current = {
+      firstName,
+      lastName,
+      phoneRaw,
+      gender,
+      isHijabi,
+      hasPackage,
+      packageSessions,
+      packagePrice,
+      packagePaid,
+    };
+    allowCloseRef.current = false;
     contentAnim.setValue(0); // reset animation
     sheetRef.current?.show(); // open sheet
 
@@ -751,7 +807,7 @@ export default function ClientsScreen() {
       {/* Modal */}
       <ActionSheet
         ref={sheetRef}
-        gestureEnabled
+        gestureEnabled={!hasUnsavedChanges}
         closeOnTouchBackdrop
         keyboardHandlerEnabled
         indicatorStyle={{ backgroundColor: "transparent" }} // ❌ removes white bar
@@ -760,6 +816,41 @@ export default function ClientsScreen() {
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
           paddingTop: 8, // tighter top
+        }}
+        onBeforeClose={() => {
+          // ✅ Explicit close (save / discard)
+          if (allowCloseRef.current) {
+            allowCloseRef.current = false;
+            return true;
+          }
+
+          // ✅ No changes → allow close
+          if (!hasUnsavedChanges) {
+            return true;
+          }
+
+          // ❌ Unsaved changes → warn
+          Alert.alert(
+            "Discard changes?",
+            "If you leave now, your changes will be lost.",
+            [
+              { text: "Stay", style: "cancel",onPress: () => {
+                allowCloseRef.current = false;
+                sheetRef.current?.show();
+              }, },
+              {
+                text: "Discard",
+                style: "destructive",
+                onPress: () => {
+                  allowCloseRef.current = true;
+                  resetClientForm();
+                  sheetRef.current?.hide();
+                },
+              },
+            ]
+          );
+
+          return false; // ⛔ block close
         }}
       >
         <AnimatedAppear delay={240}>

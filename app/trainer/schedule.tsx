@@ -8,7 +8,7 @@ import { ScheduledSession } from "@/src/types/models";
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { ActionSheetRef } from "react-native-actions-sheet";
 import BookingModal from "../../src/components/BookingModal";
 
 type EnrichedScheduledSession = ScheduledSession & {
@@ -84,6 +85,8 @@ export default function TrainerScheduleScreen() {
 
   const [open, setOpen] = useState(false);
 
+  const bookingSheetRef = useRef<ActionSheetRef>(null);
+
   function AttendanceBadge({
     status,
   }: {
@@ -108,9 +111,7 @@ export default function TrainerScheduleScreen() {
   useEffect(() => {
     if (!uid) return;
 
-    setTimeout(() => {
-      setLoading(true);
-    }, DEV_SKELETON_DELAY);
+    setLoading(true);
 
     const unsubscribe = firestore()
       .collection("trainer_schedules")
@@ -509,7 +510,8 @@ export default function TrainerScheduleScreen() {
                           {session.startTime} – {session.endTime}
                         </Text>
                       </View>
-                      {/* FLEX SPACER */} <View style={{ flex: 1 }} />
+                      {/* FLEX SPACER */}
+                      <View style={{ flex: 1 }} />
                       {/* ACTIONS */}
                       {session.attendance === "pending" && (
                         <>
@@ -548,7 +550,7 @@ export default function TrainerScheduleScreen() {
                                 style={[styles.iconBtn, styles.neutral]}
                                 onPress={() => {
                                   setEditingSession(session);
-                                  setOpen(true);
+                                  bookingSheetRef.current?.show();
                                 }}
                               >
                                 <Text style={styles.iconText}>✎</Text>
@@ -590,18 +592,27 @@ export default function TrainerScheduleScreen() {
             </View>
           </View>
           <BookingModal
-            visible={open}
+            sheetRef={bookingSheetRef}
             dateKey={dateKey}
             editingSession={editingSession}
-            onClose={() => setOpen(false)}
+            onClose={() => {
+              bookingSheetRef.current?.hide();
+              setEditingSession(null);
+            }}
             onSaved={() => {
-              setOpen(false);
-              setCurrentDate(new Date(currentDate));
+              bookingSheetRef.current?.hide();
+              setEditingSession(null);
             }}
           />
         </ScrollView>
       )}
-      <TouchableOpacity style={styles.fab} onPress={() => setOpen(true)}>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => {
+          setEditingSession(null);
+          bookingSheetRef.current?.show();
+        }}
+      >
         <Text style={styles.fabText}>＋</Text>
       </TouchableOpacity>
     </View>

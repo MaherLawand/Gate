@@ -51,6 +51,30 @@ export default function PackagesScreen() {
   const [packageSessions, setPackageSessions] = useState("");
   const [packagePaid, setPackagePaid] = useState(false);
   const [editingPackage, setEditingPackage] = useState(false);
+  const [originalPackage, setOriginalPackage] = useState<{
+    price: string;
+    paid: boolean;
+    sessions: string;
+  } | null>(null);
+  const hasUnsavedPackageChanges = originalPackage
+    ? packagePrice !== originalPackage.price ||
+      packagePaid !== originalPackage.paid ||
+      (!editingPackage && packageSessions !== originalPackage.sessions)
+    : false;
+
+  const isSubmittingRef = useRef(false);
+  const allowCloseRef = useRef(false);
+
+  const resetPackageState = () => {
+    setPackagePrice("");
+    setPackageSessions("");
+    setPackagePaid(false);
+    setEditingPackage(false);
+  };
+
+
+
+
 
   const [highlightAddPackage, setHighlightAddPackage] = useState(false);
   const [metaHint, setMetaHint] = useState<{
@@ -146,7 +170,7 @@ export default function PackagesScreen() {
       return;
     }
     const hasCancelled = packages.some((p) => p.status === "cancelled");
-
+    isSubmittingRef.current = true;
     if (!editingPackage && hasCancelled) {
       if (Platform.OS === "web") {
         if (
@@ -179,8 +203,9 @@ export default function PackagesScreen() {
       });
     }
 
+    allowCloseRef.current = true; // 👈 THIS IS THE KEY
+    resetPackageState(); // 👈 CLEAN FIRST
     sheetRef.current?.hide();
-    setEditingPackage(false);
     await fetchPackages();
   };
 
@@ -292,9 +317,16 @@ export default function PackagesScreen() {
                   <TouchableOpacity
                     onPress={() => {
                       setPackagePrice(String(activePackage.price));
-                      setPackageSessions(String(activePackage.totalSessions));
                       setPackagePaid(activePackage.isPaid);
+                      setPackageSessions(String(activePackage.totalSessions)); // ignored but safe
                       setEditingPackage(true);
+
+                      setOriginalPackage({
+                        price: String(activePackage.price),
+                        paid: activePackage.isPaid,
+                        sessions: String(activePackage.totalSessions),
+                      });
+
                       sheetRef.current?.show();
                     }}
                     style={styles.iconBtn}
@@ -426,7 +458,20 @@ export default function PackagesScreen() {
           <AppButton
             title="+ Add Package"
             disabled={loading}
-            onPress={() => sheetRef.current?.show()}
+            onPress={() => {
+              setPackagePrice("");
+              setPackageSessions("");
+              setPackagePaid(false);
+              setEditingPackage(false);
+
+              setOriginalPackage({
+                price: "",
+                paid: false,
+                sessions: "",
+              });
+
+              sheetRef.current?.show();
+            }}
           />
         </View>
       )}
@@ -581,8 +626,8 @@ export default function PackagesScreen() {
       {/* ---------- MODAL ---------- */}
       <ActionSheet
         ref={sheetRef}
-        gestureEnabled
         closeOnTouchBackdrop
+        gestureEnabled={!hasUnsavedPackageChanges}
         keyboardHandlerEnabled
         indicatorStyle={{ backgroundColor: colors.primary }}
         containerStyle={{
@@ -590,6 +635,41 @@ export default function PackagesScreen() {
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
           paddingTop: 8,
+        }}
+        onBeforeClose={() => {
+          // ✅ Explicitly allowed close (save / discard)
+          if (allowCloseRef.current) {
+            allowCloseRef.current = false;
+            return true;
+          }
+
+          // ✅ No unsaved changes → allow close
+          if (!hasUnsavedPackageChanges) {
+            return true;
+          }
+
+          // ❌ Unsaved changes → block close + alert
+          Alert.alert(
+            "Discard changes?",
+            "If you leave now, your changes will be lost.",
+            [
+              { text: "Stay", style: "cancel" ,onPress: () => {
+                allowCloseRef.current = false;
+                sheetRef.current?.show();
+              },},
+              {
+                text: "Discard",
+                style: "destructive",
+                onPress: () => {
+                  allowCloseRef.current = true;
+                  resetPackageState();
+                  sheetRef.current?.hide();
+                },
+              },
+            ]
+          );
+
+          return false;
         }}
       >
         <SheetScrollView

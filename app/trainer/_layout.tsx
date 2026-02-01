@@ -1,17 +1,14 @@
 import Header from "@/src/components/AppHeader";
 import { Stack } from "expo-router";
-import { useEffect } from "react";
-import { Alert, BackHandler, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import TrainerFooter from "../../src/components/TrainerFooter";
 
 export default function TrainerLayout() {
- 
-
   return (
-    <View style={{ flex: 1, backgroundColor: "#050608" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#050608" }}>
       <Header />
       <Stack screenOptions={{ headerShown: false }} />
       <TrainerFooter />
-    </View>
+    </SafeAreaView>
   );
 }

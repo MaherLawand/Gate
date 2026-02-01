@@ -84,12 +84,12 @@ const styles = StyleSheet.create({
     /* ===== OVERLAY ===== */
     overlay: {
       position: "absolute",
-      top: 0,
+      top: 30,
       left: 0,
       right: 0,
       bottom: 0,
       backgroundColor: "transparent", // invisible but clickable
-      zIndex: 10,
+      zIndex: 40,
     },
   
     /* ===== MENU ===== */

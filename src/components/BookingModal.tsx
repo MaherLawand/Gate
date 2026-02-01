@@ -1,25 +1,24 @@
-import { lockGymTimeSlot } from "@/src/services/SlotLockService";
+import { bookSession } from "@/src/services/bookingService";
 import { colors } from "@/src/theme/colors";
 import { ScheduledSession } from "@/src/types/models";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
-  Modal,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { bookSession } from "@/src/services/bookingService";
-
+import ActionSheet, {
+  ActionSheetRef,
+  ScrollView as SheetScrollView,
+} from "react-native-actions-sheet";
 type Client = {
   id: string;
   firstName: string;
@@ -29,7 +28,7 @@ type Client = {
 };
 
 type Props = {
-  visible: boolean;
+  sheetRef: React.RefObject<ActionSheetRef | null>;
   dateKey: string;
   editingSession?: ScheduledSession | null;
   onClose: () => void;
@@ -37,7 +36,7 @@ type Props = {
 };
 
 export default function BookingModal({
-  visible,
+  sheetRef,
   dateKey,
   editingSession,
   onClose,
@@ -57,6 +56,78 @@ export default function BookingModal({
 
   const [preferredTimes, setPreferredTimes] = useState<string[]>([]);
   const [loadingPrefs, setLoadingPrefs] = useState(false);
+
+  const pendingClose = useRef(false);
+  const isSubmittingRef = useRef(false);
+  const allowCloseRef = useRef(false);
+  const originalBooking = useRef<{
+    clientId: string | null;
+    from: string | null;
+    to: string | null;
+  } | null>(null);
+
+  const hasUnsavedBookingChanges = useMemo(() => {
+    if (!originalBooking.current) return false;
+
+    return (
+      originalBooking.current.clientId !== selectedClient?.id ||
+      originalBooking.current.from !== formatTime(fromTime) ||
+      originalBooking.current.to !== formatTime(toTime)
+    );
+  }, [selectedClient, fromTime, toTime]);
+
+  const resetBookingState = () => {
+    setSelectedClient(null);
+    setFromTime(null);
+    setToTime(null);
+    setQuery("");
+  };
+
+  const forceCloseSheet = () => {
+    pendingClose.current = false;
+
+    // reset state
+    setSelectedClient(null);
+    setFromTime(null);
+    setToTime(null);
+    setQuery("");
+
+    sheetRef.current?.hide();
+  };
+
+  // const attemptCloseSheet = () => {
+  //   console.log("unsavedchanges: ", hasUnsavedChanges);
+  //   if (!hasUnsavedChanges) {
+  //     forceCloseSheet();
+  //     return;
+  //   }
+
+  //   if (pendingClose.current) return;
+  //   pendingClose.current = true;
+
+  //   Alert.alert(
+  //     "Discard changes?",
+  //     "If you leave now, your changes will be lost.",
+  //     [
+  //       {
+  //         text: "Stay",
+  //         style: "cancel",
+  //         onPress: () => {
+  //           pendingClose.current = false;
+
+  //           requestAnimationFrame(() => {
+  //             sheetRef.current?.show();
+  //           });
+  //         },
+  //       },
+  //       {
+  //         text: "Discard",
+  //         style: "destructive",
+  //         onPress: forceCloseSheet,
+  //       },
+  //     ]
+  //   );
+  // };
 
   function getWeekKeyFromDate(dateKey: string) {
     const d = new Date(dateKey);
@@ -110,7 +181,7 @@ export default function BookingModal({
 
   // -------- load clients --------
   useEffect(() => {
-    if (!trainerId || !visible) return;
+    if (!trainerId || !sheetRef) return;
     console.log("Loading clients for trainer:", trainerId);
 
     firestore()
@@ -131,7 +202,7 @@ export default function BookingModal({
             }))
           );
       });
-  }, [trainerId, visible]);
+  }, [trainerId, sheetRef]);
 
   function parseTime(time: string) {
     const [h, m] = time.split(":").map(Number);
@@ -141,26 +212,33 @@ export default function BookingModal({
   }
 
   useEffect(() => {
-    if (!editingSession || !visible) return;
+    if (!editingSession) return;
 
     const [first, ...rest] = editingSession.clientName.split(" ");
-    console.log(editingSession);
-    console.log(first);
-    console.log(rest.join(" "));
-    setSelectedClient({
+
+    const client = {
       id: editingSession.clientId,
       firstName: first,
       lastName: rest.join(" "),
       gender: editingSession.clientGender,
       isHijabi: editingSession.clientIsHijabi,
-    });
-    console.log("selectedClient: ", selectedClient);
+    };
 
+    setSelectedClient(client);
     setFromTime(parseTime(editingSession.startTime));
     setToTime(parseTime(editingSession.endTime));
     setQuery("");
     setShowDropdown(false);
-  }, [editingSession, visible]);
+  }, [editingSession]);
+
+  useEffect(() => {
+    if (!sheetRef.current) return;
+    originalBooking.current = {
+      clientId: editingSession?.clientId ?? null,
+      from: editingSession?.startTime ?? null,
+      to: editingSession?.endTime ?? null,
+    };
+  }, [editingSession]);
 
   // -------- filtered clients --------
   const filteredClients = useMemo(() => {
@@ -670,7 +748,7 @@ export default function BookingModal({
         Alert.alert("Missing data", "Fill all fields");
         return;
       }
-  
+      isSubmittingRef.current = true;
       await bookSession({
         trainerId,
         dateKey,
@@ -685,176 +763,214 @@ export default function BookingModal({
         toTime,
         editingSession,
       });
-  
+      allowCloseRef.current = true; // ✅ allow close ONCE
+      resetBookingState();
+      sheetRef.current?.hide();
+
       onSaved();
-      onClose();
     } catch (e: any) {
+      isSubmittingRef.current = false;
       console.error("🔥 Booking failed:", e);
       Alert.alert("Booking failed", e.message);
     }
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.backdrop}>
-          <TouchableWithoutFeedback>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === "ios" ? "padding" : "height"}
-              style={styles.modalContainer}
-            >
-              <Text style={styles.title}>
-                {isEdit ? "Edit booking" : "Book session"}
-              </Text>
+    <ActionSheet
+      ref={sheetRef}
+      gestureEnabled={!hasUnsavedBookingChanges}
+      closeOnTouchBackdrop
+      keyboardHandlerEnabled
+      indicatorStyle={{ backgroundColor: colors.primary }}
+      containerStyle={{
+        backgroundColor: colors.background,
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        paddingTop: 8,
+      }}
+      onBeforeClose={() => {
+        // ✅ allow close after save / discard
+        if (allowCloseRef.current) {
+          allowCloseRef.current = false;
+          return true;
+        }
 
-              {/* CLIENT AUTOCOMPLETE */}
-              <Text style={styles.label}>Client</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Type client name"
-                placeholderTextColor={colors.textSecondary}
-                value={
-                  selectedClient
-                    ? `${selectedClient.firstName} ${selectedClient.lastName}`
-                    : query
-                }
-                onChangeText={(text) => {
-                  setQuery(text);
-                  setSelectedClient(null);
-                  setShowDropdown(true);
-                }}
-              />
-              <View style={{ position: "relative" }}>
-                {showDropdown && filteredClients.length > 0 && (
-                  <View style={styles.dropdown}>
-                    <ScrollView>
-                      {filteredClients.map((c) => (
-                        <TouchableOpacity
-                          key={c.id}
-                          style={styles.dropdownItem}
-                          onPress={() => {
-                            setSelectedClient(c);
-                            setQuery("");
-                            setShowDropdown(false);
-                          }}
-                        >
-                          <Text style={styles.clientText}>
-                            {c.firstName} {c.lastName}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
-              </View>
-              {/* Preffered Times */}
+        // ✅ no changes → allow close
+        if (!hasUnsavedBookingChanges) {
+          return true;
+        }
 
-              {loadingPrefs && (
-                <Text style={styles.prefLoading}>
-                  Loading client preferences…
-                </Text>
-              )}
+        // ❌ block close + alert
+        Alert.alert(
+          "Discard changes?",
+          "If you leave now, your changes will be lost.",
+          [
+            {
+              text: "Stay",
+              style: "cancel",
+              onPress: () => {
+                allowCloseRef.current = false;
+                sheetRef.current?.show();
+              },
+            },
+            {
+              text: "Discard",
+              style: "destructive",
+              onPress: () => {
+                allowCloseRef.current = true;
+                resetBookingState();
+                sheetRef.current?.hide();
+              },
+            },
+          ]
+        );
 
-              {!loadingPrefs && preferredTimes.length > 0 && (
-                <View style={styles.prefBox}>
-                  <Text style={styles.prefTitle}>Client preferred times</Text>
+        return false;
+      }}
+    >
+      <SheetScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingBottom: 30,
+        }}
+      >
+        <Text style={styles.title}>
+          {isEdit ? "Edit booking" : "Book session"}
+        </Text>
 
-                  <View style={styles.prefTimesRow}>
-                    {preferredTimes.map((t) => (
-                      <View key={t} style={styles.prefTimeChip}>
-                        <Text style={styles.prefTimeText}>{t}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {!loadingPrefs &&
-                preferredTimes.length === 0 &&
-                selectedClient && (
-                  <Text style={styles.prefEmpty}>
-                    No preferred times for this day
-                  </Text>
-                )}
-
-              {/* TIME PICKERS */}
-              <View style={styles.timeRow}>
-                <TouchableOpacity
-                  style={styles.timeBox}
-                  onPress={() => setShowFromPicker(true)}
-                >
-                  <Text style={styles.timeLabel}>From</Text>
-                  <Text style={styles.timeValue}>{formatTime(fromTime)}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.timeBox}
-                  onPress={() => setShowToPicker(true)}
-                >
-                  <Text style={styles.timeLabel}>To</Text>
-                  <Text style={styles.timeValue}>{formatTime(toTime)}</Text>
-                </TouchableOpacity>
-              </View>
-
-              {showFromPicker && (
-                <DateTimePicker
-                  mode="time"
-                  is24Hour={true}
-                  minuteInterval={5} // ✅ THIS
-                  value={fromTime ?? new Date()}
-                  display={Platform.OS === "android" ? "spinner" : "default"}
-                  ///dont forget to add date logic to iphone
-                  onChange={(_, d) => {
-                    setShowFromPicker(false);
-                    if (d) setFromTime(d);
-                  }}
-                />
-              )}
-
-              {showToPicker && (
-                <DateTimePicker
-                  mode="time"
-                  is24Hour={true}
-                  minuteInterval={5} // ✅ THIS
-                  value={toTime ?? new Date()}
-                  display={Platform.OS === "android" ? "spinner" : "default"}
-                  onChange={(_, d) => {
-                    setShowToPicker(false);
-                    if (d) setToTime(d);
-                  }}
-                />
-              )}
-
-              {/* ACTIONS */}
-              <View style={styles.actions}>
-                <TouchableOpacity onPress={onClose}>
-                  <Text style={styles.cancel}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={handleSave}>
-                  <Text style={styles.save}>Save booking</Text>
-                </TouchableOpacity>
-              </View>
-            </KeyboardAvoidingView>
-          </TouchableWithoutFeedback>
+        {/* CLIENT AUTOCOMPLETE */}
+        <Text style={styles.label}>Client</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Type client name"
+          placeholderTextColor={colors.textSecondary}
+          value={
+            selectedClient
+              ? `${selectedClient.firstName} ${selectedClient.lastName}`
+              : query
+          }
+          onChangeText={(text) => {
+            setQuery(text);
+            setSelectedClient(null);
+            setShowDropdown(true);
+          }}
+        />
+        <View style={{ position: "relative" }}>
+          {showDropdown && filteredClients.length > 0 && (
+            <View style={styles.dropdown}>
+              <ScrollView>
+                {filteredClients.map((c) => (
+                  <TouchableOpacity
+                    key={c.id}
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setSelectedClient(c);
+                      setQuery("");
+                      setShowDropdown(false);
+                    }}
+                  >
+                    <Text style={styles.clientText}>
+                      {c.firstName} {c.lastName}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
         </View>
-      </TouchableWithoutFeedback>
-    </Modal>
+        {/* Preffered Times */}
+
+        {loadingPrefs && (
+          <Text style={styles.prefLoading}>Loading client preferences…</Text>
+        )}
+
+        {!loadingPrefs && preferredTimes.length > 0 && (
+          <View style={styles.prefBox}>
+            <Text style={styles.prefTitle}>Client preferred times</Text>
+
+            <View style={styles.prefTimesRow}>
+              {preferredTimes.map((t) => (
+                <View key={t} style={styles.prefTimeChip}>
+                  <Text style={styles.prefTimeText}>{t}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {!loadingPrefs && preferredTimes.length === 0 && selectedClient && (
+          <Text style={styles.prefEmpty}>No preferred times for this day</Text>
+        )}
+
+        {/* TIME PICKERS */}
+        <View style={styles.timeRow}>
+          <TouchableOpacity
+            style={styles.timeBox}
+            onPress={() => setShowFromPicker(true)}
+          >
+            <Text style={styles.timeLabel}>From</Text>
+            <Text style={styles.timeValue}>{formatTime(fromTime)}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.timeBox}
+            onPress={() => setShowToPicker(true)}
+          >
+            <Text style={styles.timeLabel}>To</Text>
+            <Text style={styles.timeValue}>{formatTime(toTime)}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {showFromPicker && (
+          <DateTimePicker
+            mode="time"
+            is24Hour={true}
+            minuteInterval={5} // ✅ THIS
+            value={fromTime ?? new Date()}
+            display={Platform.OS === "android" ? "spinner" : "default"}
+            ///dont forget to add date logic to iphone
+            onChange={(_, d) => {
+              setShowFromPicker(false);
+              if (d) setFromTime(d);
+            }}
+          />
+        )}
+
+        {showToPicker && (
+          <DateTimePicker
+            mode="time"
+            is24Hour={true}
+            minuteInterval={5} // ✅ THIS
+            value={toTime ?? new Date()}
+            display={Platform.OS === "android" ? "spinner" : "default"}
+            onChange={(_, d) => {
+              setShowToPicker(false);
+              if (d) setToTime(d);
+            }}
+          />
+        )}
+
+        {/* ACTIONS */}
+        <View style={styles.actions}>
+          {/* <TouchableOpacity
+            onPress={() => {
+              attemptCloseSheet();
+            }}
+          >
+            <Text style={styles.cancel}>Cancel</Text>
+          </TouchableOpacity> */}
+
+          <TouchableOpacity onPress={handleSave}>
+            <Text style={styles.save}>Save booking</Text>
+          </TouchableOpacity>
+        </View>
+      </SheetScrollView>
+    </ActionSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "flex-end",
-  },
-  card: {
-    backgroundColor: colors.background,
-    padding: 20,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-  },
   title: {
     color: colors.textPrimary,
     fontSize: 18,
@@ -921,19 +1037,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: 16,
     marginTop: 4,
-  },
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "flex-end",
-  },
-
-  modalContainer: {
-    backgroundColor: colors.background,
-    padding: 20,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    maxHeight: "85%",
   },
   prefBox: {
     marginTop: 12,
