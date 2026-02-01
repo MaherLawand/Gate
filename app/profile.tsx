@@ -1,6 +1,6 @@
 import AppButton from "@/src/components/AppButton";
 import { compressImage } from "@/src/services/compressImage";
-import { uploadProfilePicture } from "@/src/services/uploadProfilePicture";
+import { uploadImage } from "@/src/services/uploadImage";
 import { colors } from "@/src/theme/colors";
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
@@ -172,7 +172,7 @@ export default function ProfileScreen() {
       const imageUri = result.assets[0].uri;
       const compressedUri = await compressImage(imageUri);
       // ✅ CORRECT call (ONE argument)
-      const downloadURL = await uploadProfilePicture(compressedUri);
+      const downloadURL = await uploadImage(compressedUri);
 
       // 🔥 Save URL in Firestore
       if (profile.role === "trainer") {

@@ -3,7 +3,7 @@ import { FieldValue, Timestamp } from "firebase/firestore";
 
 export interface UserDoc {
   role: "trainer";
-
+  isAdmin:boolean;
   // Identity
   firstName: string;
   lastName: string;

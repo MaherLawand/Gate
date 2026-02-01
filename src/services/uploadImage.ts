@@ -2,7 +2,7 @@ import auth from "@react-native-firebase/auth";
 import storage from "@react-native-firebase/storage";
 import { Platform } from "react-native";
 
-export async function uploadProfilePicture(localUri: string) {
+export async function uploadImage(localUri: string) {
   console.info("[ProfilePicture] Upload started");
 
   const uid = auth().currentUser?.uid;

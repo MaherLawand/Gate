@@ -8,7 +8,10 @@
     "scheme": "gate",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "ios": {
       "supportsTablet": true
     },
@@ -42,6 +45,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5bc10cd6-e679-4eb4-a6d5-3bb4abc257d7"
+      }
+    },
+    "owner": "maherlawand"
   }
 }

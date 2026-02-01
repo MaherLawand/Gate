@@ -2,10 +2,18 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "jsx": "react-jsx",
+    "moduleResolution": "bundler",
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@firebase/auth": ["./node_modules/@firebase/auth/dist/index.rn.d.ts"]
-    }
+      "@src/*": ["./src/*"]
+    },
+    "types": ["expo-router", "react-native"],
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowJs": true
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
+  "include": ["**/*.ts", "**/*.tsx", "expo-env.d.ts", ".expo/types/**/*.ts"],
+  "exclude": ["node_modules"]
 }

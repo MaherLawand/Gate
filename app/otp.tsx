@@ -1,4 +1,5 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { registerForPushNotifications } from "@/src/services/registerForPushNotifications";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, View } from "react-native";
 import AppButton from "../src/components/AppButton";
@@ -7,7 +8,6 @@ import { colors } from "../src/theme/colors";
 
 export default function OTPScreen() {
   const router = useRouter();
-
 
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,13 +24,13 @@ export default function OTPScreen() {
       const client = await confirmOtp(code);
 
       if (client.role === "trainer") {
+        registerForPushNotifications();
         router.replace("/trainer/dashboard");
         return;
       }
-      
-        router.replace("/client/home");
-        return;
-      
+      registerForPushNotifications();
+      router.replace("/client/home");
+      return;
     } catch (e: any) {
       Alert.alert("OTP Failed", e.message);
     } finally {

@@ -1,183 +1,63 @@
 import AppButton from "@/src/components/AppButton";
+import { createAnnouncement } from "@/src/services/announcementService";
 import { compressImage } from "@/src/services/compressImage";
-import { uploadProfilePicture } from "@/src/services/uploadProfilePicture";
+import { uploadImage } from "@/src/services/uploadImage";
 import { colors } from "@/src/theme/colors";
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import * as ImagePicker from "expo-image-picker";
-import { useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  BackHandler,
   Image,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import ActionSheet, {
+  ActionSheetRef,
+  ScrollView as SheetScrollView,
+} from "react-native-actions-sheet";
 
-type ProfileData = {
-  role: "trainer" | "client";
-  firstName?: string;
-  lastName?: string;
-  phone: string;
+type TrainerProfile = {
+  firstName: string;
+  lastName: string;
   bio?: string;
   profilePicture?: string;
-  trainerName?: string;
-  createdAt?: any;
+  coverImage?: string;
+  isAdmin?: boolean;
 };
 
-export default function ProfileScreen() {
-  const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [bio, setBio] = useState("");
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-
+export default function TrainerDashboard() {
   const uid = auth().currentUser?.uid;
 
-  useFocusEffect(
-    useCallback(() => {
-      const onBackPress = () => {
-        Alert.alert("Exit app", "Are you sure you want to exit?", [
-          { text: "Cancel", style: "cancel" },
-          { text: "Exit", onPress: () => BackHandler.exitApp() },
-        ]);
-        return true; // ⛔ prevent default back behavior
-      };
+  const [profile, setProfile] = useState<TrainerProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const isAdmin = profile?.isAdmin === true;
 
-      const subscription = BackHandler.addEventListener(
-        "hardwareBackPress",
-        onBackPress
-      );
+  const [editingBio, setEditingBio] = useState(false);
+  const [bioDraft, setBioDraft] = useState("");
+  const [uploading, setUploading] = useState(false);
+  
+  const [image, setImage] = useState<string | null>(null);
+  const [text, setText] = useState("");
+  const [posting, setPosting] = useState(false);
 
-      return () => {
-        subscription.remove(); // ✅ THIS IS THE FIX
-      };
-    }, [])
+  const adminSheetRef = useRef<ActionSheetRef>(null);
+  const [announcementTitle,setAnnouncementTitle] = useState("");
+  const [announcementText, setAnnouncementText] = useState("");
+  const [announcementImage, setAnnouncementImage] = useState<string | null>(
+    null
   );
+  const [postingAnnouncement, setPostingAnnouncement] = useState(false);
 
-  useEffect(() => {
-    console.log("Profile data:", profile);
-  }, [profile]);
-  useEffect(() => {
-    if (!uid) return;
-
-    const loadProfile = async () => {
-      try {
-        // 1️⃣ Check trainer
-        const trainerSnap = await firestore()
-          .collection("users")
-          .doc(uid)
-          .get();
-
-        if (trainerSnap.exists()) {
-          const data = trainerSnap.data()!;
-          setProfile({
-            role: "trainer",
-            firstName: data.firstName,
-            lastName: data.lastName,
-            phone: data.phone,
-            bio: data.bio ?? "",
-            profilePicture: data.profilePicture ?? undefined,
-            createdAt: data.createdAt,
-          });
-          setFirstName(data.firstName ?? "");
-          setLastName(data.lastName ?? "");
-          setBio(data.bio ?? "");
-          setLoading(false);
-          return;
-        }
-
-        // 2️⃣ Otherwise client
-        const clientSnap = await firestore()
-          .collection("clients")
-          .where("authUid", "==", uid)
-          .limit(1)
-          .get();
-
-        if (!clientSnap.empty) {
-          const doc = clientSnap.docs[0];
-          const data = doc.data();
-
-          setProfile({
-            role: "client",
-            firstName: data.firstName,
-            lastName: data.lastName,
-            phone: data.phone,
-            bio: data.bio ?? "",
-            trainerName: data.trainerName,
-            profilePicture: data.profilePicture ?? undefined,
-            createdAt: data.createdAt,
-          });
-
-          setFirstName(data.firstName ?? "");
-          setLastName(data.lastName ?? "");
-          setBio(data.bio ?? "");
-          setNotificationsEnabled(data.notificationsEnabled ?? true);
-        }
-      } catch (e: any) {
-        Alert.alert("Error", e.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProfile();
-  }, [uid]);
-
-  const handleSave = async () => {
-    try {
-      if (!profile) return;
-
-      if (profile.role === "trainer") {
-        await firestore().collection("users").doc(uid).update({
-          firstName,
-          lastName,
-          bio,
-          notificationsEnabled,
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        });
-      } else {
-        const snap = await firestore()
-          .collection("clients")
-          .where("authUid", "==", uid)
-          .limit(1)
-          .get();
-
-        if (!snap.empty) {
-          await snap.docs[0].ref.update({
-            firstName,
-            lastName,
-            bio,
-            notificationsEnabled,
-            updatedAt: firestore.FieldValue.serverTimestamp(),
-          });
-        }
-      }
-
-      Alert.alert("Saved", "Profile updated successfully");
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
-    }
-  };
-
-  const handleChangePhoto = async () => {
-    if (!uid || !profile) return;
-    console.log("TYTYHT");
-    console.log("AUTH UID:", auth().currentUser?.uid);
-    console.log("AUTH TOKEN:", await auth().currentUser?.getIdToken());
-
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert("Permission required", "Gallery access is needed.");
+  const pickAvatar = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Permission required");
       return;
     }
 
@@ -185,50 +65,98 @@ export default function ProfileScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.8,
+      quality: 0.9,
     });
 
     if (result.canceled) return;
 
     try {
       setUploading(true);
+      const compressed = await compressImage(result.assets[0].uri);
+      const url = await uploadImage(compressed);
 
-      const imageUri = result.assets[0].uri;
-      const compressedUri = await compressImage(imageUri);
-      // ✅ CORRECT call (ONE argument)
-      const downloadURL = await uploadProfilePicture(compressedUri);
+      await firestore().collection("users").doc(uid).update({
+        profilePicture: url,
+        updatedAt: firestore.FieldValue.serverTimestamp(),
+      });
 
-      // 🔥 Save URL in Firestore
-      if (profile.role === "trainer") {
-        await firestore().collection("users").doc(uid).update({
-          profilePicture: downloadURL,
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        });
-      } else {
-        const snap = await firestore()
-          .collection("clients")
-          .where("authUid", "==", uid)
-          .limit(1)
-          .get();
-
-        if (!snap.empty) {
-          await snap.docs[0].ref.update({
-            profilePicture: downloadURL,
-            updatedAt: firestore.FieldValue.serverTimestamp(),
-          });
-        }
-      }
-
-      // ✅ Update UI instantly
-      setProfile((prev) =>
-        prev ? { ...prev, profilePicture: downloadURL } : prev
-      );
-    } catch (e: any) {
-      Alert.alert("Upload failed", e.message);
+      setProfile((p) => p && { ...p, profilePicture: url });
     } finally {
       setUploading(false);
     }
   };
+
+  const pickCover = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Permission required");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.9,
+    });
+
+    if (result.canceled) return;
+
+    try {
+      setUploading(true);
+      const compressed = await compressImage(result.assets[0].uri);
+      const url = await uploadImage(compressed);
+
+      await firestore().collection("users").doc(uid).update({
+        coverImage: url,
+        updatedAt: firestore.FieldValue.serverTimestamp(),
+      });
+
+      setProfile((p) => p && { ...p, coverImage: url });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const saveBio = async () => {
+    if (!uid) return;
+
+    await firestore().collection("users").doc(uid).update({
+      bio: bioDraft.trim(),
+      updatedAt: firestore.FieldValue.serverTimestamp(),
+    });
+
+    setProfile((p) => p && { ...p, bio: bioDraft.trim() });
+    setEditingBio(false);
+  };
+
+  useEffect(() => {
+    if (!uid) return;
+
+    const loadTrainer = async () => {
+      try {
+        const snap = await firestore().collection("users").doc(uid).get();
+
+        if (!snap.exists) return;
+
+        const data = snap.data()!;
+        setProfile({
+          firstName: data.firstName,
+          lastName: data.lastName,
+          bio: data.bio,
+          profilePicture: data.profilePicture,
+          coverImage: data.coverImage,
+          isAdmin: data.isAdmin === true,
+        });
+      } catch (e) {
+        console.error("Failed to load trainer profile", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTrainer();
+  }, [uid]);
 
   if (loading) {
     return (
@@ -240,91 +168,195 @@ export default function ProfileScreen() {
 
   if (!profile) return null;
 
+  const pickAnnouncementImage = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Permission required");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.9,
+    });
+
+    if (result.canceled) return;
+
+    setAnnouncementImage(result.assets[0].uri);
+  };
+
+  const handlePostAnnouncement = async () => {
+    if (!uid) return;
+
+    try {
+      setPostingAnnouncement(true);
+
+      let imageUrl: string | null = null;
+
+      if (announcementImage) {
+        const compressed = await compressImage(announcementImage);
+        imageUrl = await uploadImage(compressed);
+      }
+
+      await createAnnouncement({
+        title:announcementTitle,
+        authorId: uid,
+        text: announcementText,
+        imageUrl,
+      });
+
+      setAnnouncementText("");
+      setAnnouncementImage(null);
+      adminSheetRef.current?.hide();
+
+      Alert.alert("Posted", "Announcement published successfully");
+    } catch (e: any) {
+      Alert.alert("Error", e.message);
+    } finally {
+      setPostingAnnouncement(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Account Information</Text>
-      <View style={styles.avatarContainer}>
-        <TouchableOpacity onPress={handleChangePhoto} disabled={uploading}>
-          <View style={styles.avatarWrapper}>
-            {uploading && (
-              <View style={styles.avatarOverlay}>
-                <ActivityIndicator color="#fff" />
-              </View>
-            )}
+      {/* COVER */}
+      <TouchableOpacity activeOpacity={0.9} onPress={pickCover}>
+        <Image
+          source={
+            profile.coverImage
+              ? { uri: profile.coverImage }
+              : require("../../assets/images/avatar-placeholder.png")
+          }
+          style={styles.cover}
+        />
+      </TouchableOpacity>
 
-            <Image
-              source={
-                profile.profilePicture
-                  ? { uri: profile.profilePicture }
-                  : require("../../assets/images/avatar-placeholder.png")
-              }
-              style={styles.avatar}
-            />
-          </View>
-
-          <Text style={styles.changePhoto}>
-            {uploading ? "Uploading..." : "Change photo"}
-          </Text>
+      {/* AVATAR */}
+      <View style={styles.avatarWrap}>
+        <TouchableOpacity onPress={pickAvatar}>
+          <Image
+            source={
+              profile.profilePicture
+                ? { uri: profile.profilePicture }
+                : require("../../assets/images/avatar-placeholder.png")
+            }
+            style={styles.avatar}
+          />
         </TouchableOpacity>
       </View>
-      {/* NAME */}
-      <>
-        <Text style={styles.label}>First name</Text>
-        <TextInput
-          style={styles.input}
-          value={firstName}
-          onChangeText={setFirstName}
-        />
 
-        <Text style={styles.label}>Last name</Text>
-        <TextInput
-          style={styles.input}
-          value={lastName}
-          onChangeText={setLastName}
-        />
-      </>
+      {/* CONTENT */}
+      <View style={styles.content}>
+        <Text style={styles.name}>
+          {profile.firstName} {profile.lastName}
+        </Text>
 
-      {/* BIO */}
-      <Text style={styles.label}>Bio</Text>
-      <TextInput
-        style={[styles.input, { height: 80 }]}
-        multiline
-        value={bio}
-        onChangeText={setBio}
-      />
+        <Text style={styles.handle}>Trainer</Text>
 
-      <Text style={styles.label}>Preferences</Text>
+        <View style={{ marginTop: 12 }}>
+          {!editingBio ? (
+            profile.bio ? (
+              <View style={styles.bioRow}>
+                <Text style={styles.bio}>{profile.bio}</Text>
 
-      <View style={styles.row}>
-        <Text style={styles.label}>Notifications</Text>
-        <Switch
-          value={notificationsEnabled}
-          onValueChange={setNotificationsEnabled}
-          thumbColor={colors.primary}
-        />
+                <TouchableOpacity
+                  onPress={() => {
+                    setBioDraft(profile.bio ?? "");
+                    setEditingBio(true);
+                  }}
+                >
+                  <Text style={styles.editIcon}>✎</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity onPress={() => setEditingBio(true)}>
+                <Text style={styles.addBio}>+ Add a bio</Text>
+              </TouchableOpacity>
+            )
+          ) : (
+            <>
+              <TextInput
+                style={styles.bioInput}
+                multiline
+                placeholder="Write something about yourself…"
+                value={bioDraft}
+                onChangeText={setBioDraft}
+              />
+
+              <AppButton title="Save bio" onPress={saveBio} />
+            </>
+          )}
+        </View>
+
+        {isAdmin && (
+          <TouchableOpacity
+            style={styles.adminButton}
+            onPress={() => adminSheetRef.current?.show()}
+          >
+            <Text style={styles.adminButtonText}>📢 New Announcement</Text>
+          </TouchableOpacity>
+        )}
       </View>
+      <ActionSheet
+        ref={adminSheetRef}
+        gestureEnabled
+        closeOnTouchBackdrop
+        indicatorStyle={{ backgroundColor: colors.primary }}
+        containerStyle={{
+          backgroundColor: colors.background,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          paddingTop: 10,
+        }}
+      >
+        <SheetScrollView contentContainerStyle={{ padding: 20 }}>
+          <Text style={styles.sheetTitle}>New Announcement</Text>
 
-      {/* PHONE */}
-      <Text style={styles.label}>Phone</Text>
-      <TextInput style={styles.input} value={profile.phone} editable={false} />
+          <TextInput
+            style={styles.announcementInput}
+            placeholder="Write a Title"
+            placeholderTextColor={colors.textSecondary}
+            multiline
+            value={announcementTitle}
+            onChangeText={setAnnouncementTitle}
+          />
 
-      {/* TRAINER NAME (CLIENT ONLY) */}
-      {profile.role === "client" && (
-        <>
-          <Text style={styles.label}>Client</Text>
-          <Text style={styles.readonly}>{profile.trainerName}</Text>
-        </>
-      )}
+          {/* IMAGE */}
+          <TouchableOpacity
+            style={styles.announcementImagePicker}
+            onPress={pickAnnouncementImage}
+          >
+            {announcementImage ? (
+              <Image
+                source={{ uri: announcementImage }}
+                style={styles.announcementImage}
+              />
+            ) : (
+              <Text style={styles.imagePlaceholder}>
+                + Add image (optional)
+              </Text>
+            )}
+          </TouchableOpacity>
 
-      {/* ROLE (TRAINER ONLY) */}
-      {profile.role === "trainer" && (
-        <>
-          <Text style={styles.label}>Role</Text>
-          <Text style={styles.readonly}>Trainer</Text>
-        </>
-      )}
+          {/* TEXT */}
+          <TextInput
+            style={styles.announcementInput}
+            placeholder="Write an announcement…"
+            placeholderTextColor={colors.textSecondary}
+            multiline
+            value={announcementText}
+            onChangeText={setAnnouncementText}
+          />
 
-      <AppButton title="Save changes" onPress={handleSave} />
+          <AppButton
+            title={postingAnnouncement ? "Posting…" : "Post announcement"}
+            onPress={handlePostAnnouncement}
+            disabled={postingAnnouncement}
+          />
+        </SheetScrollView>
+      </ActionSheet>
     </View>
   );
 }
@@ -333,67 +365,137 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    padding: 24,
   },
+
   loading: {
     flex: 1,
     justifyContent: "center",
     backgroundColor: colors.background,
   },
-  title: {
-    color: colors.textPrimary,
-    fontSize: 24,
-    fontWeight: "700",
-    marginBottom: 24,
+
+  cover: {
+    width: "100%",
+    height: 160,
   },
-  label: {
-    color: colors.textSecondary,
-    marginBottom: 6,
-    marginTop: 12,
+
+  avatarWrap: {
+    position: "absolute",
+    top: 110,
+    left: 20,
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: colors.background,
   },
-  input: {
-    backgroundColor: colors.card,
-    color: colors.textPrimary,
-    padding: 14,
-    borderRadius: 8,
-  },
-  readonly: {
-    color: colors.textPrimary,
-    paddingVertical: 8,
-  },
-  avatarContainer: {
-    alignItems: "center",
-    marginBottom: 24,
-  },
+
   avatar: {
     width: 96,
     height: 96,
     borderRadius: 48,
     backgroundColor: colors.card,
   },
-  changePhoto: {
-    color: colors.primary,
-    marginTop: 8,
-    fontSize: 13,
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginVertical: 12,
-  },
-  avatarWrapper: {
-    position: "relative",
+
+  content: {
+    marginTop: 64,
+    paddingHorizontal: 20,
   },
 
-  avatarOverlay: {
-    position: "absolute",
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: "rgba(0,0,0,0.4)",
+  name: {
+    color: colors.textPrimary,
+    fontSize: 22,
+    fontWeight: "800",
+  },
+
+  handle: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    marginBottom: 12,
+  },
+
+  bio: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  bioRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+
+  editIcon: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    marginTop: 2,
+  },
+
+  addBio: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  bioInput: {
+    backgroundColor: colors.card,
+    color: colors.textPrimary,
+    borderRadius: 10,
+    padding: 12,
+    minHeight: 80,
+    marginBottom: 12,
+  },
+  adminButton: {
+    marginTop: 24,
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 999, // pill style
+    alignSelf: "flex-start",
+    shadowColor: colors.primary,
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+
+  adminButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  sheetTitle: {
+    color: colors.textPrimary,
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 12,
+  },
+  
+  announcementImagePicker: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    height: 160,
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 2,
+    marginBottom: 12,
+    overflow: "hidden",
+  },
+  
+  announcementImage: {
+    width: "100%",
+    height: "100%",
+  },
+  
+  imagePlaceholder: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  
+  announcementInput: {
+    backgroundColor: colors.card,
+    color: colors.textPrimary,
+    borderRadius: 12,
+    padding: 14,
+    minHeight: 100,
+    textAlignVertical: "top",
+    marginBottom: 16,
   },
 });
