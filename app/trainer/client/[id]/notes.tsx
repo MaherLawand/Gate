@@ -19,6 +19,7 @@ import ActionSheet, {
 } from "react-native-actions-sheet";
 
 import NoteSkeleton from "@/src/components/skeletons/Notes/NoteSkeleton";
+import { typography } from "@/src/theme/typography";
 import auth from "@react-native-firebase/auth";
 import firestore, {
   FirebaseFirestoreTypes,
@@ -223,7 +224,7 @@ export default function NotesScreen() {
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 120 }}
     >
-      <Text style={styles.title}>Trainer Notes</Text>
+      <Text style={[typography.heading, styles.title]}>Trainer Notes</Text>
 
       <AppButton
         title="+ Add Note"
@@ -239,7 +240,9 @@ export default function NotesScreen() {
       {loading ? (
         <NoteSkeleton count={1} />
       ) : notes.length === 0 ? (
-        <Text style={styles.noNotes}>No notes yet</Text>
+        <Text style={[typography.bodyMedium, styles.noNotes]}>
+          No notes yet
+        </Text>
       ) : (
         <FlatList
           data={notes}
@@ -251,7 +254,7 @@ export default function NotesScreen() {
               <View style={styles.noteCard}>
                 {/* Header row */}
                 <View style={styles.noteHeader}>
-                  <Text style={styles.noteTimestamp}>
+                  <Text style={[typography.small, styles.noteTimestamp]}>
                     {item.createdAt?.toDate
                       ? item.createdAt.toDate().toLocaleString()
                       : "—"}
@@ -282,7 +285,9 @@ export default function NotesScreen() {
                 </View>
 
                 {/* Content */}
-                <Text style={styles.noteText}>{item.content}</Text>
+                <Text style={[typography.body, styles.noteText]}>
+                  {item.content}
+                </Text>
               </View>
             </AnimatedAppear>
           )}
@@ -337,7 +342,7 @@ export default function NotesScreen() {
         }}
       >
         <SheetScrollView contentContainerStyle={{ padding: 20 }}>
-          <Text style={styles.sheetTitle}>
+          <Text style={[typography.title, styles.sheetTitle]}>
             {editingNote ? "Edit Note" : "Add Note"}
           </Text>
 
@@ -377,8 +382,6 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 26,
-    fontWeight: "800",
     color: colors.textPrimary,
     marginBottom: 16,
   },
@@ -403,8 +406,6 @@ const styles = StyleSheet.create({
 
   noteText: {
     color: colors.textPrimary,
-    fontSize: 14,
-    lineHeight: 20,
   },
 
   noNotes: {
@@ -420,8 +421,6 @@ const styles = StyleSheet.create({
   },
 
   sheetTitle: {
-    fontSize: 20,
-    fontWeight: "700",
     color: colors.textPrimary,
     marginBottom: 12,
   },

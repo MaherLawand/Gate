@@ -1,7 +1,7 @@
-import firestore from "@react-native-firebase/firestore";
 import auth from "@react-native-firebase/auth";
+import firestore from "@react-native-firebase/firestore";
 import { lockGymTimeSlot } from "./SlotLockService";
-
+import { updateSessionReminder } from "./notifications/sessionReminderService";
 /* ---------------- TYPES ---------------- */
 
 type SelectedClient = {
@@ -29,6 +29,12 @@ type BookSessionParams = {
   editingSession?: EditingSession;
 };
 
+type SessionStatus =
+  | "pending" // just booked
+  | "confirmed" // attended
+  | "postponed" // rescheduled / postponed
+  | "charged"; // no-show but charged
+
 /* ---------------- HELPERS ---------------- */
 
 const formatTime = (d: Date) => {
@@ -43,6 +49,49 @@ const timeToMinutes = (time: string) => {
 };
 
 /* ---------------- MAIN ---------------- */
+export async function updateSessionStatus({
+  trainerId,
+  clientId,
+  dateKey,
+  sessionId,
+  status,
+}: {
+  trainerId: string;
+  clientId: string;
+  dateKey: string;
+  sessionId: string;
+  status: SessionStatus;
+}) {
+  const batch = firestore().batch();
+
+  const trainerRef = firestore()
+    .collection("trainer_schedules")
+    .doc(trainerId)
+    .collection("days")
+    .doc(dateKey)
+    .collection("sessions")
+    .doc(sessionId);
+
+  const clientRef = firestore()
+    .collection("clients")
+    .doc(clientId)
+    .collection("sessions")
+    .doc(sessionId);
+
+  batch.update(trainerRef, {
+    status,
+    updatedAt: firestore.FieldValue.serverTimestamp(),
+  });
+
+  batch.update(clientRef, {
+    status,
+    updatedAt: firestore.FieldValue.serverTimestamp(),
+  });
+
+  await batch.commit();
+}
+const WORK_START_MINUTES = 6 * 60; // 06:00
+const WORK_END_MINUTES = 21 * 60; // 21:00
 
 export async function bookSession({
   trainerId,
@@ -61,22 +110,26 @@ export async function bookSession({
   const user = auth().currentUser;
 
   if (!user || user.uid !== trainerId) {
-    console.error("[BookingService] Permission denied", {
-      authUid: user?.uid,
-      trainerId,
-    });
     throw new Error("Permission denied");
   }
 
   if (toTime <= fromTime) {
-    console.warn("[BookingService] Invalid time range");
     throw new Error("Invalid time range");
   }
 
   const newStart = fromTime.getHours() * 60 + fromTime.getMinutes();
   const newEnd = toTime.getHours() * 60 + toTime.getMinutes();
+  if (newEnd - newStart !== 60) {
+    throw new Error("Sessions must be exactly 1 hour long");
+  }
+  if (newStart < WORK_START_MINUTES || newEnd > WORK_END_MINUTES) {
+    throw new Error("Sessions must be between 06:00 and 21:00");
+  }
 
-  /* ---------------- PAST DATE / TIME CHECK ---------------- */
+  if (newEnd - newStart !== 60) {
+    throw new Error("Sessions must be exactly 1 hour long");
+  }
+  /* ---------------- PAST CHECK ---------------- */
 
   const now = new Date();
   const bookingDate = new Date(`${dateKey}T00:00:00`);
@@ -84,19 +137,26 @@ export async function bookSession({
   today.setHours(0, 0, 0, 0);
 
   if (bookingDate < today) {
-    console.warn("[BookingService] Attempted booking in the past", { dateKey });
     throw new Error("You cannot book old sessions");
   }
 
   if (bookingDate.getTime() === today.getTime()) {
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
     if (newStart <= nowMinutes) {
-      console.warn("[BookingService] Attempted booking earlier today");
       throw new Error("You cannot book a session in the past");
     }
   }
 
   const db = firestore();
+
+  // 🔒 Ensure trainer_schedules parent doc exists (IMPORTANT)
+  await firestore().collection("trainer_schedules").doc(trainerId).set(
+    {
+      trainerId,
+      createdAt: firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
 
   const sessionsRef = db
     .collection("trainer_schedules")
@@ -116,9 +176,6 @@ export async function bookSession({
   );
 
   if (hasClientConflict) {
-    console.warn("[BookingService] Client already booked on this day", {
-      clientId: selectedClient.id,
-    });
     throw new Error("This client already has a session booked on this day");
   }
 
@@ -126,17 +183,15 @@ export async function bookSession({
 
   const trainerSessionsSnap = await sessionsRef.get();
 
-  console.log("TrainerSessionsSnap: ", trainerSessionsSnap)
-
   const trainerOverlap = trainerSessionsSnap.docs.some((doc) => {
     if (doc.id === editingSession?.id) return false;
     const s = doc.data();
-    return newStart < timeToMinutes(s.endTime) &&
-           newEnd > timeToMinutes(s.startTime);
+    return (
+      newStart < timeToMinutes(s.endTime) && newEnd > timeToMinutes(s.startTime)
+    );
   });
 
   if (trainerOverlap) {
-    console.warn("[BookingService] Trainer time overlap detected");
     throw new Error("This time overlaps with another session");
   }
 
@@ -155,9 +210,6 @@ export async function bookSession({
       .get();
 
     if (packageSnap.empty) {
-      console.warn("[BookingService] No active package", {
-        clientId: selectedClient.id,
-      });
       throw new Error("Client has no active package");
     }
 
@@ -166,11 +218,12 @@ export async function bookSession({
 
   /* ---------------- SESSION ID ---------------- */
 
-  const sessionId = editingSession
-    ? editingSession.id
-    : sessionsRef.doc().id;
+  const sessionId = editingSession ? editingSession.id : sessionsRef.doc().id;
 
-  console.info("[BookingService] Session ID resolved", { sessionId });
+  const ClientSessionRef = db
+    .collection("clients")
+    .doc(selectedClient.id)
+    .collection("sessions");
 
   /* ---------------- SLOT LOCK ---------------- */
 
@@ -179,18 +232,12 @@ export async function bookSession({
     (editingSession.startTime !== formatTime(fromTime) ||
       editingSession.endTime !== formatTime(toTime))
   ) {
-    console.info("[BookingService] Releasing previous slot lock", {
-      sessionId,
-    });
-
     await db
       .collection("gym_time_slots")
       .doc(editingSession.id)
       .delete()
       .catch(() => {});
   }
-
-  console.info("[BookingService] Locking gym time slot");
 
   await lockGymTimeSlot({
     sessionId,
@@ -218,16 +265,48 @@ export async function bookSession({
     updatedAt: firestore.FieldValue.serverTimestamp(),
   };
 
+  const clientSessionPayload = {
+    packageId: clientPackageId,
+    date: dateKey,
+    exercises: [],
+    attendance: editingSession ? editingSession.attendance : "pending", // ✅
+    updatedAt: firestore.FieldValue.serverTimestamp(),
+  };
+
   if (editingSession) {
+    // ✏️ EDIT — do NOT reset status
     await sessionsRef.doc(sessionId).update(payload);
+    await ClientSessionRef.doc(sessionId).update({
+      ...clientSessionPayload,
+      updatedAt: firestore.FieldValue.serverTimestamp(),
+    });
   } else {
+    // 🆕 CREATE — status starts as "pending" on BOTH
     await sessionsRef.doc(sessionId).set({
       ...payload,
+      createdAt: firestore.FieldValue.serverTimestamp(),
+    });
+
+    await ClientSessionRef.doc(sessionId).set({
+      ...clientSessionPayload,
       createdAt: firestore.FieldValue.serverTimestamp(),
     });
   }
 
   console.info("[BookingService] Booking saved successfully", { sessionId });
+
+  /* ---------------- SESSION REMINDER (NON-BLOCKING) ---------------- */
+
+  try {
+    await updateSessionReminder({
+      clientId: selectedClient.id,
+      sessionId,
+      sessionDate: dateKey,
+      startTime: formatTime(fromTime),
+    });
+  } catch (err) {
+    console.warn("[BookingService] Reminder update failed (non-blocking)", err);
+  }
 
   return { success: true, sessionId };
 }

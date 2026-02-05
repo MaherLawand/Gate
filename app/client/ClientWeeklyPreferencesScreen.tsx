@@ -1,18 +1,22 @@
 import { useClient } from "@/src/components/ClientContext";
+import WeeklyPreferencesSkeleton from "@/src/components/skeletons/WeeklyPreferences/WeeklyPreferencesSkeleton";
 import { colors } from "@/src/theme/colors";
+import { typography } from "@/src/theme/typography";
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Animated,
+  BackHandler,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-
 /* ------------------ CONFIG ------------------ */
 
 const TRAINING_DAYS = [
@@ -40,14 +44,37 @@ function getCurrentWeekKey() {
 /* ------------------ COMPONENT ------------------ */
 
 export default function ClientWeeklyPreferencesScreen() {
+  useFocusEffect(
+    useCallback(() => {
+      const onBack = () => {
+        router.replace("/client/Gate");
+        return true; // ⛔ block default back
+      };
+
+      // Android hardware back
+      const sub =
+        Platform.OS === "android"
+          ? BackHandler.addEventListener("hardwareBackPress", onBack)
+          : null;
+
+      return () => {
+        sub?.remove();
+      };
+    }, [])
+  );
   const user = auth().currentUser;
   const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
 
-  const { clientId, clientloading } = useClient();
+  const clientCtx = useClient();
+  if (!clientCtx) {
+    return null;
+  }
+  const clientId = clientCtx?.clientId ?? null;
+  const clientLoading = clientCtx?.clientloading ?? true;
   const [sessionsPerWeek, setSessionsPerWeek] = useState(0);
   const [preferences, setPreferences] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
-
+  const [hasActivePackage, setHasActivePackage] = useState(false);
   const weekKey = useMemo(() => getCurrentWeekKey(), []);
 
   /* ------------------ ANIMATION ------------------ */
@@ -103,7 +130,7 @@ export default function ClientWeeklyPreferencesScreen() {
 
     const load = async () => {
       try {
-        console.log("clientId" , clientId);
+        console.log("clientId", clientId);
 
         const pkgSnap = await firestore()
           .collection("clients")
@@ -114,10 +141,12 @@ export default function ClientWeeklyPreferencesScreen() {
           .get();
 
         if (pkgSnap.empty) {
-          Alert.alert("No active package");
+          setHasActivePackage(false);
+          setSessionsPerWeek(0);
+          setPreferences({});
           return;
         }
-
+        setHasActivePackage(true);
         const pkg = pkgSnap.docs[0].data();
 
         // ✅ STEP 3 — derive sessions per week
@@ -203,19 +232,34 @@ export default function ClientWeeklyPreferencesScreen() {
   /* ------------------ UI ------------------ */
 
   if (loading) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.text}>Loading...</Text>
-      </View>
-    );
+    return <WeeklyPreferencesSkeleton />;
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Weekly Training Preferences</Text>
-      <Text style={styles.subtitle}>Week starting Saturday: {weekKey}</Text>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 30 }}
+    >
+      <Text style={[typography.title, { color: colors.textPrimary }]}>
+        Weekly Training Preferences
+      </Text>
+      <Text
+        style={[
+          typography.bodyMedium,
+          { color: colors.textSecondary, marginBottom: 12 },
+        ]}
+      >
+        Week starting Saturday: {weekKey}
+      </Text>
 
-      <Text style={styles.info}>Training days allowed: {sessionsPerWeek}</Text>
+      <Text
+        style={[
+          typography.bodyMedium,
+          { color: colors.primary, marginBottom: 16 },
+        ]}
+      >
+        Training days allowed: {sessionsPerWeek}
+      </Text>
 
       {TRAINING_DAYS.map((day, index) => {
         const dateKeyForDay = getDateForWeekday(weekKey, index);
@@ -242,8 +286,12 @@ export default function ClientWeeklyPreferencesScreen() {
               onPress={() => toggleDay(day.key)}
               style={[styles.dayHeader, disabled && styles.dayDisabled]}
             >
-              <Text style={styles.dayTitle}>{day.label}</Text>
-              <Text style={styles.dayHint}>
+              <Text
+                style={[typography.bodyMedium, { color: colors.textPrimary }]}
+              >
+                {day.label}
+              </Text>
+              <Text style={[typography.small, { color: colors.textSecondary }]}>
                 {isActive ? "Selected" : "Tap to choose"}
               </Text>
             </TouchableOpacity>
@@ -261,6 +309,7 @@ export default function ClientWeeklyPreferencesScreen() {
                     >
                       <Text
                         style={[
+                          typography.small,
                           styles.hourText,
                           selected && styles.hourTextSelected,
                         ]}
@@ -276,8 +325,20 @@ export default function ClientWeeklyPreferencesScreen() {
         );
       })}
 
-      <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-        <Text style={styles.saveText}>Save Preferences</Text>
+      <TouchableOpacity
+        style={[styles.saveBtn, !hasActivePackage && styles.saveBtnDisabled]}
+        disabled={!hasActivePackage}
+        onPress={handleSave}
+      >
+        <Text
+          style={[
+            typography.button,
+            styles.saveText,
+            !hasActivePackage && styles.saveTextDisabled,
+          ]}
+        >
+          Save Preferences
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -289,7 +350,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    padding: 16,
+    padding: 20,
   },
   center: {
     flex: 1,
@@ -371,5 +432,13 @@ const styles = StyleSheet.create({
   saveText: {
     color: "#fff",
     fontWeight: "700",
+  },
+  saveBtnDisabled: {
+    backgroundColor: colors.border,
+    opacity: 0.6,
+  },
+
+  saveTextDisabled: {
+    color: colors.textSecondary,
   },
 });

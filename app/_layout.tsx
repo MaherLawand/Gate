@@ -1,39 +1,43 @@
-// app/_layout.tsx
 globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
-import { ResizeMode, Video } from "expo-av";
+
+import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
-import { useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { View } from "react-native";
+
+
+export const unstable_settings = {
+  initialRouteName: "entry",
+};
+
 export default function RootLayout() {
-  const videoRef = useRef<Video>(null);
-  const [ready, setReady] = useState(false);
+  const [fontsLoaded] = useFonts({
+    "Inter-Regular": require("../assets/fonts/Inter_18pt-Regular.ttf"),
+    "Inter-Medium": require("../assets/fonts/Inter_18pt-Medium.ttf"),
+    "Inter-SemiBold": require("../assets/fonts/Inter_18pt-SemiBold.ttf"),
+    "Inter-Bold": require("../assets/fonts/Inter_18pt-Bold.ttf"),
+    "Sora-Medium": require("../assets/fonts/Sora-Medium.ttf"),
+    "Sora-SemiBold": require("../assets/fonts/Sora-SemiBold.ttf"),
+    "Sora-Bold": require("../assets/fonts/Sora-Bold.ttf"),
+  });
+
+  // 🔔 FOREGROUND PUSH HANDLER
+
+
+  if (!fontsLoaded) {
+    return <View style={{ flex: 1, backgroundColor: "black" }} />;
+  }
 
   return (
-    <View style={{ flex: 1 }}>
-      {!ready && (
-        <Video
-          ref={videoRef}
-          source={require("../assets/images/Final_Gate_animation.mp4")}
-          resizeMode={ResizeMode.COVER} // ✅ FIX
-          style={StyleSheet.absoluteFill}
-          shouldPlay
-          isLooping={false}
-          onPlaybackStatusUpdate={(status) => {
-            if (!status.isLoaded) return;
-            if (status.didJustFinish) {
-              setReady(true);
-            }
-          }}
-        />
-      )}
-
-      {ready && (
-        <Stack
-          screenOptions={{
-            headerShown: false,
-          }}
-        />
-      )}
-    </View>
+    <>
+      <StatusBar style="auto" />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: "none",
+        }}
+      />
+     
+    </>
   );
 }

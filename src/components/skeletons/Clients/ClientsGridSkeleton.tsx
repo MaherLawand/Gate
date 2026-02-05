@@ -1,7 +1,7 @@
 import { FlatList, View } from "react-native";
 import ClientCardSkeleton from "./ClientCardSkeleton";
 
-const SKELETON_ITEMS = Array.from({ length: 6 });
+const SKELETON_ITEMS = Array.from({ length: 4 });
 
 export default function ClientsGridSkeleton() {
   return (
@@ -9,7 +9,7 @@ export default function ClientsGridSkeleton() {
       data={SKELETON_ITEMS}
       keyExtractor={(_, i) => `skeleton-${i}`}
       renderItem={() => <ClientCardSkeleton />}
-      numColumns={3}
+      numColumns={2}
       scrollEnabled={false}
       columnWrapperStyle={{
         justifyContent: "space-between",

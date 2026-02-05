@@ -1,15 +1,19 @@
 import { useClient } from "@/src/components/ClientContext";
-import { useLocalSearchParams } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { typography } from "@/src/theme/typography";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  BackHandler,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   getActivePackage,
   getClientSessions,
@@ -40,8 +44,31 @@ const getWeekDays = (date: Date) => {
 /* ------------------ SCREEN ------------------ */
 
 export default function ClientSessionsScreen() {
+  useFocusEffect(
+    useCallback(() => {
+      const onBack = () => {
+        router.replace("/client/Gate");
+        return true; // ⛔ block default back
+      };
+
+      // Android hardware back
+      const sub =
+        Platform.OS === "android"
+          ? BackHandler.addEventListener("hardwareBackPress", onBack)
+          : null;
+
+      return () => {
+        sub?.remove();
+      };
+    }, [])
+  );
   const params = useLocalSearchParams();
-  const { clientId, clientloading } = useClient();
+  const clientCtx = useClient();
+  if (!clientCtx) {
+    return null;
+  }
+  const clientId = clientCtx?.clientId ?? null;
+  const clientLoading = clientCtx?.clientloading ?? true;
 
   const [sessions, setSessions] = useState<SessionWithId[]>([]);
   const [activeDate, setActiveDate] = useState(new Date());
@@ -51,6 +78,23 @@ export default function ClientSessionsScreen() {
     null
   );
   const [modalVisible, setModalVisible] = useState(false);
+  const getAttendanceBorderColor = (attendance?: string) => {
+    console.log("attendance: ", attendance);
+    switch (attendance) {
+      case "confirmed":
+      case "attended":
+        return "#22c55e"; // green
+      case "pending":
+        return "#ffde21"; // orange
+      case "charged":
+      case "charged-no-show":
+        return "#ef4444"; // red
+      case "no_show":
+        return "#9ca3af"; // gray
+      default:
+        return "transparent";
+    }
+  };
 
   /* ------------------ LOAD DATA ------------------ */
 
@@ -90,9 +134,18 @@ export default function ClientSessionsScreen() {
 
   const onDayPress = (dateKey: string) => {
     const session = sessions.find((s) => s.date === dateKey);
+    console.log("session pressed: ", session);
 
     if (!session) {
       Alert.alert("No session", "No session on this day.");
+      return;
+    }
+
+    if (session.attendance !== "confirmed") {
+      Alert.alert(
+        "Session locked",
+        "You can only open sessions that are confirmed."
+      );
       return;
     }
 
@@ -107,6 +160,18 @@ export default function ClientSessionsScreen() {
     setCurrentSession(null);
   };
 
+  useEffect(() => {
+    if (!modalVisible) return;
+
+    const onBackPress = () => {
+      closeModal();
+      return true; // 👈 block default behavior
+    };
+
+    const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+
+    return () => sub.remove();
+  }, [modalVisible]);
   /* ------------------ RENDER ------------------ */
 
   return (
@@ -114,10 +179,10 @@ export default function ClientSessionsScreen() {
       {/* HEADER */}
       <View style={styles.weekHeader}>
         <Pressable onPress={() => changeWeek(-1)}>
-          <Text style={styles.nav}>‹</Text>
+          <Text style={[typography.heading, styles.nav]}>‹</Text>
         </Pressable>
 
-        <Text style={styles.monthTitle}>
+        <Text style={[typography.heading, { color: colors.textPrimary }]}>
           {activeDate.toLocaleString("default", {
             month: "long",
             year: "numeric",
@@ -125,7 +190,7 @@ export default function ClientSessionsScreen() {
         </Text>
 
         <Pressable onPress={() => changeWeek(1)}>
-          <Text style={styles.nav}>›</Text>
+          <Text style={[typography.heading, styles.nav]}>›</Text>
         </Pressable>
       </View>
 
@@ -134,27 +199,56 @@ export default function ClientSessionsScreen() {
         <View style={styles.weekGrid}>
           {weekDays.map((d) => {
             const key = formatDateKey(d);
-            const hasSession = sessions.some((s) => s.date === key);
+            console.log("key: ", key);
+            const sessionForDay = sessions.find((s) => s.date === key);
+            const hasSession = !!sessionForDay;
             const isToday = key === formatDateKey(new Date());
+
+            const borderColor = getAttendanceBorderColor(
+              sessionForDay?.attendance
+            );
+            console.log("borderColor: ", borderColor);
+            console.log("sessionForDay: ", sessionForDay);
 
             return (
               <Pressable
                 key={key}
-                disabled={!hasSession}
+                disabled={
+                  !hasSession || sessionForDay?.attendance !== "confirmed"
+                }
                 onPress={() => onDayPress(key)}
                 style={[
                   styles.dayCard,
                   hasSession && styles.activeDay,
                   isToday && styles.today,
+                  hasSession && {
+                    borderWidth: 2,
+                    borderColor,
+                  },
+                  hasSession &&
+                    sessionForDay?.attendance !== "confirmed" && {
+                      opacity: 0.6,
+                    },
                 ]}
               >
-                <Text style={styles.weekDay}>
+                <Text
+                  style={[typography.small, { color: colors.textSecondary }]}
+                >
                   {d.toLocaleDateString("en-US", { weekday: "short" })}
                 </Text>
 
-                <Text style={styles.dayNumber}>{d.getDate()}</Text>
+                <Text style={[typography.stat, { color: colors.textPrimary }]}>
+                  {d.getDate()}
+                </Text>
 
-                {hasSession && <View style={styles.sessionIndicator} />}
+                {hasSession && (
+                  <View
+                    style={[
+                      styles.sessionIndicator,
+                      { backgroundColor: borderColor },
+                    ]}
+                  />
+                )}
               </Pressable>
             );
           })}
@@ -162,40 +256,67 @@ export default function ClientSessionsScreen() {
       </View>
 
       {/* SESSION VIEW MODAL */}
-      <Modal visible={modalVisible} animationType="slide">
-        <View style={styles.modal}>
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        onRequestClose={closeModal}
+      >
+        <SafeAreaView style={styles.modal}>
           <Pressable onPress={closeModal}>
-            <Text style={styles.back}>← Back</Text>
+            <Text style={[typography.small, { color: colors.textSecondary }]}>
+              ← Back
+            </Text>
           </Pressable>
 
-          <Text style={styles.modalTitle}>Session • {selectedDate}</Text>
+          <Text style={[typography.title, { color: colors.textPrimary }]}>
+            Session • {selectedDate}
+          </Text>
 
           <ScrollView>
             {currentSession?.exercises.map((ex, i) => (
               <View key={i} style={styles.exerciseCard}>
-                <Text style={styles.exerciseName}>{ex.name}</Text>
+                <Text style={[typography.title, { color: colors.textPrimary }]}>
+                  {ex.name}
+                </Text>
 
                 <View style={styles.readonlyGroup}>
                   {Array.isArray(ex.sets) ? (
                     ex.sets.map((set, setIndex) => (
                       <View key={setIndex} style={styles.readonlyRow}>
-                        <Text style={styles.readonlyLabel}>
+                        <Text
+                          style={[
+                            typography.small,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
                           Set {setIndex + 1}
                         </Text>
 
-                        <Text style={styles.readonlyValue}>
+                        <Text
+                          style={[
+                            typography.bodyMedium,
+                            { color: colors.textPrimary },
+                          ]}
+                        >
                           {set.reps} reps • {set.weightKg} kg
                         </Text>
                       </View>
                     ))
                   ) : (
-                    <Text style={styles.readonlyValue}>Invalid set data</Text>
+                    <Text
+                      style={[
+                        typography.small,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Invalid set data
+                    </Text>
                   )}
                 </View>
               </View>
             ))}
           </ScrollView>
-        </View>
+        </SafeAreaView>
       </Modal>
     </View>
   );
@@ -256,6 +377,7 @@ const styles = StyleSheet.create({
   },
 
   today: {
+    borderStyle: "dashed",
     borderWidth: 2,
     borderColor: colors.primary,
   },

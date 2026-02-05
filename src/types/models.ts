@@ -3,7 +3,7 @@ import { FieldValue, Timestamp } from "firebase/firestore";
 
 export interface UserDoc {
   role: "trainer";
-  isAdmin:boolean;
+  isAdmin: boolean;
   // Identity
   firstName: string;
   lastName: string;
@@ -63,6 +63,18 @@ export type ExerciseSet = {
   weightKg: number;
 };
 
+// 🔧 ONLY used while editing in TextInput
+export type DraftExerciseSet = {
+  reps: string;       // "" | "12"
+  weightKg: string;  // "" | "40"
+};
+
+export type DraftSessionExercise = {
+  exerciseId: string;
+  name: string;
+  sets: DraftExerciseSet[];
+};
+
 export type SessionExercise = {
   exerciseId: string;
   name: string;
@@ -73,6 +85,7 @@ export type SessionData = {
   date: string; // YYYY-MM-DD
   exercises: SessionExercise[];
   packageId: string;
+  attendance: string;
 };
 
 export type SessionWithId = SessionData & {
@@ -126,4 +139,26 @@ export type ScheduledSession = {
   attendance: AttendanceStatus;
 
   createdAt: Timestamp;
+};
+
+export type BugDoc = {
+  description: string;
+  screenshotUrl?: string;
+
+  reporterId: string; // client doc ID
+  authUid: string; // Firebase Auth UID
+
+  app: {
+    platform: "android" | "ios";
+    appVersion: string;
+  };
+
+  context: {
+    screen: string;
+    route?: string;
+  };
+
+  status: "open";
+
+  createdAt: FirebaseFirestore.Timestamp | FirebaseFirestore.FieldValue;
 };

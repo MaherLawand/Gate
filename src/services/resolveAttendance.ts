@@ -9,6 +9,13 @@ type ResolveAttendanceParams = {
   mode: "confirmed" | "no_show" | "charged-no-show";
 };
 
+// 🔁 Trainer → Client mapping
+const trainerToClientStatusMap = {
+  confirmed: "confirmed",
+  no_show: "postponed",
+  "charged-no-show": "charged",
+} as const;
+
 export async function resolveAttendance({
   trainerId,
   dateKey,
@@ -27,12 +34,19 @@ export async function resolveAttendance({
   });
 
   const db = firestore();
+  const clientStatus = trainerToClientStatusMap[mode];
 
   const scheduleRef = db
     .collection("trainer_schedules")
     .doc(trainerId)
     .collection("days")
     .doc(dateKey)
+    .collection("sessions")
+    .doc(scheduleSessionId);
+
+    const clientSessionRef = db
+    .collection("clients")
+    .doc(clientId)
     .collection("sessions")
     .doc(scheduleSessionId);
 
@@ -111,6 +125,13 @@ export async function resolveAttendance({
 
       tx.update(packageRef, packageUpdate);
 
+      const now = firestore.FieldValue.serverTimestamp();
+      
+      tx.update(clientSessionRef, {
+        attendance: clientStatus,
+        updatedAt: now,
+      });
+
       // ✅ Create client session ONLY if attended
       if (mode === "confirmed") {
         console.info("[Attendance] Creating client session record");
@@ -119,13 +140,11 @@ export async function resolveAttendance({
           .collection("clients")
           .doc(clientId)
           .collection("sessions")
-          .doc();
+          .doc(scheduleSessionId);
 
-        tx.set(clientSessionRef, {
-          packageId: clientPackageId,
-          date: schedule.date,
-          exercises: [],
-          createdAt: firestore.FieldValue.serverTimestamp(),
+        tx.update(clientSessionRef, {
+          attendance: "confirmed",
+          updatedAt: firestore.FieldValue.serverTimestamp(),
         });
       }
     }

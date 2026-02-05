@@ -35,7 +35,7 @@ export default function PostAuth() {
         .get();
 
       if (!clientSnap.empty) {
-        router.replace("/client/home");
+        router.replace("/client/Gate");
         return;
       }
 

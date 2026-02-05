@@ -1,59 +1,97 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useSegments } from "expo-router";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../theme/colors";
-
-type ClientRoute = "home" | "ClientWeeklyPreferencesScreen" | "Info";
 
 export default function ClientFooter() {
   const router = useRouter();
   const segments = useSegments();
+  const current = segments[segments.length - 1];
 
-  const navigate = (path: ClientRoute) => {
-    const current = segments[segments.length - 1];
-    if (current !== path) {
-      console.log(`Navigating to /client/${path}`);
-      router.push(`/client/${path}` as const);
-    }
+  const go = (path: string) => {
+    // 🚨 ALWAYS replace, never push
+    router.replace(path as any);
   };
 
   return (
-    <View style={styles.container}>
-      <FooterButton title="home" onPress={() => navigate("home")} />
-      <FooterButton title="Sessions" onPress={() => navigate("ClientWeeklyPreferencesScreen")} />
-      <FooterButton title="Info" onPress={() => navigate("Info")} />
-    </View>
-  );
-}
+    <SafeAreaView edges={["bottom"]} style={styles.safe}>
+      <View style={styles.container}>
+        {/* Sessions */}
+        <TouchableOpacity
+          style={styles.sideButton}
+          onPress={() => go("/client/ClientWeeklyPreferencesScreen")}
+        >
+          <Ionicons
+            name="options-outline"
+            size={20}
+            color={
+              current === "ClientWeeklyPreferencesScreen"
+                ? colors.primary
+                : colors.textSecondary
+            }
+          />
+        </TouchableOpacity>
 
-function FooterButton({
-  title,
-  onPress,
-}: {
-  title: string;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity onPress={onPress} style={styles.button}>
-      <Text style={styles.text}>{title}</Text>
-    </TouchableOpacity>
+        {/* Gate */}
+        <TouchableOpacity
+          style={styles.centerButton}
+          onPress={() => router.replace("/client/Gate")}
+        >
+          <Image
+            source={require("../../assets/images/gate-logo.png")}
+            style={[
+              styles.logo,
+              { tintColor: current ==="Gate" ? colors.primary : colors.textSecondary },
+            ]}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+
+        {/* Info */}
+        <TouchableOpacity
+          style={styles.sideButton}
+          onPress={() => go("/client/Info")}
+        >
+          <Ionicons
+            name="calendar-outline"
+            size={20}
+            color={current === "Info" ? colors.primary : colors.textSecondary}
+          />
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safe: {
+    backgroundColor: colors.background,
+    height: 45, // ⬇️ smaller footer
+  },
+
   container: {
     flexDirection: "row",
-    backgroundColor: colors.background,
+    alignItems: "center",
+    height: 50, // ⬇️ smaller footer
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    paddingVertical: 12,
   },
-  button: {
+
+  sideButton: {
     flex: 1,
     alignItems: "center",
+    justifyContent: "center",
   },
-  text: {
-    color: colors.primary,
-    fontWeight: "600",
-    fontSize: 14,
+
+  centerButton: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  logo: {
+    width: 36, // ⬇️ smaller logo
+    height: 36,
   },
 });

@@ -3,9 +3,9 @@ import firestore from "@react-native-firebase/firestore";
 /* ---------------- TYPES ---------------- */
 
 export type LockSlotParams = {
-  date: string;
-  startTime: string;
-  endTime: string;
+  date: string;                 // YYYY-MM-DD
+  startTime: string;            // HH:mm
+  endTime: string;              // HH:mm
   trainerId: string;
   clientId: string;
   clientGender: "male" | "female";
@@ -26,12 +26,21 @@ function minutesToDate(date: string, minutes: number) {
   return firestore.Timestamp.fromDate(d);
 }
 
-function generateTimeBuckets(date: string, start: number, end: number) {
-  const buckets: string[] = [];
+function generateTimeBuckets(start: number, end: number) {
+  const buckets: number[] = [];
   for (let t = start; t < end; t += 5) {
-    buckets.push(`${date}_${t}`);
+    buckets.push(t);
   }
   return buckets;
+}
+
+function resolveSlotType(
+  gender: "male" | "female",
+  isHijabi: boolean
+): "male" | "female" | "female-hijabi" {
+  if (gender === "male") return "male";
+  if (isHijabi) return "female-hijabi";
+  return "female";
 }
 
 /* ---------------- MAIN ---------------- */
@@ -60,90 +69,51 @@ export async function lockGymTimeSlot({
   const db = firestore();
   const slotsRef = db.collection("gym_time_slots");
 
-  const newStart = timeToMinutes(startTime);
-  const newEnd = timeToMinutes(endTime);
+  const startMinutes = timeToMinutes(startTime);
+  const endMinutes = timeToMinutes(endTime);
 
-  if (newEnd <= newStart) {
-    console.error("[SlotLock] Invalid time range", {
-      start: newStart,
-      end: newEnd,
-    });
+  if (endMinutes <= startMinutes) {
     throw new Error("Invalid time range");
   }
 
-  const bucketIds = generateTimeBuckets(date, newStart, newEnd);
-
-  console.info("[SlotLock] Generated buckets", {
-    count: bucketIds.length,
-    buckets: bucketIds,
-  });
+  const buckets = generateTimeBuckets(startMinutes, endMinutes);
+  const newSlotType = resolveSlotType(clientGender, clientIsHijabi);
+  const expiresAt = minutesToDate(date, endMinutes);
 
   await db.runTransaction(async (tx) => {
-    /* ---------- CHECK ALL BUCKETS ---------- */
-
-    console.info("[SlotLock:transaction] Checking buckets");
-
-    for (const bucketId of bucketIds) {
-      const ref = slotsRef.doc(bucketId);
+    for (const minute of buckets) {
+      const docId = `${date}_${minute}`;
+      const ref = slotsRef.doc(docId);
       const snap = await tx.get(ref);
-
-      if (snap.exists()) {
-        const s = snap.data();
-        const existingType = s?.slotType;
-      
-        const newType =
-          clientGender === "male"
-            ? "male"
-            : clientIsHijabi
-            ? "female-hijabi"
-            : "female";
-      
-        const privacyConflict =
-          (existingType === "male" && newType === "female-hijabi") ||
-          (existingType === "female-hijabi" && newType === "male");
-      
-        if (privacyConflict) {
-          console.error("[SlotLock] Privacy conflict detected", {
-            bucketId,
-            existingType,
-            newType,
-          });
-      
-          throw new Error(
-            "Privacy conflict: a male and a hijabi client cannot overlap."
-          );
-        }
-      
-        // ✅ OTHERWISE: overlap is allowed → DO NOTHING
+  
+      const data = snap.exists() ? snap.data()! : {
+        maleCount: 0,
+        femaleHijabiCount: 0,
+      };
+  
+      // 🚫 Privacy conflict
+      if (
+        (data.maleCount > 0 && clientIsHijabi) ||
+        (data.femaleHijabiCount > 0 && clientGender === "male")
+      ) {
+        throw new Error(
+          "Privacy conflict: male and hijabi sessions cannot overlap."
+        );
       }
-    }
-
-    const expiresAt = minutesToDate(date, newEnd);
-
-    /* ---------- LOCK ALL BUCKETS ---------- */
-
-    console.info("[SlotLock:transaction] Locking buckets", {
-      bucketCount: bucketIds.length,
-      expiresAt,
-    });
-
-    for (const bucketId of bucketIds) {
-      tx.set(slotsRef.doc(bucketId), {
-        sessionId,
-        date,
-        startMinutes: newStart,
-        endMinutes: newEnd,
-        slotType:
-          clientGender === "male"
-            ? "male"
-            : clientIsHijabi
-            ? "female-hijabi"
-            : "neutral",
-        trainerId,
-        clientId,
-        expiresAt,
-        createdAt: firestore.FieldValue.serverTimestamp(),
-      });
+  
+      // ✅ Safe → increment
+      tx.set(
+        ref,
+        {
+          maleCount:
+            data.maleCount + (clientGender === "male" ? 1 : 0),
+          femaleHijabiCount:
+            data.femaleHijabiCount +
+            (clientGender === "female" && clientIsHijabi ? 1 : 0),
+          updatedAt: firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
     }
   });
 

@@ -17,23 +17,25 @@ export async function createAnnouncement({
     throw new Error("Announcement must contain text or an image");
   }
 
-  // 1️⃣ Save announcement
-  await firestore().collection("announcements").add({
-    title: title?.trim() || null,
-    authorId, // ✅ KEEP THIS
-    text: text.trim(),
-    imageUrl: imageUrl ?? null,
-    active: true,
-    createdAt: firestore.FieldValue.serverTimestamp(),
-  });
+  const doc = await firestore()
+    .collection("announcements")
+    .add({
+      title: title ?? null,
+      body: text.trim(), // 🔑 IMPORTANT: must match CF field
+      authorId,
+      imageUrl: imageUrl ?? null,
 
-  // 2️⃣ Trigger push notification
-  await fetch("http://YOUR_LOCAL_IP:3000/send-announcement", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      title: title || "New announcement",
-      body: text,
-    }),
-  });
+      // Optional routing
+      route: "/announcements",
+      params: null,
+
+      createdAt: firestore.FieldValue.serverTimestamp(),
+
+      // Optional expiry (can be null)
+      expiresAt: null,
+    });
+
+  console.log("📢 Announcement created → Cloud Function will dispatch");
+
+  return doc.id;
 }

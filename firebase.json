@@ -1,8 +1,8 @@
 {
   "functions": [
     {
-      "source": "booking",
-      "codebase": "booking",
+      "source": "functions",
+      "codebase": "functions",
       "disallowLegacyRuntimeConfig": true,
       "ignore": [
         "node_modules",

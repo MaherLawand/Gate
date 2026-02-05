@@ -46,9 +46,5 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useClient() {
-  const ctx = useContext(ClientContext);
-  if (!ctx) {
-    throw new Error("useClient must be used inside ClientProvider");
-  }
-  return ctx;
+  return useContext(ClientContext);
 }

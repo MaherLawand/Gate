@@ -1,16 +1,22 @@
+import AnimatedAppear from "@/src/components/AnimatedAppear";
 import AppButton from "@/src/components/AppButton";
 import { createAnnouncement } from "@/src/services/announcementService";
 import { compressImage } from "@/src/services/compressImage";
 import { uploadImage } from "@/src/services/uploadImage";
 import { colors } from "@/src/theme/colors";
+import { typography } from "@/src/theme/typography";
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import * as ImagePicker from "expo-image-picker";
-import { useEffect, useRef, useState } from "react";
+import { useFocusEffect, useNavigation } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  BackHandler,
   Image,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -21,6 +27,8 @@ import ActionSheet, {
   ActionSheetRef,
   ScrollView as SheetScrollView,
 } from "react-native-actions-sheet";
+import { Easing } from "react-native-reanimated";
+import { setupNotifications } from "@/src/notifications/setupNotifications";
 
 type TrainerProfile = {
   firstName: string;
@@ -32,6 +40,52 @@ type TrainerProfile = {
 };
 
 export default function TrainerDashboard() {
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    if (Platform.OS !== "ios") return;
+
+    const unsub = navigation.addListener("beforeRemove", (e) => {
+      e.preventDefault(); // ⛔ stop swipe/back
+
+      Alert.alert("Leave Gate?", "Are you sure you want to leave?", [
+        { text: "Stay", style: "cancel" },
+        {
+          text: "Leave",
+          style: "destructive",
+          onPress: () => navigation.dispatch(e.data.action),
+        },
+      ]);
+    });
+
+    return unsub;
+  }, [navigation]);
+
+
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS !== "android") return;
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        () => {
+          Alert.alert("Exit app", "Are you sure you want to exit?", [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Exit",
+              style: "destructive",
+              onPress: () => BackHandler.exitApp(),
+            },
+          ]);
+
+          return true; // ⛔ block default back
+        }
+      );
+
+      return () => subscription.remove();
+    }, [])
+  );
+
   const uid = auth().currentUser?.uid;
 
   const [profile, setProfile] = useState<TrainerProfile | null>(null);
@@ -41,18 +95,35 @@ export default function TrainerDashboard() {
   const [editingBio, setEditingBio] = useState(false);
   const [bioDraft, setBioDraft] = useState("");
   const [uploading, setUploading] = useState(false);
-  
+
   const [image, setImage] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [posting, setPosting] = useState(false);
 
   const adminSheetRef = useRef<ActionSheetRef>(null);
-  const [announcementTitle,setAnnouncementTitle] = useState("");
+  const [announcementTitle, setAnnouncementTitle] = useState("");
   const [announcementText, setAnnouncementText] = useState("");
   const [announcementImage, setAnnouncementImage] = useState<string | null>(
     null
   );
   const [postingAnnouncement, setPostingAnnouncement] = useState(false);
+
+  // Cover image loading
+  const coverOpacity = useRef(new Animated.Value(0)).current;
+  const [coverLoading, setCoverLoading] = useState(true);
+
+  // Avatar image loading
+  const avatarOpacity = useRef(new Animated.Value(0)).current;
+  const [avatarLoading, setAvatarLoading] = useState(true);
+
+  const fadeIn = (opacity: Animated.Value) => {
+    Animated.timing(opacity, {
+      toValue: 1,
+      duration: 300,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  };
 
   const pickAvatar = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -73,7 +144,7 @@ export default function TrainerDashboard() {
     try {
       setUploading(true);
       const compressed = await compressImage(result.assets[0].uri);
-      const url = await uploadImage(compressed);
+      const url = await uploadImage(compressed, "avatar");
 
       await firestore().collection("users").doc(uid).update({
         profilePicture: url,
@@ -105,7 +176,7 @@ export default function TrainerDashboard() {
     try {
       setUploading(true);
       const compressed = await compressImage(result.assets[0].uri);
-      const url = await uploadImage(compressed);
+      const url = await uploadImage(compressed, "cover");
 
       await firestore().collection("users").doc(uid).update({
         coverImage: url,
@@ -132,7 +203,7 @@ export default function TrainerDashboard() {
 
   useEffect(() => {
     if (!uid) return;
-
+    setupNotifications();
     const loadTrainer = async () => {
       try {
         const snap = await firestore().collection("users").doc(uid).get();
@@ -148,6 +219,8 @@ export default function TrainerDashboard() {
           coverImage: data.coverImage,
           isAdmin: data.isAdmin === true,
         });
+        console.log("PROFILE PIC URL:", data.profilePicture);
+        console.log("COVER URL:", data.coverImage);
       } catch (e) {
         console.error("Failed to load trainer profile", e);
       } finally {
@@ -197,11 +270,11 @@ export default function TrainerDashboard() {
 
       if (announcementImage) {
         const compressed = await compressImage(announcementImage);
-        imageUrl = await uploadImage(compressed);
+        imageUrl = await uploadImage(compressed, "announcement");
       }
 
       await createAnnouncement({
-        title:announcementTitle,
+        title: announcementTitle,
         authorId: uid,
         text: announcementText,
         imageUrl,
@@ -222,81 +295,132 @@ export default function TrainerDashboard() {
   return (
     <View style={styles.container}>
       {/* COVER */}
+      {/* COVER */}
+      {/* COVER */}
       <TouchableOpacity activeOpacity={0.9} onPress={pickCover}>
-        <Image
-          source={
-            profile.coverImage
-              ? { uri: profile.coverImage }
-              : require("../../assets/images/avatar-placeholder.png")
-          }
-          style={styles.cover}
-        />
+        <View style={styles.coverWrap}>
+          {coverLoading && (
+            <View style={styles.imageLoader}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          )}
+
+          <Animated.Image
+            source={
+              profile.coverImage
+                ? { uri: profile.coverImage }
+                : require("../../assets/images/avatar-placeholder.png")
+            }
+            style={[styles.cover, { opacity: coverOpacity }]}
+            resizeMode="cover"
+            onLoadStart={() => {
+              setCoverLoading(true);
+              coverOpacity.setValue(0);
+            }}
+            onLoadEnd={() => {
+              setCoverLoading(false);
+              fadeIn(coverOpacity);
+            }}
+          />
+        </View>
       </TouchableOpacity>
 
       {/* AVATAR */}
+      {/* AVATAR */}
       <View style={styles.avatarWrap}>
         <TouchableOpacity onPress={pickAvatar}>
-          <Image
-            source={
-              profile.profilePicture
-                ? { uri: profile.profilePicture }
-                : require("../../assets/images/avatar-placeholder.png")
-            }
-            style={styles.avatar}
-          />
+          <View style={styles.avatarInner}>
+            {avatarLoading && (
+              <View style={styles.avatarLoader}>
+                <ActivityIndicator size="small" color={colors.primary} />
+              </View>
+            )}
+
+            <Animated.Image
+              source={
+                profile.profilePicture
+                  ? { uri: profile.profilePicture }
+                  : require("../../assets/images/avatar-placeholder.png")
+              }
+              style={[styles.avatar, { opacity: avatarOpacity }]}
+              resizeMode="cover"
+              onLoadStart={() => {
+                setAvatarLoading(true);
+                avatarOpacity.setValue(0);
+              }}
+              onLoadEnd={() => {
+                setAvatarLoading(false);
+                fadeIn(avatarOpacity);
+              }}
+            />
+          </View>
         </TouchableOpacity>
       </View>
 
       {/* CONTENT */}
       <View style={styles.content}>
-        <Text style={styles.name}>
-          {profile.firstName} {profile.lastName}
-        </Text>
+        <AnimatedAppear delay={0}>
+          <Text style={[typography.heading, styles.name]}>
+            {profile.firstName} {profile.lastName}
+          </Text>
+        </AnimatedAppear>
 
-        <Text style={styles.handle}>Trainer</Text>
+        <AnimatedAppear delay={60}>
+          <Text style={[typography.small, styles.handle]}>Trainer</Text>
+        </AnimatedAppear>
+        <AnimatedAppear delay={120}>
+          <View style={{ marginTop: 12 }}>
+            {!editingBio ? (
+              profile.bio ? (
+                <View style={styles.bioRow}>
+                  <Text style={[typography.body, styles.bio]}>
+                    {profile.bio}
+                  </Text>
 
-        <View style={{ marginTop: 12 }}>
-          {!editingBio ? (
-            profile.bio ? (
-              <View style={styles.bioRow}>
-                <Text style={styles.bio}>{profile.bio}</Text>
-
-                <TouchableOpacity
-                  onPress={() => {
-                    setBioDraft(profile.bio ?? "");
-                    setEditingBio(true);
-                  }}
-                >
-                  <Text style={styles.editIcon}>✎</Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setBioDraft(profile.bio ?? "");
+                      setEditingBio(true);
+                    }}
+                  >
+                    <Text style={[typography.small, styles.editIcon]}>✎</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity onPress={() => setEditingBio(true)}>
+                  <Text style={[typography.bodyMedium, styles.addBio]}>
+                    + Add a bio
+                  </Text>
                 </TouchableOpacity>
-              </View>
+              )
             ) : (
-              <TouchableOpacity onPress={() => setEditingBio(true)}>
-                <Text style={styles.addBio}>+ Add a bio</Text>
-              </TouchableOpacity>
-            )
-          ) : (
-            <>
-              <TextInput
-                style={styles.bioInput}
-                multiline
-                placeholder="Write something about yourself…"
-                value={bioDraft}
-                onChangeText={setBioDraft}
-              />
+              <>
+                <TextInput
+                  style={[typography.body, styles.bioInput]}
+                  multiline
+                  placeholder="Write something about yourself…"
+                  placeholderTextColor={colors.textSecondary}
+                  value={bioDraft}
+                  onChangeText={setBioDraft}
+                />
 
-              <AppButton title="Save bio" onPress={saveBio} />
-            </>
-          )}
-        </View>
+                <AppButton title="Save bio" onPress={saveBio} />
+              </>
+            )}
+          </View>
+        </AnimatedAppear>
 
         {isAdmin && (
-          <TouchableOpacity
-            style={styles.adminButton}
-            onPress={() => adminSheetRef.current?.show()}
-          >
-            <Text style={styles.adminButtonText}>📢 New Announcement</Text>
-          </TouchableOpacity>
+          <AnimatedAppear delay={200}>
+            <TouchableOpacity
+              style={styles.adminButton}
+              onPress={() => adminSheetRef.current?.show()}
+            >
+              <Text style={[typography.button, styles.adminButtonText]}>
+                📢 New Announcement
+              </Text>
+            </TouchableOpacity>
+          </AnimatedAppear>
         )}
       </View>
       <ActionSheet
@@ -312,13 +436,14 @@ export default function TrainerDashboard() {
         }}
       >
         <SheetScrollView contentContainerStyle={{ padding: 20 }}>
-          <Text style={styles.sheetTitle}>New Announcement</Text>
+          <Text style={[typography.title, styles.sheetTitle]}>
+            New Announcement
+          </Text>
 
           <TextInput
-            style={styles.announcementInput}
+            style={[typography.body, styles.announcementInput]}
             placeholder="Write a Title"
             placeholderTextColor={colors.textSecondary}
-            multiline
             value={announcementTitle}
             onChangeText={setAnnouncementTitle}
           />
@@ -334,7 +459,7 @@ export default function TrainerDashboard() {
                 style={styles.announcementImage}
               />
             ) : (
-              <Text style={styles.imagePlaceholder}>
+              <Text style={[typography.small, styles.imagePlaceholder]}>
                 + Add image (optional)
               </Text>
             )}
@@ -342,7 +467,7 @@ export default function TrainerDashboard() {
 
           {/* TEXT */}
           <TextInput
-            style={styles.announcementInput}
+            style={[typography.body, styles.announcementInput]}
             placeholder="Write an announcement…"
             placeholderTextColor={colors.textSecondary}
             multiline
@@ -401,20 +526,15 @@ const styles = StyleSheet.create({
 
   name: {
     color: colors.textPrimary,
-    fontSize: 22,
-    fontWeight: "800",
   },
 
   handle: {
     color: colors.textSecondary,
-    fontSize: 13,
     marginBottom: 12,
   },
 
   bio: {
     color: colors.textPrimary,
-    fontSize: 14,
-    lineHeight: 20,
     marginBottom: 20,
   },
   bioRow: {
@@ -431,8 +551,6 @@ const styles = StyleSheet.create({
 
   addBio: {
     color: colors.primary,
-    fontSize: 14,
-    fontWeight: "600",
   },
 
   bioInput: {
@@ -458,17 +576,11 @@ const styles = StyleSheet.create({
 
   adminButtonText: {
     color: "#fff",
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: 0.3,
   },
   sheetTitle: {
-    color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: "700",
     marginBottom: 12,
   },
-  
+
   announcementImagePicker: {
     backgroundColor: colors.card,
     borderRadius: 12,
@@ -478,17 +590,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     overflow: "hidden",
   },
-  
+
   announcementImage: {
     width: "100%",
     height: "100%",
   },
-  
+
   imagePlaceholder: {
     color: colors.textSecondary,
-    fontSize: 14,
   },
-  
+
   announcementInput: {
     backgroundColor: colors.card,
     color: colors.textPrimary,
@@ -497,5 +608,32 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: "top",
     marginBottom: 16,
+  },
+  coverWrap: {
+    width: "100%",
+    height: 160,
+    backgroundColor: colors.card,
+  },
+
+  imageLoader: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 2,
+  },
+
+  avatarInner: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    overflow: "hidden",
+    backgroundColor: colors.card,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  avatarLoader: {
+    position: "absolute",
+    zIndex: 2,
   },
 });

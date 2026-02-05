@@ -7,10 +7,12 @@ import { colors } from "@/src/theme/colors";
 import { ScheduledSession } from "@/src/types/models";
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
-import { router } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  BackHandler,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -25,8 +27,8 @@ type EnrichedScheduledSession = ScheduledSession & {
 };
 
 // -------- helpers --------
-const START_HOUR = 7; // 7 AM
-const END_HOUR = 21;
+const START_HOUR = 6; // 7 AM
+const END_HOUR = 22;
 const MINUTE_HEIGHT = 2; // tweak later
 const DAY_START = START_HOUR * 60; // 7:00 → 420
 const DAY_END = END_HOUR * 60; // 21:00 → 1260
@@ -40,7 +42,10 @@ const slots = Array.from(
   (_, i) => START_HOUR * 60 + i * SLOT_MINUTES
 );
 function formatDate(date: Date) {
-  return date.toISOString().split("T")[0]; // YYYY-MM-DD
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`; // ✅ LOCAL date
 }
 
 function addDays(date: Date, days: number) {
@@ -69,7 +74,26 @@ type HijabiBlock = {
 };
 // -------- component --------
 export default function TrainerScheduleScreen() {
-  const uid = auth().currentUser?.uid;
+  useFocusEffect(
+    useCallback(() => {
+      const onBack = () => {
+        router.replace("/trainer/dashboard");
+        return true; // ⛔ block default back
+      };
+
+      // Android hardware back
+      const sub =
+        Platform.OS === "android"
+          ? BackHandler.addEventListener("hardwareBackPress", onBack)
+          : null;
+
+      return () => {
+        sub?.remove();
+      };
+    }, [])
+  );
+  const [uid, setUid] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [sessions, setSessions] = useState<EnrichedScheduledSession[]>([]);
@@ -107,9 +131,17 @@ export default function TrainerScheduleScreen() {
     return null;
   }
 
+  useEffect(() => {
+    const unsub = auth().onAuthStateChanged((user) => {
+      setUid(user?.uid ?? null);
+      setAuthReady(true);
+    });
+    return unsub;
+  }, []);
+
   // -------- load schedule --------
   useEffect(() => {
-    if (!uid) return;
+    if (!authReady || !uid) return;
 
     setLoading(true);
 
@@ -160,13 +192,20 @@ export default function TrainerScheduleScreen() {
       );
 
     return () => unsubscribe();
-  }, [uid, dateKey]);
+  }, [uid, dateKey, authReady]);
 
   useEffect(() => {
-    if (!uid) return;
-
+    if (!authReady || !uid) return;
+    console.log("🔥 auth ready, loading hijabi blocks");
     const loadHijabiBlocks = async () => {
       const collectedHijabiBlocks: HijabiBlock[] = [];
+
+      console.log(
+        "AUTH:",
+        auth().currentUser?.uid,
+        "FIRESTORE AUTH:",
+        firestore().app.auth()?.currentUser
+      );
 
       const trainersSnap = await firestore()
         .collection("trainer_schedules")
@@ -216,7 +255,7 @@ export default function TrainerScheduleScreen() {
     };
 
     loadHijabiBlocks();
-  }, [dateKey, uid]);
+  }, [dateKey, uid, authReady]);
 
   function overlaps(
     aStart: number,
@@ -226,12 +265,6 @@ export default function TrainerScheduleScreen() {
   ) {
     return aStart < bEnd && aEnd > bStart;
   }
-
-  // -------- timeline hours --------
-  const hours = Array.from(
-    { length: END_HOUR - START_HOUR },
-    (_, i) => START_HOUR + i
-  );
 
   const handleResolve = async (
     session: ScheduledSession,
@@ -683,7 +716,7 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: "absolute",
-    right: 20,
+    left: 20,
     bottom: 20,
     width: 56,
     height: 56,

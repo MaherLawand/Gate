@@ -41,7 +41,7 @@ export const redirectAfterLogin = async (uid: string) => {
   if (role === "trainer") {
     router.replace("/trainer/dashboard");
   } else if (role === "client") {
-    router.replace("/client/home");
+    router.replace("/client/Gate");
   } else {
     console.error("[Auth] Invalid user role", { uid, role });
     Alert.alert("Error", "Invalid user role");
@@ -527,3 +527,13 @@ export const reactivatePackage = async (
     { merge: true }
   );
 };
+
+export async function clientExistsByPhone(phone: string) {
+  const snap = await firestore()
+    .collection("clients")
+    .where("phone", "==", phone)
+    .limit(1)
+    .get();
+
+  return !snap.empty;
+}

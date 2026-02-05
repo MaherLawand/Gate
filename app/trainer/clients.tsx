@@ -7,16 +7,19 @@ import {
   addClient,
   addClientPackage,
   archiveClient,
+  clientExistsByPhone,
   getTrainerClients,
   unarchiveClient,
-  updateClient,
 } from "@/src/services/ClientService";
+import { Ionicons } from "@expo/vector-icons";
 import firestore from "@react-native-firebase/firestore";
-import { router, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { router, useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Animated,
+  BackHandler,
+  Dimensions,
   Easing,
   FlatList,
   Image,
@@ -29,19 +32,32 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { ExpandingDot } from "react-native-animated-pagination-dots";
 import PagerView from "react-native-pager-view";
+import { useSharedValue } from "react-native-reanimated";
 import AppButton from "../../src/components/AppButton";
 import { colors } from "../../src/theme/colors";
 import { ClientProfile } from "../../src/types/models";
 
+import { typography } from "@/src/theme/typography";
 import ActionSheet, {
   ActionSheetRef,
   ScrollView,
 } from "react-native-actions-sheet";
 
-const ITEMS_PER_PAGE = 5;
 const DEV_SKELETON_DELAY = 2200; // ms
 const DEFAULT_AVATAR = require("../../assets/images/avatar-placeholder.png");
+
+const CARD_HEIGHT = 180;
+
+const ITEMS_PER_PAGE = 4; // ✅ fixed
+const COLUMNS = 2;
+const ROWS_PER_PAGE = 2;
+
+const { width: PAGE_WIDTH } = Dimensions.get("window");
+const CARD_WIDTH = (PAGE_WIDTH - 24 * 2 - 16) / 2;
+
+const PAGER_HEIGHT = ROWS_PER_PAGE * (CARD_HEIGHT + 16) + 8;
 
 type ClientWithPackageStatus = ClientProfile & {
   hasActivePackage: boolean;
@@ -50,18 +66,10 @@ type ClientWithPackageStatus = ClientProfile & {
 type ClientCardProps = {
   item: ClientWithPackageStatus;
   index: number;
-
-  onOpen: () => void;
   onArchive?: () => void;
   onUnarchive?: () => void;
 };
-function ClientCard({
-  item,
-  index,
-  onOpen,
-  onArchive,
-  onUnarchive,
-}: ClientCardProps) {
+function ClientCard({ item, index, onArchive, onUnarchive }: ClientCardProps) {
   const scale = useRef(new Animated.Value(1)).current;
   const onPressIn = () => {
     Animated.spring(scale, {
@@ -125,6 +133,10 @@ function ClientCard({
     <Animated.View
       {...panResponder.panHandlers}
       style={{
+        borderWidth: 1,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "flex-end",
         flex: 1,
         opacity: anim,
         transform: [
@@ -160,24 +172,42 @@ function ClientCard({
       <TouchableOpacity
         onPressIn={onPressIn}
         onPressOut={onPressOut}
-        onPress={item.isActive ? onOpen : undefined}
         onLongPress={item.isActive ? onArchive : undefined}
         activeOpacity={1}
         style={styles.clientCard}
       >
         {/* AVATAR */}
-        <Image
-          source={
-            item.profilePicture ? { uri: item.profilePicture } : DEFAULT_AVATAR
-          }
-          style={styles.avatar}
-        />
+        <View style={styles.profileContent}>
+          <Image
+            source={
+              item.profilePicture
+                ? { uri: item.profilePicture }
+                : DEFAULT_AVATAR
+            }
+            style={styles.avatar}
+          />
 
-        {/* NAME */}
-        <Text style={styles.clientName} numberOfLines={2}>
-          {item.firstName} {item.lastName}
-        </Text>
+          {/* NAME */}
+          <View style={styles.nameRow}>
+            <Text
+              style={[typography.bodyMedium, styles.clientName]}
+              numberOfLines={1}
+            >
+              {item.firstName} {item.lastName}
+            </Text>
 
+            <View
+              style={[
+                styles.statusDot,
+                item.hasActivePackage
+                  ? styles.dotActivePackage
+                  : item.needsRenewal
+                  ? styles.dotCancelled
+                  : styles.dotInactive,
+              ]}
+            />
+          </View>
+        </View>
         {/* STATUS BLOCK */}
         {/* <View style={styles.statusContainer}>
           <Text
@@ -207,7 +237,7 @@ function ClientCard({
               router.push(`/trainer/client/${item.id}/packages` as any)
             }
           >
-            <Text style={styles.actionIcon}>📦</Text>
+            <Ionicons name="cube-outline" size={18} color="#ef4444" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -216,7 +246,7 @@ function ClientCard({
               router.push(`/trainer/client/${item.id}/sessions` as any)
             }
           >
-            <Text style={styles.actionIcon}>🏋️</Text>
+            <Ionicons name="barbell-outline" size={18} color="#ef4444" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -225,7 +255,7 @@ function ClientCard({
               router.push(`/trainer/client/${item.id}/notes` as any)
             }
           >
-            <Text style={styles.actionIcon}>📝</Text>
+            <Ionicons name="document-text-outline" size={18} color="#ef4444" />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -234,6 +264,28 @@ function ClientCard({
 }
 
 export default function ClientsScreen() {
+  const getPagerHeight = (itemsCount: number) => {
+    const rows = Math.ceil(itemsCount / COLUMNS); // COLUMNS = 2
+    return rows * (CARD_HEIGHT + 16) + 8;
+  };
+  useFocusEffect(
+    useCallback(() => {
+      const onBack = () => {
+        router.replace("/trainer/dashboard");
+        return true; // ⛔ block default back
+      };
+
+      // Android hardware back
+      const sub =
+        Platform.OS === "android"
+          ? BackHandler.addEventListener("hardwareBackPress", onBack)
+          : null;
+
+      return () => {
+        sub?.remove();
+      };
+    }, [])
+  );
   const [clients, setClients] = useState<ClientWithPackageStatus[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -245,9 +297,10 @@ export default function ClientsScreen() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [gender, setGender] = useState<"male" | "female" | null>(null);
+  const [genderFilter, setGenderFilter] = useState<"all" | "male" | "female">(
+    "all"
+  );
   const [isHijabi, setIsHijabi] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [phoneRaw, setPhoneRaw] = useState(""); // +961XXXXXXXX
 
   // Search filter
   const [search, setSearch] = useState("");
@@ -267,15 +320,20 @@ export default function ClientsScreen() {
   const [packagePrice, setPackagePrice] = useState("");
   const [packagePaid, setPackagePaid] = useState(false);
   const [showNoPackageOnly, setShowNoPackageOnly] = useState(false);
+  const scrollX = useRef(new Animated.Value(0)).current;
 
+  const [phone, setPhone] = useState("");
+  const [digits, setDigits] = useState("");
+  const [focused, setFocused] = useState(false);
   const dragY = useRef(new Animated.Value(0)).current;
+  const animatedIndex = useSharedValue(0);
 
   const allowCloseRef = useRef(false);
 
   const originalFormRef = useRef({
     firstName: "",
     lastName: "",
-    phoneRaw: "",
+    digits: "",
     gender: null as "male" | "female" | null,
     isHijabi: false,
     hasPackage: false,
@@ -284,11 +342,33 @@ export default function ClientsScreen() {
     packagePaid: false,
   });
 
+  const handlePhoneChange = (text: string) => {
+    // digits only
+    let d = text.replace(/\D/g, "");
+
+    // max Lebanese length
+    d = d.slice(0, 8);
+
+    setDigits(d);
+  };
+  const getPhoneRaw = () => {
+    if (digits.length !== 8) return "";
+
+    // normalize on submit
+    const normalized = digits.startsWith("0") ? digits.slice(1) : digits;
+
+    return `+961${normalized}`;
+  };
+  const formatLebanese = (d: string) => {
+    if (d.length !== 8) return d;
+    return `${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5)}`;
+  };
+
   const resetClientForm = () => {
     setFirstName("");
     setLastName("");
-    setPhone("");
-    setPhoneRaw("");
+    setDigits(""); // ✅ reset digits
+    setFocused(false); // ✅ reset focus
     setGender(null);
     setIsHijabi(false);
 
@@ -300,7 +380,7 @@ export default function ClientsScreen() {
     originalFormRef.current = {
       firstName: "",
       lastName: "",
-      phoneRaw: "",
+      digits: "",
       gender: null,
       isHijabi: false,
       hasPackage: false,
@@ -312,7 +392,7 @@ export default function ClientsScreen() {
   const hasUnsavedChanges =
     firstName !== originalFormRef.current.firstName ||
     lastName !== originalFormRef.current.lastName ||
-    phoneRaw !== originalFormRef.current.phoneRaw ||
+    digits !== originalFormRef.current.digits ||
     gender !== originalFormRef.current.gender ||
     isHijabi !== originalFormRef.current.isHijabi ||
     hasPackage !== originalFormRef.current.hasPackage ||
@@ -358,9 +438,7 @@ export default function ClientsScreen() {
   };
 
   const fetchClients = async () => {
-    setTimeout(() => {
-      setLoading(true);
-    }, DEV_SKELETON_DELAY);
+    setLoading(true);
 
     const baseClients = await getTrainerClients();
 
@@ -391,9 +469,7 @@ export default function ClientsScreen() {
     );
 
     setClients(enrichedClients);
-    setTimeout(() => {
-      setLoading(false);
-    }, DEV_SKELETON_DELAY);
+    setLoading(false);
   };
 
   // Filter + search + sort
@@ -410,6 +486,10 @@ export default function ClientsScreen() {
     } else {
       // DEFAULT: ONLY active clients
       result = result.filter((c) => c.isActive);
+    }
+    // 👤 Gender filter
+    if (genderFilter !== "all") {
+      result = result.filter((c) => c.gender === genderFilter);
     }
 
     // 🔍 Search
@@ -436,11 +516,19 @@ export default function ClientsScreen() {
     }
 
     setFilteredClients(result);
-  }, [search, clients, sortBy, showArchived, showNoPackageOnly]);
+  }, [search, clients, sortBy, showArchived, showNoPackageOnly, genderFilter]);
 
-  useEffect(() => {
-    fetchClients();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      console.log("🟢 Clients screen focused → refresh data");
+
+      fetchClients(); // 👈 your refresh logic here
+
+      return () => {
+        console.log("🟡 Clients screen unfocused");
+      };
+    }, [])
+  );
 
   const pages = useMemo(() => {
     const result: ClientWithPackageStatus[][] = [];
@@ -455,15 +543,6 @@ export default function ClientsScreen() {
   const currentPageData = pages[page - 1] ?? [];
   const totalPages = pages.length;
 
-  const handleArchiveClient = async (client: ClientProfile) => {
-    try {
-      await updateClient(client.id!, { isActive: !client.isActive });
-      fetchClients();
-    } catch (err: any) {
-      Alert.alert("Error", err.message);
-    }
-  };
-
   const handleAddClient = async () => {
     if (!firstName || !lastName) {
       Alert.alert("Error", "First and last name are required");
@@ -474,8 +553,8 @@ export default function ClientsScreen() {
       Alert.alert("Missing info", "Please select the client's gender");
       return;
     }
-
-    if (!phoneRaw) {
+    const raw = getPhoneRaw();
+    if (!raw) {
       Alert.alert(
         "Invalid phone",
         "Please enter a valid Lebanese phone number"
@@ -483,13 +562,23 @@ export default function ClientsScreen() {
       return;
     }
 
+    // 🔍 CHECK DUPLICATE PHONE
+    const exists = await clientExistsByPhone(raw);
+
+    if (exists) {
+      Alert.alert(
+        "Client already exists",
+        "A client with this phone number already exists in your list."
+      );
+      return;
+    }
     try {
       // 1️⃣ Create client (NO AUTH YET)
 
       const newClient = await addClient({
         firstName,
         lastName,
-        phone: phoneRaw,
+        phone: raw,
         profilePicture: "",
         notificationsEnabled: true,
         bio: "",
@@ -650,7 +739,7 @@ export default function ClientsScreen() {
     originalFormRef.current = {
       firstName,
       lastName,
-      phoneRaw,
+      digits,
       gender,
       isHijabi,
       hasPackage,
@@ -680,7 +769,6 @@ export default function ClientsScreen() {
     <ClientCard
       item={item}
       index={index}
-      onOpen={() => router.push(`/trainer/client/${item.id}` as any)}
       onArchive={() => {
         if (item.hasActivePackage) {
           Alert.alert(
@@ -689,7 +777,6 @@ export default function ClientsScreen() {
           );
           return;
         }
-
         Alert.alert(
           "Archive Client",
           `Archive ${item.firstName} ${item.lastName}?`,
@@ -714,8 +801,13 @@ export default function ClientsScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Your Clients</Text>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 24 }}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
+      <Text style={[typography.heading, styles.title]}>Your Clients</Text>
       {loading ? (
         <>
           <StatsRowSkeleton />
@@ -727,18 +819,18 @@ export default function ClientsScreen() {
           <AnimatedAppear delay={40}>
             <View style={styles.statsRow}>
               <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{totalClients}</Text>
-                <Text style={styles.statLabel}>Clients</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>📋</Text>
-                <Text style={styles.statLabel}>Notes</Text>
+                <Text style={[typography.stat, styles.statNumber]}>
+                  {totalClients}
+                </Text>
+                <Text style={[typography.small, styles.statLabel]}>
+                  Clients
+                </Text>
               </View>
             </View>
           </AnimatedAppear>
           <AnimatedAppear delay={120}>
             <TextInput
-              style={styles.searchInput}
+              style={[typography.body, styles.searchInput]}
               placeholder="Search clients..."
               placeholderTextColor={colors.textSecondary}
               value={search}
@@ -747,50 +839,89 @@ export default function ClientsScreen() {
           </AnimatedAppear>
           <AnimatedAppear delay={240}>
             <View style={styles.sortRow}>
-              <TouchableOpacity
-                style={[
-                  styles.sortButton,
-                  sortBy === "newest" && styles.sortActive,
-                ]}
-                onPress={() => setSortBy("newest")}
-              >
-                <Text style={styles.sortText}>Newest</Text>
-              </TouchableOpacity>
+              {/* GENDER FILTER */}
+              <View style={styles.filterGroup}>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    genderFilter === "all" && styles.filterActive,
+                  ]}
+                  onPress={() => setGenderFilter("all")}
+                >
+                  <Text style={[typography.small, styles.filterText]}>All</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[
-                  styles.sortButton,
-                  sortBy === "name" && styles.sortActive,
-                ]}
-                onPress={() => setSortBy("name")}
-              >
-                <Text style={styles.sortText}>A–Z</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    genderFilter === "male" && styles.filterActive,
+                  ]}
+                  onPress={() => setGenderFilter("male")}
+                >
+                  <Text style={[typography.small, styles.filterText]}>♂</Text>
+                </TouchableOpacity>
 
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    genderFilter === "female" && styles.filterActive,
+                  ]}
+                  onPress={() => setGenderFilter("female")}
+                >
+                  <Text style={[typography.small, styles.filterText]}>♀</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* SORT */}
+              <View style={styles.filterGroup}>
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    sortBy === "newest" && styles.filterActive,
+                  ]}
+                  onPress={() => setSortBy("newest")}
+                >
+                  <Text style={[typography.small, styles.filterText]}>
+                    Newest
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    sortBy === "name" && styles.filterActive,
+                  ]}
+                  onPress={() => setSortBy("name")}
+                >
+                  <Text style={[typography.small, styles.filterText]}>A–Z</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* SPECIAL FILTERS */}
               <TouchableOpacity
                 style={[
-                  styles.sortButton,
-                  showNoPackageOnly && styles.sortActive,
+                  styles.filterChip,
+                  showNoPackageOnly && styles.filterActive,
                 ]}
                 onPress={() => {
-                  setShowNoPackageOnly((prev) => !prev);
+                  setShowNoPackageOnly((v) => !v);
                   setShowArchived(false);
                 }}
               >
-                <Text style={styles.sortText}>
-                  {showNoPackageOnly ? "All Clients" : "No Active Package"}
+                <Text style={[typography.small, styles.filterText]}>
+                  No Package
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.sortButton, showArchived && styles.sortActive]}
+                style={[styles.filterChip, showArchived && styles.filterActive]}
                 onPress={() => {
-                  setShowArchived((prev) => !prev);
+                  setShowArchived((v) => !v);
                   setShowNoPackageOnly(false);
                 }}
               >
-                <Text style={styles.sortText}>
-                  {showArchived ? "Hide Archived" : "Show Archived"}
+                <Text style={[typography.small, styles.filterText]}>
+                  Archived
                 </Text>
               </TouchableOpacity>
             </View>
@@ -834,10 +965,14 @@ export default function ClientsScreen() {
             "Discard changes?",
             "If you leave now, your changes will be lost.",
             [
-              { text: "Stay", style: "cancel",onPress: () => {
-                allowCloseRef.current = false;
-                sheetRef.current?.show();
-              }, },
+              {
+                text: "Stay",
+                style: "cancel",
+                onPress: () => {
+                  allowCloseRef.current = false;
+                  sheetRef.current?.show();
+                },
+              },
               {
                 text: "Discard",
                 style: "destructive",
@@ -875,11 +1010,13 @@ export default function ClientsScreen() {
             />
 
             {/* TITLE */}
-            <Text style={styles.modalTitle}>Add New Client</Text>
+            <Text style={[typography.heading, styles.modalTitle]}>
+              Add New Client
+            </Text>
 
             {/* FIRST NAME */}
             <TextInput
-              style={styles.input}
+              style={[typography.body, styles.input]}
               placeholder="First Name"
               placeholderTextColor={colors.textSecondary}
               value={firstName}
@@ -888,7 +1025,7 @@ export default function ClientsScreen() {
 
             {/* LAST NAME */}
             <TextInput
-              style={styles.input}
+              style={[typography.body, styles.input]}
               placeholder="Last Name"
               placeholderTextColor={colors.textSecondary}
               value={lastName}
@@ -896,21 +1033,29 @@ export default function ClientsScreen() {
             />
 
             {/* PHONE */}
-            <TextInput
-              style={styles.input}
-              placeholder="+961 XX XXX XXX"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="phone-pad"
-              value={phone}
-              onChangeText={(text) => {
-                const result = formatLebanesePhone(text);
-                setPhone(result.formatted);
-                setPhoneRaw(result.raw);
-              }}
-            />
+            <View style={styles.phoneRow}>
+              <View style={styles.prefixBox}>
+                <Text style={[typography.bodyMedium, styles.prefixText]}>
+                  +961
+                </Text>
+              </View>
+
+              <TextInput
+                style={[typography.body, styles.phoneInput]}
+                keyboardType="number-pad"
+                placeholder="XX XXX XXX"
+                placeholderTextColor={colors.textSecondary}
+                value={focused ? digits : formatLebanese(digits)}
+                onChangeText={handlePhoneChange}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+              />
+            </View>
 
             {/* GENDER */}
-            <Text style={styles.sectionTitle}>Gender</Text>
+            <Text style={[typography.bodyMedium, styles.sectionTitle]}>
+              Gender
+            </Text>
             <View style={styles.row}>
               <TouchableOpacity
                 style={[
@@ -922,7 +1067,9 @@ export default function ClientsScreen() {
                   setIsHijabi(false);
                 }}
               >
-                <Text style={styles.choiceText}>Male</Text>
+                <Text style={[typography.bodyMedium, styles.choiceText]}>
+                  Male
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -932,22 +1079,42 @@ export default function ClientsScreen() {
                 ]}
                 onPress={() => setGender("female")}
               >
-                <Text style={styles.choiceText}>Female</Text>
+                <Text style={[typography.bodyMedium, styles.choiceText]}>
+                  Female
+                </Text>
               </TouchableOpacity>
             </View>
 
             {/* HIJABI */}
             {gender === "female" && (
               <View style={{ marginTop: 12 }}>
-                <AppButton
-                  title={isHijabi ? "Hijabi ✓" : "Not Hijabi"}
-                  variant="small"
-                  onPress={() => setIsHijabi((v) => !v)}
-                />
+                <Text style={[typography.bodyMedium, styles.sectionTitle]}>
+                  Hijab
+                </Text>
+
+                <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
+                  <TouchableOpacity
+                    style={[styles.choice, isHijabi && styles.choiceActive]}
+                    onPress={() => setIsHijabi(true)}
+                  >
+                    <Text style={[typography.bodyMedium, styles.choiceText]}>
+                      🧕 Hijabi
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.choice, !isHijabi && styles.choiceActive]}
+                    onPress={() => setIsHijabi(false)}
+                  >
+                    <Text style={[typography.bodyMedium, styles.choiceText]}>
+                      🚫 Not Hijabi
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
             {/* PACKAGE */}
-            <View style={{ marginTop: 20 }}>
+            {/* <View style={{ marginTop: 20 }}>
               <Text style={styles.sectionTitle}>Package (optional)</Text>
 
               <AppButton
@@ -981,12 +1148,12 @@ export default function ClientsScreen() {
                   />
                 </View>
               )}
-            </View>
+            </View> */}
 
             {/* ACTIONS */}
             <View style={styles.footer}>
               <AppButton title="Add Client" onPress={handleAddClient} />
-              <AppButton title="Cancel" variant="small" onPress={closeSheet} />
+              {/* <AppButton title="Cancel" variant="small" onPress={closeSheet} /> */}
             </View>
           </ScrollView>
         </AnimatedAppear>
@@ -995,35 +1162,41 @@ export default function ClientsScreen() {
       {loading ? (
         <ClientsGridSkeleton />
       ) : filteredClients.length === 0 ? (
-        <Text style={styles.loading}>No clients found</Text>
+        <Text style={[typography.small, styles.loading]}>No clients found</Text>
       ) : (
-        <>
+        <View style={styles.pagerSection}>
           <PagerView
-            style={{ flex: 1 }}
+            style={{
+              height: getPagerHeight(pages[page - 1]?.length || 0),
+            }}
             initialPage={0}
-            onPageSelected={(e) => {
-              setPage(e.nativeEvent.position + 1);
+            overdrag={false}
+            onPageScroll={(e) => {
+              const offset =
+                (e.nativeEvent.position + e.nativeEvent.offset) * PAGE_WIDTH;
+              scrollX.setValue(offset);
             }}
           >
             {pages.map((pageData, pageIndex) => (
-              <View key={pageIndex} style={{ paddingTop: 16 }}>
+              <View
+                key={pageIndex}
+                style={{ height: PAGER_HEIGHT, paddingTop: 16 }}
+              >
                 <FlatList
                   data={pageData}
                   keyExtractor={(item) => item.id!}
                   renderItem={renderClientCard}
-                  numColumns={3}
+                  numColumns={2}
                   scrollEnabled={false}
                   columnWrapperStyle={{
                     justifyContent: "space-between",
-                    marginBottom: 12,
+                    marginBottom: 16,
                   }}
                 />
               </View>
             ))}
           </PagerView>
-
-          {/* PAGE INDICATOR */}
-          <View style={styles.pagination}>
+          {/* <View style={styles.pagination}>
             <View style={styles.dots}>
               {Array.from({ length: totalPages }).map((_, i) => (
                 <View
@@ -1032,10 +1205,26 @@ export default function ClientsScreen() {
                 />
               ))}
             </View>
+          </View> */}
+          <View style={styles.pagination}>
+            <ExpandingDot
+              data={pages}
+              scrollX={scrollX}
+              expandingDotWidth={18}
+              dotStyle={{
+                width: 8,
+                height: 8,
+                borderRadius: 4,
+                marginHorizontal: 6,
+              }}
+              activeDotColor={colors.primary}
+              inActiveDotColor="rgba(255,255,255,0.3)"
+              containerStyle={{ marginTop: 8 }}
+            />
           </View>
-        </>
+        </View>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
@@ -1045,15 +1234,18 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   clientCard: {
-    backgroundColor: colors.card,
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 10,
     flex: 1,
     marginHorizontal: 4,
+    backgroundColor: colors.card,
+    borderRadius: 16,
 
-    alignItems: "center",
-    justifyContent: "flex-start",
+    paddingHorizontal: 14,
+    paddingTop: 16,
+    paddingBottom: 12,
+
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    justifyContent: "space-between",
   },
 
   avatar: {
@@ -1066,11 +1258,9 @@ const styles = StyleSheet.create({
 
   clientName: {
     color: colors.textPrimary,
-    fontWeight: "600",
-    fontSize: 13,
     textAlign: "center",
-    lineHeight: 16,
-    marginBottom: 6,
+    marginTop: 2,
+    height: 30,
   },
 
   statusContainer: {
@@ -1156,8 +1346,6 @@ const styles = StyleSheet.create({
 
   sectionTitle: {
     marginTop: 16,
-    fontSize: 14,
-    fontWeight: "700",
     color: colors.textPrimary,
   },
 
@@ -1181,7 +1369,6 @@ const styles = StyleSheet.create({
 
   choiceText: {
     color: colors.white,
-    fontWeight: "600",
   },
 
   footer: {
@@ -1195,8 +1382,6 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.textPrimary,
-    fontSize: 24,
-    fontWeight: "700",
   },
 
   archivedLabel: {
@@ -1268,8 +1453,6 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     color: colors.textPrimary,
-    fontSize: 22,
-    fontWeight: "700",
   },
   statLabel: {
     color: colors.textSecondary,
@@ -1277,10 +1460,12 @@ const styles = StyleSheet.create({
   },
   pagination: {
     flexDirection: "row",
+    height: 10,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 20,
+    padding: 15,
     gap: 16,
+    borderWidth: 1,
   },
 
   pageBtn: {
@@ -1369,22 +1554,113 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 16,
   },
+  actionBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 19,
+    backgroundColor: "rgba(239,68,68,0.14)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   cardActions: {
     flexDirection: "row",
-    marginTop: 8,
-    gap: 10,
-  },
+    justifyContent: "space-around",
+    alignItems: "center",
 
-  actionBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.card,
+    paddingTop: 14,
+    paddingBottom: 6,
+
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.08)",
+  },
+  profileContent: {
     alignItems: "center",
     justifyContent: "center",
+    minHeight: 56, // ⬇️ less vertical claim
   },
 
   actionIcon: {
     fontSize: 14,
+  },
+  phoneRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.card,
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+
+  prefixBox: {
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    backgroundColor: colors.background,
+    borderRightWidth: 1,
+    borderRightColor: colors.border ?? "rgba(255,255,255,0.08)",
+  },
+
+  prefixText: {
+    color: colors.textSecondary,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+
+  phoneInput: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    color: colors.textPrimary,
+    fontSize: 16,
+  },
+  filterGroup: {
+    flexDirection: "row",
+    gap: 6,
+  },
+
+  filterChip: {
+    backgroundColor: colors.card,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+
+  filterActive: {
+    backgroundColor: colors.primary,
+  },
+
+  filterText: {
+    color: colors.white,
+  },
+  pagerSection: {
+    width: "100%",
+  },
+
+  dotsContainer: {
+    marginTop: 6,
+    opacity: 0.9,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "baseline", // 🔑 key change
+    justifyContent: "center",
+    gap: 6,
+  },
+
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginBottom: 2, // 🔥 fine-tune vertical alignment
+  },
+
+  dotActivePackage: {
+    backgroundColor: "#22c55e", // green
+  },
+
+  dotInactive: {
+    backgroundColor: "#ef4444", // red
+  },
+
+  dotCancelled: {
+    backgroundColor: "#f59e0b", // orange
   },
 });

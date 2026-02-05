@@ -8,12 +8,20 @@
     "scheme": "gate",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "notification": {
+      "iosDisplayInForeground": true
+    },   
     "platforms": [
       "ios",
       "android"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.Gate",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "UIBackgroundModes":["remote-notification"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -30,6 +38,14 @@
     "plugins": [
       "expo-router",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/gate-logo.png",
+          "color": "E6F4Fe",
+          "sounds": ["default"]
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
@@ -40,7 +56,9 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -8,62 +8,82 @@ export async function cancelBooking({
   trainerId: string;
   session: ScheduledSession;
 }) {
-  console.info("[CancelBooking] Start", {
+  console.info("🟡 [CancelBooking] START (atomic batch)", {
     trainerId,
     sessionId: session.id,
+    clientId: session.clientId,
     date: session.date,
   });
 
   const db = firestore();
+  const batch = db.batch();
 
   try {
-    await db.runTransaction(async (tx) => {
-      console.info("[CancelBooking] Transaction started");
+    /* ================= SLOT LOCKS ================= */
 
-      /* ---------------- SLOT LOCKS ---------------- */
+    const slotsSnap = await db
+      .collection("gym_time_slots")
+      .where("sessionId", "==", session.id)
+      .get();
 
-      const slotsSnap = await db
-        .collection("gym_time_slots")
-        .where("sessionId", "==", session.id)
-        .get();
-
-      console.info("[CancelBooking] Slot locks found", {
-        count: slotsSnap.size,
-      });
-
-      for (const slotDoc of slotsSnap.docs) {
-        console.info("[CancelBooking] Deleting slot lock", {
-          slotId: slotDoc.id,
-        });
-        tx.delete(slotDoc.ref);
-      }
-
-      /* ---------------- TRAINER SESSION ---------------- */
-
-      const sessionRef = db
-        .collection("trainer_schedules")
-        .doc(trainerId)
-        .collection("days")
-        .doc(session.date)
-        .collection("sessions")
-        .doc(session.id);
-
-      console.info("[CancelBooking] Deleting trainer session", {
-        trainerId,
-        sessionId: session.id,
-      });
-
-      tx.delete(sessionRef);
+    console.info("🔍 Slot locks found", {
+      count: slotsSnap.size,
     });
 
-    console.info("[CancelBooking] Success", {
+    slotsSnap.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+
+    /* ================= TRAINER SESSION ================= */
+
+    const trainerSessionRef = db
+      .collection("trainer_schedules")
+      .doc(trainerId)
+      .collection("days")
+      .doc(session.date)
+      .collection("sessions")
+      .doc(session.id);
+
+    batch.delete(trainerSessionRef);
+
+    /* ================= CLIENT SESSION ================= */
+
+    const clientSessionRef = db
+      .collection("clients")
+      .doc(session.clientId)
+      .collection("sessions")
+      .doc(session.id);
+
+    batch.delete(clientSessionRef);
+
+    /* ================= CLIENT NOTIFICATIONS ================= */
+
+    const notificationsSnap = await db
+      .collection("clients")
+      .doc(session.clientId)
+      .collection("notifications")
+      .where("relatedSessionId", "==", session.id)
+      .where("sent", "==", false)
+      .get();
+
+    notificationsSnap.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+
+    /* ================= COMMIT ================= */
+
+    await batch.commit();
+
+    console.info("✅ [CancelBooking] SUCCESS (atomic)", {
       sessionId: session.id,
     });
   } catch (error: any) {
-    console.error("[CancelBooking] Failed", {
+    console.error("🔥 [CancelBooking] FAILED (nothing deleted)", {
       sessionId: session.id,
+      code: error?.code,
       message: error?.message,
     });
-    throw error;
+
+    throw new Error("Failed to cancel booking. No changes were applied.");
   }
 }

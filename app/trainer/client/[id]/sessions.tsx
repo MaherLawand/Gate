@@ -1,4 +1,5 @@
 import { getExercises } from "@/src/services/ExerciseService";
+import { typography } from "@/src/theme/typography";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -11,6 +12,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import AppButton from "../../../../src/components/AppButton";
 import {
   getActivePackage,
@@ -82,6 +84,10 @@ export default function ClientSessionsScreen() {
   const [setCount, setSetCount] = useState(0);
 
   const [setInputs, setSetInputs] = useState<ExerciseSet[]>([]);
+  const isToday = (dateKey: string) => {
+    const today = new Date().toISOString().split("T")[0];
+    return dateKey === today;
+  };
   const handleSetCountChange = (count: number) => {
     setSetCount(count);
 
@@ -284,18 +290,27 @@ export default function ClientSessionsScreen() {
   const saveSession = async () => {
     if (!clientId || !currentSession || !selectedDate) return;
 
-    await updateSession(clientId, currentSession.id, {
-      date: selectedDate,
-      exercises: draftExercises,
-      packageId: currentSession.packageId,
-    });
-
-    const updatedSessions = await getClientSessions(clientId);
-    setSessions(updatedSessions);
-
+    // 🔥 1. Close modal IMMEDIATELY
     setModalVisible(false);
     setCurrentSession(null);
     setDraftExercises([]);
+
+    try {
+      // 🔄 2. Persist in background
+      await updateSession(clientId, currentSession.id, {
+        date: selectedDate,
+        exercises: draftExercises,
+        packageId: currentSession.packageId,
+        attendance: currentSession.attendance,
+      });
+
+      // 🔄 3. Refresh sessions silently
+      const updatedSessions = await getClientSessions(clientId);
+      setSessions(updatedSessions);
+    } catch (e) {
+      console.error(e);
+      // optional: toast / retry logic
+    }
   };
 
   /* ------------------ DELETE SESSION ------------------ */
@@ -311,15 +326,33 @@ export default function ClientSessionsScreen() {
 
   /* ------------------ RENDER ------------------ */
 
+  const getAttendanceBorderColor = (attendance?: string) => {
+    console.log("attendance: ", attendance);
+    switch (attendance) {
+      case "confirmed":
+      case "attended":
+        return "#22c55e"; // green
+      case "pending":
+        return "#ffde21"; // orange
+      case "charged":
+      case "charged-no-show":
+        return "#ef4444"; // red
+      case "no_show":
+        return "#9ca3af"; // gray
+      default:
+        return "transparent";
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* HEADER */}
       <View style={styles.weekHeader}>
         <Pressable onPress={() => changeWeek(-1)}>
-          <Text style={styles.nav}>‹</Text>
+          <Text style={[typography.heading, { color: colors.primary }]}>‹</Text>
         </Pressable>
 
-        <Text style={styles.monthTitle}>
+        <Text style={[typography.heading, { color: colors.textPrimary }]}>
           {activeDate.toLocaleString("default", {
             month: "long",
             year: "numeric",
@@ -327,7 +360,7 @@ export default function ClientSessionsScreen() {
         </Text>
 
         <Pressable onPress={() => changeWeek(1)}>
-          <Text style={styles.nav}>›</Text>
+          <Text style={[typography.heading, { color: colors.primary }]}>›</Text>
         </Pressable>
       </View>
 
@@ -336,20 +369,58 @@ export default function ClientSessionsScreen() {
         <View style={styles.weekGrid}>
           {weekDays.map((d) => {
             const key = formatDateKey(d);
-            const hasSession = sessions.some((s) => s.date === key);
+            const session = sessions.find((s) => s.date === key);
+
+            const hasSession = !!session;
+            const attendance = session?.attendance;
+            console.log("attendance: ", attendance);
+
+            const borderColor = hasSession
+              ? getAttendanceBorderColor(attendance)
+              : "transparent";
+
+            const isClickable =
+              attendance === "confirmed" || attendance === "attended";
 
             return (
               <Pressable
                 key={key}
-                disabled={!hasSession}
-                onPress={() => onDayPress(key)}
-                style={styles.dayCard}
+                disabled={!isClickable}
+                onPress={() => isClickable && onDayPress(key)}
+                style={[
+                  styles.dayCard,
+                  !hasSession && styles.dayDisabled,
+
+                  // Attendance border
+                  hasSession && {
+                    borderWidth: 2,
+                    borderColor,
+                  },
+
+                  // 🔥 TODAY → dashed border
+                  isToday(key) && {
+                    borderStyle: "dashed",
+                  },
+                ]}
               >
-                <Text style={styles.weekDay}>
+                <Text
+                  style={[typography.small, { color: colors.textSecondary }]}
+                >
                   {d.toLocaleDateString("en-US", { weekday: "short" })}
                 </Text>
-                <Text style={styles.dayNumber}>{d.getDate()}</Text>
-                {hasSession && <View style={styles.sessionIndicator} />}
+                <Text
+                  style={[typography.heading, { color: colors.textPrimary }]}
+                >
+                  {d.getDate()}
+                </Text>
+                {hasSession && (
+                  <View
+                    style={[
+                      styles.sessionIndicator,
+                      { backgroundColor: borderColor },
+                    ]}
+                  />
+                )}
               </Pressable>
             );
           })}
@@ -358,9 +429,13 @@ export default function ClientSessionsScreen() {
 
       {/* SESSION MODAL */}
       <Modal visible={modalVisible} animationType="slide">
-        <View style={styles.modal}>
+        <SafeAreaView style={styles.modal}>
           <Pressable onPress={cancel}>
-            <Text style={styles.back}>← Back</Text>
+            <Text
+              style={[typography.bodyMedium, { color: colors.textSecondary }]}
+            >
+              ← Back
+            </Text>
           </Pressable>
 
           <ScrollView>
@@ -371,14 +446,25 @@ export default function ClientSessionsScreen() {
                 <View key={exIndex} style={styles.exerciseCard}>
                   {/* HEADER */}
                   <View style={styles.exerciseHeader}>
-                    <Text style={styles.exerciseName}>{ex.name}</Text>
+                    <Text
+                      style={[typography.title, { color: colors.textPrimary }]}
+                    >
+                      {ex.name}
+                    </Text>
 
                     {!isEditing && (
                       <View style={styles.exerciseActions}>
                         <Pressable
                           onPress={() => setEditingExerciseIndex(exIndex)}
                         >
-                          <Text style={styles.editBtn}>Edit</Text>
+                          <Text
+                            style={[
+                              typography.small,
+                              { color: colors.primary },
+                            ]}
+                          >
+                            Edit
+                          </Text>
                         </Pressable>
 
                         <Pressable
@@ -400,7 +486,11 @@ export default function ClientSessionsScreen() {
                             )
                           }
                         >
-                          <Text style={styles.deleteBtn}>Delete</Text>
+                          <Text
+                            style={[typography.small, { color: "#ef4444" }]}
+                          >
+                            Delete
+                          </Text>
                         </Pressable>
                       </View>
                     )}
@@ -411,10 +501,20 @@ export default function ClientSessionsScreen() {
                     <View style={styles.readonlyGroup}>
                       {ex.sets.map((set, setIndex) => (
                         <View key={setIndex} style={styles.readonlyRow}>
-                          <Text style={styles.readonlyLabel}>
+                          <Text
+                            style={[
+                              typography.small,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
                             Set {setIndex + 1}
                           </Text>
-                          <Text style={styles.readonlyValue}>
+                          <Text
+                            style={[
+                              typography.bodyMedium,
+                              { color: colors.textPrimary },
+                            ]}
+                          >
                             {set.reps} reps • {set.weightKg} kg
                           </Text>
                         </View>
@@ -427,17 +527,21 @@ export default function ClientSessionsScreen() {
                     <View style={{ gap: 12 }}>
                       {ex.sets.map((set, setIndex) => (
                         <View key={setIndex} style={styles.editRow}>
-                          <Text style={styles.setTitle}>
+                          <Text
+                            style={[
+                              typography.small,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
                             Set {setIndex + 1}
                           </Text>
 
                           <View style={styles.row}>
                             <TextInput
                               placeholderTextColor={colors.textSecondary}
-                              style={styles.input}
+                              style={[typography.body, styles.input]}
                               keyboardType="numeric"
                               placeholder="Reps"
-                              value={String(set.reps)}
                               onChangeText={(v) =>
                                 setDraftExercises((prev) =>
                                   prev.map((exercise, i) =>
@@ -458,10 +562,9 @@ export default function ClientSessionsScreen() {
 
                             <TextInput
                               placeholderTextColor={colors.textSecondary}
-                              style={styles.input}
+                              style={[typography.body, styles.input]}
                               keyboardType="numeric"
                               placeholder="kg"
-                              value={String(set.weightKg)}
                               onChangeText={(v) =>
                                 setDraftExercises((prev) =>
                                   prev.map((exercise, i) =>
@@ -488,13 +591,17 @@ export default function ClientSessionsScreen() {
                         <Pressable
                           onPress={() => setEditingExerciseIndex(null)}
                         >
-                          <Text style={styles.saveBtn}>Save</Text>
+                          <Text style={[typography.button, styles.saveBtn]}>
+                            Save
+                          </Text>
                         </Pressable>
 
                         <Pressable
                           onPress={() => setEditingExerciseIndex(null)}
                         >
-                          <Text style={styles.cancelBtn}>Cancel</Text>
+                          <Text style={[typography.button, styles.cancelBtn]}>
+                            Cancel
+                          </Text>
                         </Pressable>
                       </View>
                     </View>
@@ -506,94 +613,102 @@ export default function ClientSessionsScreen() {
 
           <AppButton title="Add Exercise" onPress={openAddExercise} />
           <AppButton title="Save Session" onPress={saveSession} />
-        </View>
+        </SafeAreaView>
       </Modal>
 
       {/* ADD EXERCISE MODAL */}
       <Modal visible={exerciseModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.exerciseModal}>
-            <Text style={styles.modalTitle}>Add Exercise</Text>
+        <SafeAreaView style={styles.modal}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.exerciseModal}>
+              <Text style={[typography.heading, { color: colors.textPrimary }]}>
+                Add Exercise
+              </Text>
 
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search exercise..."
-              placeholderTextColor={colors.textSecondary}
-              value={search}
-              onChangeText={onSearchChange}
-            />
-            {search.length > 0 && filteredExercises.length > 0 && (
-              <ScrollView style={styles.searchResults}>
-                {filteredExercises.map((ex) => (
-                  <Pressable
-                    key={ex.id}
-                    style={styles.exerciseOption}
-                    onPress={() => {
-                      setSelectedExerciseId(ex.id);
-                      setSearch(ex.name); // ✅ string
-                      setFilteredExercises([]); // ✅ array
-                    }}
-                  >
-                    <Text style={styles.exerciseOptionText}>{ex.name}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            )}
-
-            {selectedExerciseId && (
-              <View style={styles.setsContainer}>
-                <TextInput
-                  placeholderTextColor={colors.textSecondary}
-                  style={styles.setsinput}
-                  placeholder="Number of sets"
-                  keyboardType="numeric"
-                  value={setCountInput}
-                  onChangeText={onChangeSetCount}
-                />
-                <ScrollView style={{ maxHeight: 260 }}>
-                  {setInputs.map((set, index) => (
-                    <View key={index} style={styles.row}>
-                      <TextInput
-                        placeholderTextColor={colors.textSecondary}
-                        style={styles.input}
-                        placeholder={`Set ${index + 1} reps`}
-                        keyboardType="numeric"
-                        value={String(set.reps)}
-                        onChangeText={(v) =>
-                          setSetInputs((prev) =>
-                            prev.map((s, i) =>
-                              i === index ? { ...s, reps: Number(v) } : s
-                            )
-                          )
-                        }
-                      />
-                      <TextInput
-                        placeholderTextColor={colors.textSecondary}
-                        style={styles.input}
-                        placeholder="kg"
-                        keyboardType="numeric"
-                        value={String(set.weightKg)}
-                        onChangeText={(v) =>
-                          setSetInputs((prev) =>
-                            prev.map((s, i) =>
-                              i === index ? { ...s, weightKg: Number(v) } : s
-                            )
-                          )
-                        }
-                      />
-                    </View>
+              <TextInput
+                style={[typography.body, styles.searchInput]}
+                placeholder="Search exercise..."
+                placeholderTextColor={colors.textSecondary}
+                value={search}
+                onChangeText={onSearchChange}
+              />
+              {search.length > 0 && filteredExercises.length > 0 && (
+                <ScrollView style={styles.searchResults}>
+                  {filteredExercises.map((ex) => (
+                    <Pressable
+                      key={ex.id}
+                      style={styles.exerciseOption}
+                      onPress={() => {
+                        setSelectedExerciseId(ex.id);
+                        setSearch(ex.name); // ✅ string
+                        setFilteredExercises([]); // ✅ array
+                      }}
+                    >
+                      <Text
+                        style={[
+                          typography.bodyMedium,
+                          { color: colors.textPrimary },
+                        ]}
+                      >
+                        {ex.name}
+                      </Text>
+                    </Pressable>
                   ))}
                 </ScrollView>
-              </View>
-            )}
+              )}
 
-            <AppButton title="✔ Add Exercise" onPress={confirmAddExercise} />
-            <AppButton
-              title="Cancel"
-              onPress={() => setExerciseModalVisible(false)}
-            />
+              {selectedExerciseId && (
+                <View style={styles.setsContainer}>
+                  <TextInput
+                    placeholderTextColor={colors.textSecondary}
+                    style={[typography.body, styles.searchInput]}
+                    placeholder="Number of sets"
+                    keyboardType="numeric"
+                    onChangeText={onChangeSetCount}
+                  />
+                  <ScrollView style={{ maxHeight: 260 }}>
+                    {setInputs.map((set, index) => (
+                      <View key={index} style={styles.row}>
+                        <TextInput
+                          placeholderTextColor={colors.textSecondary}
+                          style={[typography.body, styles.input]}
+                          placeholder={`Set ${index + 1} reps`}
+                          keyboardType="numeric"
+                          onChangeText={(v) =>
+                            setSetInputs((prev) =>
+                              prev.map((s, i) =>
+                                i === index ? { ...s, reps: Number(v) } : s
+                              )
+                            )
+                          }
+                        />
+                        <TextInput
+                          placeholderTextColor={colors.textSecondary}
+                          style={[typography.body, styles.input]}
+                          placeholder="kg"
+                          keyboardType="numeric"
+                          onChangeText={(v) =>
+                            setSetInputs((prev) =>
+                              prev.map((s, i) =>
+                                i === index ? { ...s, weightKg: Number(v) } : s
+                              )
+                            )
+                          }
+                        />
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              <AppButton title="✔ Add Exercise" onPress={confirmAddExercise} />
+              <AppButton
+                title="Cancel"
+                onPress={() => setExerciseModalVisible(false)}
+              />
+            </View>
           </View>
-        </View>
+        </SafeAreaView>
       </Modal>
     </View>
   );
@@ -602,6 +717,10 @@ export default function ClientSessionsScreen() {
 /* ------------------ STYLES ------------------ */
 
 const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -618,12 +737,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   nav: {
-    fontSize: 28,
     color: colors.primary,
   },
   monthTitle: {
-    fontSize: 18,
-    fontWeight: "700",
     color: colors.textPrimary,
   },
   weekGrid: {
@@ -649,20 +765,16 @@ const styles = StyleSheet.create({
     width: 28,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.primary,
     marginTop: 8,
   },
   selectedDay: {
     backgroundColor: colors.primary,
   },
   weekDay: {
-    fontSize: 12,
     color: colors.textSecondary,
     marginBottom: 4,
   },
   dayNumber: {
-    fontSize: 22,
-    fontWeight: "700",
     color: colors.textPrimary,
   },
   modal: {
@@ -805,7 +917,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-
+  dayDisabled: {
+    opacity: 0.35,
+  },
   editBtn: {
     color: colors.primary,
     fontWeight: "700",
@@ -817,6 +931,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
+    gap: 10,
   },
   editActions: {
     flexDirection: "row",

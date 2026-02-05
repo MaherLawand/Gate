@@ -58,6 +58,7 @@ export const confirmOtp = async (code: string) => {
       .doc(user.uid)
       .set({
         role: "trainer",
+
         // Identity
         firstName: inviteData?.firstName ?? "",
         lastName: inviteData?.lastName ?? "",

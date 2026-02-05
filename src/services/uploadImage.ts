@@ -1,39 +1,39 @@
 import auth from "@react-native-firebase/auth";
 import storage from "@react-native-firebase/storage";
 import { Platform } from "react-native";
+type ImageType = "avatar" | "cover" | "announcement";
 
-export async function uploadImage(localUri: string) {
-  console.info("[ProfilePicture] Upload started");
-
+export async function uploadImage(
+  localUri: string,
+  type: "avatar" | "cover" | "announcement"
+) {
   const uid = auth().currentUser?.uid;
-  if (!uid) {
-    console.error("[ProfilePicture] Not authenticated");
-    throw new Error("Not authenticated");
-  }
+  if (!uid) throw new Error("Not authenticated");
 
-  console.info("[ProfilePicture] Authenticated user", { uid });
+  let path = "";
+  if (type === "avatar") path = `profilePictures/${uid}/avatar.jpg`;
+  if (type === "cover") path = `profilePictures/${uid}/cover.jpg`;
+  if (type === "announcement") path = `announcements/${uid}/${Date.now()}.jpg`;
 
-  // 🔹 Always upload to a deterministic path
-  const fileRef = storage().ref(`profilePictures/${uid}/avatar.jpg`);
+  const fileRef = storage().ref(path);
 
-  console.info("[ProfilePicture] Uploading file", {
-    path: `profilePictures/${uid}/avatar.jpg`,
-    platform: Platform.OS,
-  });
-
-  // 🔹 IMPORTANT: wait for upload to finish
   await fileRef.putFile(
     Platform.OS === "android" ? localUri : localUri.replace("file://", "")
   );
 
-  console.info("[ProfilePicture] Upload completed");
+  return await fileRef.getDownloadURL();
+}
 
-  // 🔹 Only NOW the object exists
-  const downloadURL = await fileRef.getDownloadURL();
+export async function uploadBugImage(localUri: string) {
+  const uid = auth().currentUser?.uid;
+  if (!uid) throw new Error("Not authenticated");
 
-  console.info("[ProfilePicture] Download URL retrieved", {
-    hasUrl: !!downloadURL,
-  });
+  const path = `bugs/${uid}/${Date.now()}.jpg`;
+  const fileRef = storage().ref(path);
 
-  return downloadURL;
+  await fileRef.putFile(
+    Platform.OS === "android" ? localUri : localUri.replace("file://", "")
+  );
+
+  return await fileRef.getDownloadURL();
 }

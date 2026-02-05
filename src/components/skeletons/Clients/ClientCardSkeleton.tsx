@@ -5,15 +5,23 @@ import SkeletonBox from "./SkeletonBox";
 export default function ClientCardSkeleton() {
   return (
     <View style={styles.card}>
+      {/* Button (Unarchive) */}
+      <SkeletonBox
+        width="30%"
+        height={35}
+        borderRadius={18}
+        style={{ marginTop: 6 }}
+      />
+
       {/* Client name */}
-      <SkeletonBox width="70%" height={18} borderRadius={6} />
+      <SkeletonBox width="70%" height={18} borderRadius={6}style={{ marginTop: 8 }} />
 
       {/* Phone */}
       <SkeletonBox
         width="60%"
         height={14}
         borderRadius={6}
-        style={{ marginTop: 6 }}
+        style={{ marginTop: 10 }}
       />
 
       {/* Warning / inactive text */}
@@ -21,14 +29,6 @@ export default function ClientCardSkeleton() {
         width="80%"
         height={14}
         borderRadius={6}
-        style={{ marginTop: 10 }}
-      />
-
-      {/* Button (Unarchive) */}
-      <SkeletonBox
-        width="50%"
-        height={36}
-        borderRadius={18}
         style={{ marginTop: 12 }}
       />
     </View>

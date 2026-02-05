@@ -19,6 +19,7 @@ import ActionSheet, {
   ActionSheetRef,
   ScrollView as SheetScrollView,
 } from "react-native-actions-sheet";
+
 type Client = {
   id: string;
   firstName: string;
@@ -34,6 +35,10 @@ type Props = {
   onClose: () => void;
   onSaved: () => void;
 };
+
+const WORK_START_MINUTES = 6 * 60; // 06:00
+const WORK_END_MINUTES = 21 * 60; // 21:00
+const SESSION_DURATION = 60; // 1 hour
 
 export default function BookingModal({
   sheetRef,
@@ -251,6 +256,25 @@ export default function BookingModal({
   }, [query, clients, selectedClient]);
 
   // -------- helpers --------
+
+  function isWithinWorkingHours(date: Date) {
+    const minutes = date.getHours() * 60 + date.getMinutes();
+    return (
+      minutes >= WORK_START_MINUTES &&
+      minutes + SESSION_DURATION <= WORK_END_MINUTES
+    );
+  }
+  function getMinTime() {
+    const d = new Date();
+    d.setHours(6, 0, 0, 0);
+    return d;
+  }
+
+  function getMaxTime() {
+    const d = new Date();
+    d.setHours(20, 0, 0, 0); // latest START time
+    return d;
+  }
   function formatTime(d: Date | null) {
     if (!d) return "--:--";
 
@@ -261,6 +285,11 @@ export default function BookingModal({
       2,
       "0"
     )}`;
+  }
+  function addOneHour(date: Date) {
+    const d = new Date(date);
+    d.setHours(d.getHours() + 1);
+    return d;
   }
   function roundToFiveMinutes(date: Date) {
     const d = new Date(date);
@@ -748,6 +777,26 @@ export default function BookingModal({
         Alert.alert("Missing data", "Fill all fields");
         return;
       }
+      const ONE_HOUR = 60;
+
+      const startMinutes = fromTime.getHours() * 60 + fromTime.getMinutes();
+      const endMinutes = toTime.getHours() * 60 + toTime.getMinutes();
+
+      if (endMinutes - startMinutes !== ONE_HOUR) {
+        Alert.alert(
+          "Invalid session length",
+          "Sessions must be exactly 1 hour long."
+        );
+        return;
+      }
+
+      if (startMinutes < WORK_START_MINUTES || endMinutes > WORK_END_MINUTES) {
+        Alert.alert(
+          "Invalid time",
+          "Sessions must be between 06:00 and 21:00."
+        );
+        return;
+      }
       isSubmittingRef.current = true;
       await bookSession({
         trainerId,
@@ -913,26 +962,37 @@ export default function BookingModal({
             <Text style={styles.timeValue}>{formatTime(fromTime)}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.timeBox}
-            onPress={() => setShowToPicker(true)}
-          >
+          <TouchableOpacity style={[styles.timeBox, { opacity: 0.6 }]} disabled>
             <Text style={styles.timeLabel}>To</Text>
             <Text style={styles.timeValue}>{formatTime(toTime)}</Text>
           </TouchableOpacity>
         </View>
-
         {showFromPicker && (
           <DateTimePicker
             mode="time"
             is24Hour={true}
-            minuteInterval={5} // ✅ THIS
-            value={fromTime ?? new Date()}
+            minuteInterval={5}
+            value={fromTime ?? getMinTime()}
+            minimumDate={getMinTime()} // ✅ 06:00
+            maximumDate={getMaxTime()} // ✅ 20:00
             display={Platform.OS === "android" ? "spinner" : "default"}
-            ///dont forget to add date logic to iphone
             onChange={(_, d) => {
               setShowFromPicker(false);
-              if (d) setFromTime(d);
+              if (!d) return;
+
+              const rounded = roundToFiveMinutes(d);
+
+              // 🔒 Safety clamp
+              if (!isWithinWorkingHours(rounded)) {
+                Alert.alert(
+                  "Outside working hours",
+                  "Sessions can only be booked between 06:00 and 21:00."
+                );
+                return;
+              }
+
+              setFromTime(rounded);
+              setToTime(addOneHour(rounded)); // ✅ force 1 hour
             }}
           />
         )}

@@ -1,5 +1,6 @@
 import AnimatedAppear from "@/src/components/AnimatedAppear";
 import PackageSkeleton from "@/src/components/skeletons/Packages/PackageSkeleton";
+import { typography } from "@/src/theme/typography";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -71,10 +72,6 @@ export default function PackagesScreen() {
     setPackagePaid(false);
     setEditingPackage(false);
   };
-
-
-
-
 
   const [highlightAddPackage, setHighlightAddPackage] = useState(false);
   const [metaHint, setMetaHint] = useState<{
@@ -272,10 +269,10 @@ export default function PackagesScreen() {
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 120 }}
     >
-      <Text style={styles.title}>Packages</Text>
+      <Text style={[typography.heading, styles.title]}>Packages</Text>
 
       {needsRenewal && !loading && (
-        <Text style={styles.renewWarning}>
+        <Text style={[typography.bodyMedium, styles.renewWarning]}>
           Package expired — renewal required
         </Text>
       )}
@@ -289,19 +286,19 @@ export default function PackagesScreen() {
           <View style={styles.packageCard}>
             <View style={styles.headerRow}>
               <View style={styles.packageInfo}>
-                <Text style={styles.packageText}>
+                <Text style={[typography.bodyMedium, styles.packageText]}>
                   Sessions remaining:
-                  <Text style={styles.packageStrong}>
+                  <Text style={[typography.bodyMedium, styles.packageStrong]}>
                     {" "}
                     {activePackage.sessionsRemaining} /{" "}
                     {activePackage.totalSessions}
                   </Text>
                 </Text>
-                <Text style={styles.packageText}>
+                <Text style={[typography.small, styles.packageText]}>
                   Price: ${activePackage.price}
                 </Text>
 
-                <Text style={styles.packageText}>
+                <Text style={[typography.small, styles.packageText]}>
                   Created:
                   {activePackage.createdAt?.toDate
                     ? activePackage.createdAt
@@ -349,7 +346,9 @@ export default function PackagesScreen() {
             {metaHint?.packageId === activePackage.id && (
               <AnimatedAppear>
                 <View style={styles.metaHint}>
-                  <Text style={styles.metaHintText}>{metaHint?.text}</Text>
+                  <Text style={[typography.small, styles.metaHintText]}>
+                    {metaHint?.text}
+                  </Text>
                 </View>
               </AnimatedAppear>
             )}
@@ -388,6 +387,7 @@ export default function PackagesScreen() {
                   >
                     <Text
                       style={[
+                        typography.small,
                         styles.paymentText,
                         activePackage.isPaid
                           ? styles.paidText
@@ -479,7 +479,9 @@ export default function PackagesScreen() {
       <View style={{ marginTop: 24 }}>
         {packages.length >= 1 && (
           <View style={{ marginTop: 16 }}>
-            <Text style={styles.sectionTitle}>Past Packages</Text>
+            <Text style={[typography.title, styles.sectionTitle]}>
+              Past Packages
+            </Text>
             {loading ? (
               <>
                 <PackageSkeleton />
@@ -501,11 +503,11 @@ export default function PackagesScreen() {
                         !pkg.isPaid && styles.unpaidHighlight,
                       ]}
                     >
-                      <Text style={styles.packageText}>
+                      <Text style={[typography.body, styles.packageText]}>
                         {pkg.totalSessions} sessions — ${pkg.price}
                       </Text>
 
-                      <Text style={styles.packageText}>
+                      <Text style={[typography.small, styles.packageText]}>
                         Created:
                         {pkg.createdAt?.toDate
                           ? pkg.createdAt.toDate().toISOString().split("T")[0]
@@ -514,7 +516,9 @@ export default function PackagesScreen() {
                       {metaHint?.packageId === pkg.id && (
                         <AnimatedAppear>
                           <View style={styles.metaHint}>
-                            <Text style={styles.metaHintText}>
+                            <Text
+                              style={[typography.small, styles.metaHintText]}
+                            >
                               {metaHint?.text}
                             </Text>
                           </View>
@@ -555,6 +559,7 @@ export default function PackagesScreen() {
                             >
                               <Text
                                 style={[
+                                  typography.small,
                                   styles.paymentText,
                                   pkg.isPaid
                                     ? styles.paidText
@@ -601,7 +606,7 @@ export default function PackagesScreen() {
                                   : styles.dotWarning,
                               ]}
                             />
-                            <Text style={styles.statusText}>
+                            <Text style={[typography.small, styles.statusText]}>
                               {pkg.status.toUpperCase()}
                             </Text>
                           </View>
@@ -653,10 +658,14 @@ export default function PackagesScreen() {
             "Discard changes?",
             "If you leave now, your changes will be lost.",
             [
-              { text: "Stay", style: "cancel" ,onPress: () => {
-                allowCloseRef.current = false;
-                sheetRef.current?.show();
-              },},
+              {
+                text: "Stay",
+                style: "cancel",
+                onPress: () => {
+                  allowCloseRef.current = false;
+                  sheetRef.current?.show();
+                },
+              },
               {
                 text: "Discard",
                 style: "destructive",
@@ -679,7 +688,9 @@ export default function PackagesScreen() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <AnimatedAppear delay={240}>
-                <Text style={styles.title}>Add Package</Text>
+                <Text style={[typography.heading, styles.title]}>
+                  Add Package
+                </Text>
               </AnimatedAppear>
               <AnimatedAppear delay={340}>
                 <TextInput
@@ -690,7 +701,6 @@ export default function PackagesScreen() {
                   value={packageSessions}
                   onChangeText={setPackageSessions}
                   editable={!editingPackage}
-                  selectTextOnFocus={!editingPackage}
                 />
               </AnimatedAppear>
               <AnimatedAppear delay={340}>
@@ -821,16 +831,13 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, padding: 24 },
   title: {
     color: colors.textPrimary,
-    fontSize: 26,
-    fontWeight: "800",
-    letterSpacing: -0.3,
     marginBottom: 16,
   },
   packageStrong: {
     fontWeight: "600",
     fontSize: 14,
   },
-  renewWarning: { color: "#ef4444", fontWeight: "700", marginBottom: 12 },
+  renewWarning: { color: "#ef4444", marginBottom: 12 },
 
   packageText: { color: colors.textPrimary, marginBottom: 6 },
   modalOverlay: {

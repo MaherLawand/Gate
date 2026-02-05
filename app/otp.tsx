@@ -1,4 +1,6 @@
+import AnimatedAppear from "@/src/components/AnimatedAppear";
 import { registerForPushNotifications } from "@/src/services/registerForPushNotifications";
+import { typography } from "@/src/theme/typography";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, View } from "react-native";
@@ -29,7 +31,7 @@ export default function OTPScreen() {
         return;
       }
       registerForPushNotifications();
-      router.replace("/client/home");
+      router.replace("/client/Gate");
       return;
     } catch (e: any) {
       Alert.alert("OTP Failed", e.message);
@@ -40,22 +42,42 @@ export default function OTPScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Verify Phone</Text>
-      <Text style={styles.subtitle}>Enter the 6-digit code sent to you</Text>
+      <AnimatedAppear delay={0}>
+        <Text
+          style={[
+            typography.heading,
+            styles.title,
+            { color: colors.textPrimary },
+          ]}
+        >
+          Verify Phone
+        </Text>
+      </AnimatedAppear>
 
-      <TextInput
-        keyboardType="numeric"
-        value={code}
-        onChangeText={setCode}
-        placeholder="123456"
-        placeholderTextColor={colors.textSecondary}
-        style={styles.input}
-      />
+      <AnimatedAppear delay={60}>
+        <Text style={[typography.body, styles.subtitle]}>
+          Enter the 6-digit code sent to you
+        </Text>
+      </AnimatedAppear>
 
-      <AppButton
-        title={loading ? "Verifying..." : "Verify OTP"}
-        onPress={handleConfirm}
-      />
+      <AnimatedAppear delay={120}>
+        <TextInput
+          keyboardType="numeric"
+          value={code}
+          onChangeText={setCode}
+          placeholder="123456"
+          placeholderTextColor={colors.textSecondary}
+          style={[typography.body, styles.input]}
+          editable={!loading}
+        />
+      </AnimatedAppear>
+
+      <AnimatedAppear delay={160}>
+        <AppButton
+          title={loading ? "Verifying..." : "Verify OTP"}
+          onPress={handleConfirm}
+        />
+      </AnimatedAppear>
     </View>
   );
 }
@@ -69,13 +91,13 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.textPrimary,
-    fontSize: 26,
-    fontWeight: "700",
-    marginBottom: 8,
+    marginBottom: 20,
+    alignSelf: "center",
   },
   subtitle: {
     color: colors.textSecondary,
-    marginBottom: 24,
+    marginBottom: 20,
+    alignSelf: "center",
   },
   input: {
     backgroundColor: colors.card,
