@@ -537,3 +537,46 @@ export async function clientExistsByPhone(phone: string) {
 
   return !snap.empty;
 }
+
+/* ------------------ DELETE EXERCISE FROM SESSION ------------------ */
+
+export const deleteExerciseFromSession = async (
+  clientId: string,
+  sessionId: string,
+  exerciseId: string
+) => {
+  console.info("[Session:deleteExerciseFromSession]", {
+    clientId,
+    sessionId,
+    exerciseId,
+  });
+
+  const sessionRef = doc("clients", clientId, "sessions", sessionId);
+  const snap = await getDoc(sessionRef);
+
+  if (!snap.exists()) {
+    console.warn("[Session:deleteExerciseFromSession] session not found", {
+      sessionId,
+    });
+    return;
+  }
+
+  const data = snap.data() as SessionData;
+
+  const updatedExercises = data.exercises.filter(
+    (ex) => ex.exerciseId !== exerciseId
+  );
+
+  await setDoc(
+    sessionRef,
+    {
+      exercises: updatedExercises,
+    },
+    { merge: true }
+  );
+
+  console.info("[Session:deleteExerciseFromSession] success", {
+    remaining: updatedExercises.length,
+  });
+};
+

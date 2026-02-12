@@ -10,17 +10,16 @@
     "newArchEnabled": true,
     "notification": {
       "iosDisplayInForeground": true
-    },   
-    "platforms": [
-      "ios",
-      "android"
-    ],
+    },
+    "platforms": ["ios", "android"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.Gate",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
-        "UIBackgroundModes":["remote-notification"]
+        "UIBackgroundModes": ["remote-notification"],
+        "NSPhotoLibraryUsageDescription": "We need access to your photos to upload profile pictures and bug screenshots.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -38,11 +37,18 @@
     "plugins": [
       "expo-router",
       [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      [
         "expo-notifications",
         {
           "icon": "./assets/images/gate-logo.png",
-          "color": "E6F4Fe",
-          "sounds": ["default"]
+          "color": "#E6F4Fe"
         }
       ],
       [

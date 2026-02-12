@@ -20,6 +20,7 @@ import {
 } from "../../src/services/ClientService";
 import { colors } from "../../src/theme/colors";
 import { SessionWithId } from "../../src/types/models";
+import { useNavigation } from "@react-navigation/native";
 
 /* ------------------ DATE HELPERS ------------------ */
 
@@ -62,6 +63,24 @@ export default function ClientSessionsScreen() {
       };
     }, [])
   );
+
+
+const navigation = useNavigation();
+
+useEffect(() => {
+  if (Platform.OS !== "ios") return;
+
+  const unsub = navigation.addListener("beforeRemove", (e) => {
+    // Allow programmatic replaces
+    if (e.data.action?.type === "REPLACE") return;
+
+    e.preventDefault();
+    router.replace("/client/Gate");
+  });
+
+  return unsub;
+}, [navigation]);
+
   const params = useLocalSearchParams();
   const clientCtx = useClient();
   if (!clientCtx) {

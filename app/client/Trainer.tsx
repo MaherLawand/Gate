@@ -130,7 +130,7 @@ export default function TrainerDashboard() {
     <View style={styles.container}>
       {/* COVER */}
       <View style={styles.coverWrap}>
-        <Pressable onPress={() => openViewer("cover")}>
+        <Pressable disabled={!coverImage} onPress={() => openViewer("cover")}>
           <Animated.Image
             source={
               coverImage
@@ -233,7 +233,11 @@ export default function TrainerDashboard() {
             style={[
               styles.viewerImage,
               {
-                transform: [{ scale: viewerScale }],
+                transform: [
+                  { scale: viewerScale},
+                  //check this out later
+                  { translateY: viewerTranslateY },
+                ],
               },
             ]}
             resizeMode="contain"

@@ -6,6 +6,7 @@ import {
   Text,
   TextStyle,
   TouchableOpacity,
+  View,
   ViewStyle,
 } from "react-native";
 import { colors } from "../theme/colors";
@@ -31,63 +32,139 @@ export default function AppButton({
   textStyle,
 }: Props) {
   const anim = useRef(new Animated.Value(disabled ? 0 : 1)).current;
+  const pressDepth = useRef(new Animated.Value(0)).current;
+  const onPressIn = () => {
+    Animated.spring(pressDepth, {
+      toValue: 1,
+      useNativeDriver: true,
+      stiffness: 220,
+      damping: 18,
+      mass: 0.6,
+    }).start();
+  };
 
+  const onPressOut = () => {
+    Animated.spring(pressDepth, {
+      toValue: 0,
+      useNativeDriver: true,
+      stiffness: 220,
+      damping: 18,
+      mass: 0.6,
+    }).start();
+  };
+
+  // useEffect(() => {
+  //   Animated.timing(anim, {
+  //     toValue: disabled ? 0 : 1,
+  //     duration: 220,
+  //     useNativeDriver: false, // color animation
+  //   }).start();
+  // }, [disabled]);
+
+  //check this out later
   useEffect(() => {
-    Animated.timing(anim, {
+    const animation = Animated.timing(anim, {
       toValue: disabled ? 0 : 1,
       duration: 220,
-      useNativeDriver: false, // color animation
-    }).start();
-  }, [disabled]);
+      useNativeDriver: false,
+    });
+
+    animation.start();
+
+    return () => {
+      anim.stopAnimation();
+    };
+  }, [disabled, anim]);
 
   return (
     <AnimatedTouchable
-      disabled={disabled}
-      activeOpacity={0.85}
-      onPress={onPress}
-      style={[
-        styles.button,
-        variant === "small" && styles.smallButton,
+  disabled={disabled}
+  activeOpacity={1}
+  onPress={onPress}
+  onPressIn={onPressIn}
+  onPressOut={onPressOut}
+  style={[
+    styles.buttonWrapper,
+    {
+      transform: [
         {
-          opacity: anim.interpolate({
+          translateY: pressDepth.interpolate({
             inputRange: [0, 1],
-            outputRange: [0.45, 1],
-          }),
-          backgroundColor: anim.interpolate({
-            inputRange: [0, 1],
-            outputRange: ["#2A2A2A", colors.primary],
+            outputRange: [0, 4], // sink
           }),
         },
-        style, // 👈 MUST BE LAST
+      ],
+    },
+    style,
+  ]}
+>
+  {/* SHADOW BASE */}
+  <Animated.View
+    style={[
+      styles.shadowBase,
+      {
+        opacity: pressDepth.interpolate({
+          inputRange: [0, 1],
+          outputRange: [1, 0.4],
+        }),
+        backgroundColor: disabled ? "#3A3A3A" : "#7A0F16", // 👈 here
+      },
+    ]}
+  />
+
+  {/* BUTTON BODY */}
+  <Animated.View
+    style={[
+      styles.buttonBody,
+      {
+        backgroundColor: anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: ["#2A2A2A", "#DE1F2E"],
+        }),
+      },
+    ]}
+  >
+    {/* SURFACE GRADIENT */}
+    <View style={styles.surfaceHighlight} />
+
+    <Text
+      style={[
+        styles.text,
+        variant === "small" && styles.smallText,
+        textStyle,
       ]}
     >
-      <Text
-        style={[
-          styles.text,
-          variant === "small" && styles.smallText,
-          textStyle, // 👈 optional override
-        ]}
-      >
-        {title}
-      </Text>
-    </AnimatedTouchable>
+      {title}
+    </Text>
+  </Animated.View>
+</AnimatedTouchable>
+
   );
 }
 const styles = StyleSheet.create({
   button: {
     backgroundColor: colors.primary,
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg, // ✅ ADD THIS
-    borderRadius: 10,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 12,
     alignItems: "center",
-    marginTop: spacing.sm,
+
+    // 👇 3D FLOAT
+    shadowColor: "#DE1F2E",
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 14,
+    shadowOpacity: 0.35,
+
+    elevation: 10, // Android
   },
 
   text: {
-    color: colors.white,
-    fontWeight: "600",
+    color: "#FFF",
+    fontWeight: "700",
     fontSize: 16,
+    letterSpacing: 0.3,
   },
+  
 
   // 👇 FOR EDIT / DELETE
   smallButton: {
@@ -101,4 +178,46 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
+  innerHighlight: {
+    paddingVertical: 2,
+    shadowColor: "rgba(255,255,255,0.4)",
+    shadowOffset: { width: 0, height: -1 },
+    shadowRadius: 2,
+    shadowOpacity: 0.4,
+  },
+  buttonWrapper: {
+    alignSelf: "stretch",
+    marginTop: spacing.md,
+  },
+  shadowBase: {
+    position: "absolute",
+    top: 6,
+    left: 0,
+    right: 0,
+    height: "100%",
+    borderRadius: 12,
+  },
+  buttonBody: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  
+    // FLOAT SHADOW
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 18,
+    shadowOpacity: 0.45,
+  
+    elevation: 14, // Android
+  },
+  surfaceHighlight: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 12,
+backgroundColor: "rgba(255,255,255,0.18)",
+    opacity: 0.6,
+  },
+
+  
 });

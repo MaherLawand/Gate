@@ -1,16 +1,24 @@
-import auth from "@react-native-firebase/auth";
+import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import { useEffect, useState } from "react";
 
 export function useAuthReady() {
   const [ready, setReady] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+
     const unsub = auth().onAuthStateChanged((u) => {
-      setUser(u);
-      setReady(true);
+      if (!mounted) return;
+
+      setUser(u ?? null);
+      setReady(true); // auth resolved (login OR logout)
     });
-    return unsub;
+
+    return () => {
+      mounted = false;
+      unsub();
+    };
   }, []);
 
   return { ready, user };

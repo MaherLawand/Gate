@@ -812,11 +812,17 @@ export default function BookingModal({
         toTime,
         editingSession,
       });
-      allowCloseRef.current = true; // ✅ allow close ONCE
-      resetBookingState();
+      //check this out later
+      // allowCloseRef.current = true; // ✅ allow close ONCE
+      // resetBookingState();
+      // sheetRef.current?.hide();
+      //onSaved();
+      allowCloseRef.current = true;
       sheetRef.current?.hide();
-
-      onSaved();
+      requestAnimationFrame(() => {
+        resetBookingState();
+        onSaved();
+      });
     } catch (e: any) {
       isSubmittingRef.current = false;
       console.error("🔥 Booking failed:", e);
@@ -1051,6 +1057,16 @@ const styles = StyleSheet.create({
   timeText: {
     color: colors.textPrimary,
   },
+  // dropdown: {
+  //   backgroundColor: colors.card,
+  //   borderRadius: 8,
+  //   maxHeight: 160,
+  //   marginTop: 4,
+  //   position: "absolute",
+  //   width: "100%",
+  //   zIndex: 10,
+  // },
+  //check this out later
   dropdown: {
     backgroundColor: colors.card,
     borderRadius: 8,
@@ -1058,7 +1074,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
     position: "absolute",
     width: "100%",
-    zIndex: 10,
+    zIndex: 100,
+    elevation: 10, // ✅ ANDROID
+    shadowColor: "#000", // ✅ iOS
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
   },
   dropdownItem: {
     padding: 12,

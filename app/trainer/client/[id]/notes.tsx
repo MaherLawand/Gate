@@ -30,7 +30,7 @@ import firestore, {
 export default function NotesScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const sheetRef = useRef<ActionSheetRef>(null);
-  const pendingClose = useRef(false);
+  // const pendingClose = useRef(false);
   /* ------------------ STATE ------------------ */
   const allowCloseRef = useRef(false);
   const [notes, setNotes] = useState<any[]>([]);
@@ -38,7 +38,7 @@ export default function NotesScreen() {
   const [originalNote, setOriginalNote] = useState("");
   const [editingNote, setEditingNote] = useState<any>(null);
 
-  const hasChanges = newNote.trim() !== originalNote.trim();
+  // const hasChanges = newNote.trim() !== originalNote.trim();
   const [loading, setLoading] = useState(true);
   const hasUnsavedChanges = newNote.trim() !== originalNote.trim();
   /* ------------------ EFFECT ------------------ */
@@ -53,64 +53,64 @@ export default function NotesScreen() {
     setOriginalNote("");
   };
 
-  const forceCloseSheet = () => {
-    resetNoteState();
-    sheetRef.current?.hide();
-  };
+  // const forceCloseSheet = () => {
+  //   resetNoteState();
+  //   sheetRef.current?.hide();
+  // };
 
-  const attemptCloseSheet = () => {
-    if (!hasUnsavedChanges) {
-      forceCloseSheet();
-      return;
-    }
+  // const attemptCloseSheet = () => {
+  //   if (!hasUnsavedChanges) {
+  //     forceCloseSheet();
+  //     return;
+  //   }
 
-    Alert.alert(
-      "Discard changes?",
-      "If you leave now, your changes will be lost.",
-      [
-        { text: "Stay", style: "cancel" },
-        {
-          text: "Discard",
-          style: "destructive",
-          onPress: forceCloseSheet,
-        },
-      ]
-    );
-  };
+  //   Alert.alert(
+  //     "Discard changes?",
+  //     "If you leave now, your changes will be lost.",
+  //     [
+  //       { text: "Stay", style: "cancel" },
+  //       {
+  //         text: "Discard",
+  //         style: "destructive",
+  //         onPress: forceCloseSheet,
+  //       },
+  //     ]
+  //   );
+  // };
 
-  const showDiscardAlert = () => {
-    Alert.alert(
-      "Discard changes?",
-      "If you leave now, your changes will be lost.",
-      [
-        {
-          text: "Stay",
-          style: "cancel",
-          onPress: () => {
-            pendingClose.current = false;
+  // const showDiscardAlert = () => {
+  //   Alert.alert(
+  //     "Discard changes?",
+  //     "If you leave now, your changes will be lost.",
+  //     [
+  //       {
+  //         text: "Stay",
+  //         style: "cancel",
+  //         onPress: () => {
+  //           pendingClose.current = false;
 
-            // 🔑 Reopen and restore edited state
-            requestAnimationFrame(() => {
-              sheetRef.current?.show();
-              setNewNote((prev) => prev); // forces rebind
-            });
-          },
-        },
-        {
-          text: "Discard",
-          style: "destructive",
-          onPress: () => {
-            pendingClose.current = false;
+  //           // 🔑 Reopen and restore edited state
+  //           requestAnimationFrame(() => {
+  //             sheetRef.current?.show();
+  //             setNewNote((prev) => prev); // forces rebind
+  //           });
+  //         },
+  //       },
+  //       {
+  //         text: "Discard",
+  //         style: "destructive",
+  //         onPress: () => {
+  //           pendingClose.current = false;
 
-            // 🔑 Restore original state
-            setNewNote(originalNote);
+  //           // 🔑 Restore original state
+  //           setNewNote(originalNote);
 
-            sheetRef.current?.hide();
-          },
-        },
-      ]
-    );
-  };
+  //           sheetRef.current?.hide();
+  //         },
+  //       },
+  //     ]
+  //   );
+  // };
 
   /* ------------------ FETCH NOTES ------------------ */
 
@@ -229,7 +229,9 @@ export default function NotesScreen() {
       <AppButton
         title="+ Add Note"
         disabled={loading}
-        onPress={() => {
+        onPress={() => { 
+          //check this out later
+          allowCloseRef.current = false; // 🔑 important
           setEditingNote(null);
           setNewNote("");
           setOriginalNote("");

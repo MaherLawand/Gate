@@ -313,6 +313,8 @@ export default function PackagesScreen() {
                 {activePackage.status === "active" && (
                   <TouchableOpacity
                     onPress={() => {
+                      //check this out later
+                      allowCloseRef.current = false; // 🔑 ADD THIS
                       setPackagePrice(String(activePackage.price));
                       setPackagePaid(activePackage.isPaid);
                       setPackageSessions(String(activePackage.totalSessions)); // ignored but safe
@@ -459,6 +461,8 @@ export default function PackagesScreen() {
             title="+ Add Package"
             disabled={loading}
             onPress={() => {
+              //check this out later
+              allowCloseRef.current = false; // 🔑 ADD THIS
               setPackagePrice("");
               setPackageSessions("");
               setPackagePaid(false);

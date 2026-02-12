@@ -54,9 +54,8 @@ export default function ClientSessionsScreen() {
     id: string;
     date: string;
     packageId: string;
-    attendance: "attended" | "no_show" | "charged_no_show";
+    attendance: "attended" | "no_show" | "charged-no-show";
   }>();
-  const canEditWorkout = attendance === "attended";
   const params = useLocalSearchParams();
   const clientId = typeof params.id === "string" ? params.id : params.id?.[0];
   const [editingExerciseIndex, setEditingExerciseIndex] = useState<
@@ -66,9 +65,11 @@ export default function ClientSessionsScreen() {
   const [activeDate, setActiveDate] = useState(new Date());
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [currentSession, setCurrentSession] = useState<SessionWithId | null>(
-    null
-  );
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const currentSession = useMemo(() => {
+    if (!currentSessionId) return null;
+    return sessions.find((s) => s.id === currentSessionId) ?? null;
+  }, [currentSessionId, sessions]);
   const [draftExercises, setDraftExercises] = useState<SessionExercise[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -175,6 +176,17 @@ export default function ClientSessionsScreen() {
     loadExercises();
   }, []);
 
+  useEffect(() => {
+    if (!currentSession) return;
+
+    // 🔥 always re-sync draft with latest session data
+    setDraftExercises(
+      currentSession.exercises
+        ? JSON.parse(JSON.stringify(currentSession.exercises))
+        : []
+    );
+  }, [currentSession]);
+
   const [search, setSearch] = useState<string>(""); // 👈 must be ""
   const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
 
@@ -221,8 +233,8 @@ export default function ClientSessionsScreen() {
     }
 
     setSelectedDate(dateKey);
-    setCurrentSession(existing);
-    setDraftExercises(existing.exercises);
+    setCurrentSessionId(existing.id);
+    setDraftExercises(existing.exercises ?? []);
     setModalVisible(true);
   };
 
@@ -290,26 +302,36 @@ export default function ClientSessionsScreen() {
   const saveSession = async () => {
     if (!clientId || !currentSession || !selectedDate) return;
 
-    // 🔥 1. Close modal IMMEDIATELY
+    const exercisesToSave = [...draftExercises];
+
+    // 🔥 1. OPTIMISTIC UPDATE (instant UI)
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.id === currentSession.id
+          ? {
+              ...s,
+              exercises: exercisesToSave,
+            }
+          : s
+      )
+    );
+
+    // 🔥 2. Close modal immediately
     setModalVisible(false);
-    setCurrentSession(null);
+    setCurrentSessionId(null);
     setDraftExercises([]);
 
     try {
-      // 🔄 2. Persist in background
+      // 🔄 3. Persist in background
       await updateSession(clientId, currentSession.id, {
         date: selectedDate,
-        exercises: draftExercises,
+        exercises: exercisesToSave,
         packageId: currentSession.packageId,
         attendance: currentSession.attendance,
       });
-
-      // 🔄 3. Refresh sessions silently
-      const updatedSessions = await getClientSessions(clientId);
-      setSessions(updatedSessions);
     } catch (e) {
       console.error(e);
-      // optional: toast / retry logic
+      // optional: rollback / toast
     }
   };
 
@@ -319,7 +341,7 @@ export default function ClientSessionsScreen() {
 
   const cancel = () => {
     setModalVisible(false);
-    setCurrentSession(null);
+    setCurrentSessionId(null);
     setDraftExercises([]);
     setSelectedDate(null);
   };
@@ -373,7 +395,6 @@ export default function ClientSessionsScreen() {
 
             const hasSession = !!session;
             const attendance = session?.attendance;
-            console.log("attendance: ", attendance);
 
             const borderColor = hasSession
               ? getAttendanceBorderColor(attendance)
@@ -477,10 +498,7 @@ export default function ClientSessionsScreen() {
                                 {
                                   text: "Delete",
                                   style: "destructive",
-                                  onPress: () =>
-                                    setDraftExercises((prev) =>
-                                      prev.filter((_, i) => i !== exIndex)
-                                    ),
+                                  onPress: () => deleteExercise(exIndex),
                                 },
                               ]
                             )
@@ -538,6 +556,8 @@ export default function ClientSessionsScreen() {
 
                           <View style={styles.row}>
                             <TextInput
+                              //check this out later
+                              value={String(set.reps)}
                               placeholderTextColor={colors.textSecondary}
                               style={[typography.body, styles.input]}
                               keyboardType="numeric"
@@ -562,6 +582,8 @@ export default function ClientSessionsScreen() {
 
                             <TextInput
                               placeholderTextColor={colors.textSecondary}
+                              //check this out later
+                              value={String(set.weightKg)}
                               style={[typography.body, styles.input]}
                               keyboardType="numeric"
                               placeholder="kg"

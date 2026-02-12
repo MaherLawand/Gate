@@ -1,5 +1,6 @@
 import AnimatedAppear from "@/src/components/AnimatedAppear";
 import AppButton from "@/src/components/AppButton";
+import { setupNotifications } from "@/src/notifications/setupNotifications";
 import { createAnnouncement } from "@/src/services/announcementService";
 import { compressImage } from "@/src/services/compressImage";
 import { uploadImage } from "@/src/services/uploadImage";
@@ -28,7 +29,6 @@ import ActionSheet, {
   ScrollView as SheetScrollView,
 } from "react-native-actions-sheet";
 import { Easing } from "react-native-reanimated";
-import { setupNotifications } from "@/src/notifications/setupNotifications";
 
 type TrainerProfile = {
   firstName: string;
@@ -60,7 +60,6 @@ export default function TrainerDashboard() {
 
     return unsub;
   }, [navigation]);
-
 
   useFocusEffect(
     useCallback(() => {
@@ -134,7 +133,7 @@ export default function TrainerDashboard() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      allowsEditing: Platform.OS === "ios" ? false : true,
       aspect: [1, 1],
       quality: 0.9,
     });
@@ -166,7 +165,7 @@ export default function TrainerDashboard() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      allowsEditing: Platform.OS === "ios" ? false : true,
       aspect: [16, 9],
       quality: 0.9,
     });
@@ -250,7 +249,7 @@ export default function TrainerDashboard() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      allowsEditing: Platform.OS === "ios" ? false : true,
       aspect: [4, 3],
       quality: 0.9,
     });
@@ -317,9 +316,15 @@ export default function TrainerDashboard() {
               setCoverLoading(true);
               coverOpacity.setValue(0);
             }}
+            // onLoadEnd={() => {
+            //   setCoverLoading(false);
+            //   fadeIn(coverOpacity);
+            // }}
             onLoadEnd={() => {
-              setCoverLoading(false);
-              fadeIn(coverOpacity);
+              requestAnimationFrame(() => {
+                setCoverLoading(false);
+                fadeIn(coverOpacity);
+              });
             }}
           />
         </View>
@@ -348,9 +353,15 @@ export default function TrainerDashboard() {
                 setAvatarLoading(true);
                 avatarOpacity.setValue(0);
               }}
+              // onLoadEnd={() => {
+              //   setAvatarLoading(false);
+              //   fadeIn(avatarOpacity);
+              // }}
               onLoadEnd={() => {
-                setAvatarLoading(false);
-                fadeIn(avatarOpacity);
+                requestAnimationFrame(() => {
+                  setAvatarLoading(false);
+                  fadeIn(avatarOpacity);
+                });
               }}
             />
           </View>

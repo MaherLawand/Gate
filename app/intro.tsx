@@ -4,6 +4,7 @@ import { ResizeMode, Video } from "expo-av";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { withSequence } from "react-native-reanimated";
 
 export default function IntroScreen() {
   const [issignedin, setIsSignedIn] = useState(true);

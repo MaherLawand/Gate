@@ -6,6 +6,7 @@ import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigation } from "@react-navigation/native";
 import {
   Alert,
   Animated,
@@ -62,6 +63,23 @@ export default function ClientWeeklyPreferencesScreen() {
       };
     }, [])
   );
+
+  const navigation = useNavigation();
+
+useEffect(() => {
+  if (Platform.OS !== "ios") return;
+
+  const unsub = navigation.addListener("beforeRemove", (e) => {
+    // allow programmatic replaces
+    if (e.data.action?.type === "REPLACE") return;
+
+    e.preventDefault();
+    router.replace("/client/Gate");
+  });
+
+  return unsub;
+}, [navigation]);
+
   const user = auth().currentUser;
   const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
 
@@ -209,6 +227,32 @@ export default function ClientWeeklyPreferencesScreen() {
       return updated;
     });
   };
+
+
+  //check this out later
+  // const toggleTime = (dateKey: string, time: string) => {
+  //   setPreferences((prev) => {
+  //     const times = prev[dateKey] ?? [];
+  //     const exists = times.includes(time);
+  
+  //     const updatedTimes = exists
+  //       ? times.filter((t) => t !== time)
+  //       : [...times, time];
+  
+  //     const updated = { ...prev };
+  
+  //     if (updatedTimes.length === 0) {
+  //       delete updated[dateKey];
+  //     } else {
+  //       updated[dateKey] = updatedTimes;
+  //     }
+  
+  //     return updated;
+  //   });
+  
+  //   // auto-expand day
+  //   setExpandedDays((prev) => ({ ...prev, [dateKey]: true }));
+  // };
 
   /* ------------------ SAVE ------------------ */
 

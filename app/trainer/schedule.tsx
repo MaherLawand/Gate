@@ -19,6 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useNavigation } from "expo-router";
 import { ActionSheetRef } from "react-native-actions-sheet";
 import BookingModal from "../../src/components/BookingModal";
 
@@ -35,7 +36,6 @@ const DAY_END = END_HOUR * 60; // 21:00 → 1260
 const TIMELINE_HEIGHT = (DAY_END - DAY_START) * MINUTE_HEIGHT;
 const SLOT_MINUTES = 30;
 const SESSION_GAP = 5; // px (try 3–6)
-const DEV_SKELETON_DELAY = 2200; // ms
 
 const slots = Array.from(
   { length: ((END_HOUR - START_HOUR) * 60) / SLOT_MINUTES },
@@ -92,6 +92,23 @@ export default function TrainerScheduleScreen() {
       };
     }, [])
   );
+
+  const navigation = useNavigation();
+
+useEffect(() => {
+  if (Platform.OS !== "ios") return;
+
+  const unsub = navigation.addListener("beforeRemove", (e) => {
+    // Allow programmatic redirects
+    if (e.data.action?.type === "REPLACE") return;
+
+    e.preventDefault();
+
+    router.replace("/trainer/dashboard");
+  });
+
+  return unsub;
+}, [navigation]);
   const [uid, setUid] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
 
@@ -179,15 +196,11 @@ export default function TrainerScheduleScreen() {
           });
 
           setSessions(data);
-          setTimeout(() => {
-            setLoading(false);
-          }, DEV_SKELETON_DELAY);
+          setLoading(false);
         },
         (error) => {
           Alert.alert("Error", error.message);
-          setTimeout(() => {
-            setLoading(false);
-          }, DEV_SKELETON_DELAY);
+          setLoading(false);
         }
       );
 
@@ -215,40 +228,64 @@ export default function TrainerScheduleScreen() {
         "✅ trainer_schedules read success. Trainers:",
         trainersSnap.docs.map((d) => d.id)
       );
+      //check this out later
+      // for (const trainerDoc of trainersSnap.docs) {
+      //   console.log("🔎 Checking trainer:", trainerDoc.id);
 
-      for (const trainerDoc of trainersSnap.docs) {
-        console.log("🔎 Checking trainer:", trainerDoc.id);
+      //   const sessionsSnap = await trainerDoc.ref
+      //     .collection("days")
+      //     .doc(dateKey)
+      //     .collection("sessions")
+      //     .get();
 
-        const sessionsSnap = await trainerDoc.ref
-          .collection("days")
-          .doc(dateKey)
-          .collection("sessions")
-          .get();
+      //   console.log(
+      //     `📅 ${trainerDoc.id} sessions on ${dateKey}:`,
+      //     sessionsSnap.docs.length
+      //   );
 
-        console.log(
-          `📅 ${trainerDoc.id} sessions on ${dateKey}:`,
-          sessionsSnap.docs.length
-        );
+      //   for (const doc of sessionsSnap.docs) {
+      //     const s = doc.data();
+      //     console.log("s: ", s);
+      //     if (s.clientGender === "female" && s.isHijabi === true) {
+      //       console.log("trainerDocid: ", trainerDoc.id);
+      //       console.log("uid: ", uid);
 
-        for (const doc of sessionsSnap.docs) {
-          const s = doc.data();
-          console.log("s: ", s);
-          if (s.clientGender === "female" && s.isHijabi === true) {
-            console.log("trainerDocid: ", trainerDoc.id);
-            console.log("uid: ", uid);
+      //       // ❌ skip hijabi sessions of the current trainer
+      //       if (trainerDoc.id === uid) continue;
+      //       console.log("continued");
+      //       collectedHijabiBlocks.push({
+      //         trainerId: trainerDoc.id,
+      //         startMinutes: timeToMinutes(s.startTime),
+      //         endMinutes: timeToMinutes(s.endTime),
+      //         clientName: s.clientName,
+      //       });
+      //     }
+      //   }
+      // }
 
-            // ❌ skip hijabi sessions of the current trainer
-            if (trainerDoc.id === uid) continue;
-            console.log("continued");
-            collectedHijabiBlocks.push({
-              trainerId: trainerDoc.id,
-              startMinutes: timeToMinutes(s.startTime),
-              endMinutes: timeToMinutes(s.endTime),
-              clientName: s.clientName,
-            });
-          }
-        }
-      }
+      await Promise.all(
+        trainersSnap.docs.map(async (trainerDoc) => {
+          if (trainerDoc.id === uid) return;
+
+          const sessionsSnap = await trainerDoc.ref
+            .collection("days")
+            .doc(dateKey)
+            .collection("sessions")
+            .get();
+
+          sessionsSnap.docs.forEach((doc) => {
+            const s = doc.data();
+            if (s.clientGender === "female" && s.isHijabi === true) {
+              collectedHijabiBlocks.push({
+                trainerId: trainerDoc.id,
+                startMinutes: timeToMinutes(s.startTime),
+                endMinutes: timeToMinutes(s.endTime),
+                clientName: s.clientName,
+              });
+            }
+          });
+        })
+      );
 
       console.log("🟡 FINAL hijabi blocks:", collectedHijabiBlocks);
       setHijabiBlocks(collectedHijabiBlocks);
@@ -415,6 +452,7 @@ export default function TrainerScheduleScreen() {
       ) : (
         <ScrollView
           contentContainerStyle={styles.timeline}
+          removeClippedSubviews={false}
           style={{ opacity: loading ? 0.5 : 1 }}
         >
           {sessions.length === 0 && (
@@ -509,6 +547,13 @@ export default function TrainerScheduleScreen() {
                 return (
                   <TouchableOpacity
                     key={session.id}
+                    //check this out later
+                    pressRetentionOffset={{
+                      top: 10,
+                      bottom: 10,
+                      left: 10,
+                      right: 10,
+                    }}
                     activeOpacity={0.85}
                     disabled={session.attendance === "pending"}
                     onPress={() => {
@@ -717,7 +762,8 @@ const styles = StyleSheet.create({
   fab: {
     position: "absolute",
     left: 20,
-    bottom: 20,
+    //check this out later
+    bottom: Platform.OS === "ios" ? 34 : 20,
     width: 56,
     height: 56,
     borderRadius: 28,

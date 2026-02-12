@@ -4,8 +4,28 @@ import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 
+
 export default function PostAuth() {
   const router = useRouter();
+
+  const clearPushToken = async (uid: string) => {
+    try {
+  
+      const clientSnap = await firestore()
+        .collection("clients")
+        .where("authUid", "==", uid)
+        .limit(1)
+        .get();
+  
+      if (!clientSnap.empty) {
+        await clientSnap.docs[0].ref.update({
+          pushToken: null,
+        });
+      }
+    } catch (e) {
+      console.log("⚠️ Failed to clear push token", e);
+    }
+  };
 
   useEffect(() => {
     const resolveUser = async () => {
@@ -40,6 +60,7 @@ export default function PostAuth() {
       }
 
       // ❌ Unknown user
+      await clearPushToken(user.uid);
       await auth().signOut();
       router.replace("/");
     };

@@ -155,11 +155,12 @@ export default function AppHeader() {
         <Pressable style={styles.overlay} onPress={() => setOpenMenu(null)}>
           {/* ================= NOTIFICATIONS MENU ================= */}
           {openMenu === "notifications" && (
-            <Pressable style={styles.menuWide} onPress={() => {}}>
+            <Pressable style={styles.menuWide} 
+             onPress={() => {}}>
               {notifications.length === 0 && (
                 <Text style={styles.emptyText}>No notifications yet</Text>
               )}
-              <ScrollView>
+              <ScrollView keyboardShouldPersistTaps="handled">
                 {notifications.map((n) => (
                   <View
                     key={n.id}
@@ -281,11 +282,13 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   overlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    //check this out later
+    ...StyleSheet.absoluteFillObject,
+   // position: "absolute",
+   // top: 0,
+    //left: 0,
+   // right: 0,
+    //bottom: 0,
     backgroundColor: "transparent",
     zIndex: 50,
   },

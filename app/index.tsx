@@ -1,21 +1,33 @@
 import AnimatedAppear from "@/src/components/AnimatedAppear";
+import { VenomBubble } from "@/src/components/InteractiveGlassBubbles";
 import { useAuthReady } from "@/src/hooks/useAuthReady";
 import { sendOtp } from "@/src/services/phoneAuth";
 import { ResizeMode, Video } from "expo-av";
+import { BlurView } from "expo-blur";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
+import { withSequence } from "react-native-reanimated";
+
 import {
   Alert,
   BackHandler,
+  Dimensions,
+  Platform,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
-import "react-phone-number-input/style.css";
+import {
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import AppButton from "../src/components/AppButton";
 import { colors } from "../src/theme/colors";
 import { typography } from "../src/theme/typography";
+const { width, height } = Dimensions.get("window");
 
 export default function Index() {
   const router = useRouter();
@@ -31,11 +43,9 @@ export default function Index() {
   /* 🔙 Back handler */
   useFocusEffect(
     useCallback(() => {
-      if (!ready || user) {
+      if (!ready || user || Platform.OS !== "android") {
         return;
       }
-
-      console.log("🔵 INDEX: back handler mounted");
 
       const onBackPress = () => {
         Alert.alert("Exit app", "Are you sure you want to exit?", [
@@ -50,10 +60,7 @@ export default function Index() {
         onBackPress
       );
 
-      return () => {
-        console.log("🔵 INDEX: back handler removed");
-        sub.remove();
-      };
+      return () => sub.remove();
     }, [ready, user])
   );
 
@@ -125,6 +132,41 @@ export default function Index() {
       setLoading(false);
     }
   };
+  const impulseX = useSharedValue(0);
+  const impulseY = useSharedValue(0);
+
+  const onBackgroundPress = (x: number, y: number) => {
+    const cx = width / 2;
+    const cy = height / 2;
+
+    const dx = x - cx;
+    const dy = y - cy;
+
+    // normalize distance (closer = stronger)
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const maxDist = Math.sqrt(cx * cx + cy * cy);
+    const force = 1 - Math.min(distance / maxDist, 1);
+
+    const strength = 60 * force; // 🔥 THIS is the key
+
+    impulseX.value = withSequence(
+      withSpring(dx / strength, {
+        damping: 8,
+        stiffness: 220,
+        mass: 0.6,
+      }),
+      withTiming(0, { duration: 2200 })
+    );
+
+    impulseY.value = withSequence(
+      withSpring(dy / strength, {
+        damping: 8,
+        stiffness: 220,
+        mass: 0.6,
+      }),
+      withTiming(0, { duration: 2200 })
+    );
+  };
 
   /* ⛔ HARD GUARD
      - Auth not ready → block
@@ -162,48 +204,110 @@ export default function Index() {
   }
 
   /* 🧾 STEP 2: Login UI */
+  /* 🧾 STEP 2: Login UI */
   return (
-    <View style={styles.container}>
-      <AnimatedAppear delay={0}>
-        <Text
-          style={[
-            typography.heading,
-            { color: colors.textPrimary },
-            styles.title,
-          ]}
-        >
-          Welcome
-        </Text>
-      </AnimatedAppear>
+    <View style={styles.root}>
+      {/* BACKGROUND PRESS LAYER */}
+      <Pressable
+        style={StyleSheet.absoluteFill}
+        onPress={(e) =>
+          onBackgroundPress(e.nativeEvent.locationX, e.nativeEvent.locationY)
+        }
+      >
+        {/* DARK BASE */}
+        <View style={styles.backgroundBase} />
 
-      <AnimatedAppear delay={60}>
-        <Text style={[typography.body, styles.subtitle]}>
-          Enter your phone number to continue
-        </Text>
-      </AnimatedAppear>
-      <AnimatedAppear delay={120}>
-        <View style={styles.phoneRow}>
-          <View style={styles.prefixBox}>
-            <Text style={[typography.bodyMedium, styles.prefixText]}>+961</Text>
-          </View>
-
-          <TextInput
-            style={[typography.body, styles.phoneInput]}
-            keyboardType="number-pad"
-            placeholder="XX XXX XXX"
-            value={focused ? digits : formatLebanese(digits)}
-            onChangeText={handlePhoneChange}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-          />
-        </View>
-      </AnimatedAppear>
-      <AnimatedAppear delay={160}>
-        <AppButton
-          title={loading ? "Sending code..." : "Continue"}
-          onPress={handleLogin}
+        <VenomBubble
+          size={360}
+          baseX={-120}
+          baseY={40}
+          strength={3}
+          impulseX={impulseX}
+          impulseY={impulseY}
+          colors={["#DE1F2E", "rgba(175, 29, 29, 0.15)"]}
         />
-      </AnimatedAppear>
+
+        {/* BUBBLE 2 – mid depth */}
+        <VenomBubble
+          size={240}
+          baseX={width - 220}
+          baseY={250}
+          strength={2}
+          impulseX={impulseX}
+          impulseY={impulseY}
+          colors={["#DE1F2E", "rgba(175, 29, 29, 0.15)"]}
+        />
+
+        {/* BUBBLE 3 – background */}
+        <VenomBubble
+          size={280}
+          baseX={40}
+          baseY={height - 380}
+          strength={2}
+          impulseX={impulseX}
+          impulseY={impulseY}
+          colors={["#DE1F2E", "rgba(175, 29, 29, 0.15)"]}
+        />
+      </Pressable>
+
+      {/* FOREGROUND UI */}
+      <View style={styles.container}>
+        <BlurView
+          intensity={100} // strong blur
+          tint="dark"
+          style={styles.glassCard}
+        >
+          <View style={styles.glassOverlay}>
+            <AnimatedAppear delay={0}>
+              <Text
+                style={[
+                  typography.heading,
+                  { color: colors.textPrimary },
+                  styles.title,
+                ]}
+              >
+                Welcome
+              </Text>
+            </AnimatedAppear>
+
+            <AnimatedAppear delay={60}>
+              <Text style={[typography.body, styles.subtitle]}>
+                Enter your phone number to continue
+              </Text>
+            </AnimatedAppear>
+
+            <View style={styles.contentStack}>
+              <AnimatedAppear delay={120}>
+                <View style={styles.phoneRow}>
+                  <View style={styles.prefixBox}>
+                    <Text style={[typography.bodyMedium, styles.prefixText]}>
+                      +961
+                    </Text>
+                  </View>
+
+                  <TextInput
+                    style={[typography.body, styles.phoneInput]}
+                    keyboardType="number-pad"
+                    placeholder="XX XXX XXX"
+                    placeholderTextColor="rgba(255,255,255,0.5)"
+                    value={focused ? digits : formatLebanese(digits)}
+                    onChangeText={handlePhoneChange}
+                    onFocus={() => setFocused(true)}
+                    onBlur={() => setFocused(false)}
+                  />
+                </View>
+              </AnimatedAppear>
+
+              <AnimatedAppear delay={160}>
+                <AppButton
+                  title={loading ? "Sending code..." : "Continue"}
+                  onPress={handleLogin}
+                />
+              </AnimatedAppear>
+            </View>
+          </View>
+        </BlurView>
+      </View>
     </View>
   );
 }
@@ -217,11 +321,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "black",
   },
+  root: {
+    flex: 1,
+  },
+  backgroundBase: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#0B0F14", // dark premium base
+  },
   container: {
     flex: 1,
-    backgroundColor: colors.background,
     padding: 24,
     justifyContent: "center",
+    backgroundColor: "transparent", // 👈 key
   },
   title: {
     textAlign: "center",
@@ -265,5 +376,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
     color: colors.textPrimary,
+  },
+  glassCard: {
+    alignSelf: "center",
+    borderRadius: 28,
+    overflow: "hidden",
+    borderWidth: 1,
+  },
+  glassOverlay: {
+    paddingVertical: 40, // 👈 taller feel
+    paddingHorizontal: 28,
+    backgroundColor: "rgba(0,0,0,0.45)", // blackish glass tint
+    width: "100%",
+  },
+  contentStack: {
+    gap: 10,
   },
 });

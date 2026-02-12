@@ -1,7 +1,6 @@
 import auth from "@react-native-firebase/auth";
 import storage from "@react-native-firebase/storage";
 import { Platform } from "react-native";
-type ImageType = "avatar" | "cover" | "announcement";
 
 export async function uploadImage(
   localUri: string,

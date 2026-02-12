@@ -9,6 +9,7 @@ export async function setupNotifications() {
 
   if (Platform.OS === "web") return;
 
+  /* ---------------- ANDROID CHANNEL ---------------- */
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("default", {
       name: "Default",
@@ -20,4 +21,16 @@ export async function setupNotifications() {
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     });
   }
+
+  /* ---------------- FOREGROUND BEHAVIOR ---------------- */
+  Notifications.setNotificationHandler({
+    handleNotification:
+      async (): Promise<Notifications.NotificationBehavior> => ({
+        shouldShowAlert: false, // legacy (required by typings)
+        shouldShowBanner: false, // iOS banner
+        shouldShowList: false, // iOS notification center
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+  });
 }

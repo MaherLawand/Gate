@@ -20,6 +20,7 @@ export default function EntryScreen() {
 
       routed.current = true;
 
+      try{
       if (!user) {
         console.log("🔵 ENTRY: user NOT signed in → route to / (index)");
         router.replace("/");
@@ -55,6 +56,11 @@ export default function EntryScreen() {
       console.log("🔴 ENTRY: no role found → signing out");
       await auth().signOut();
       router.replace("/");
+    }catch(err){
+      console.error("ENTRY routing failed", err);
+      await auth().signOut();
+      router.replace("/");
+    }
     });
 
     return unsub;

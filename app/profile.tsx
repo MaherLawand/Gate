@@ -108,23 +108,15 @@ export default function ProfileScreen() {
   }, [uid]);
 
   const updateNotificationPreference = async (enabled: boolean) => {
-    if (!uid) return;
+    if (!clientDocId) return;
 
     setSavingNotif(true);
 
     try {
-      const snap = await firestore()
-        .collection("clients")
-        .where("authUid", "==", uid)
-        .limit(1)
-        .get();
-
-      if (!snap.empty) {
-        await snap.docs[0].ref.update({
-          notificationsEnabled: enabled,
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        });
-      }
+      await firestore().collection("clients").doc(clientDocId).update({
+        notificationsEnabled: enabled,
+        updatedAt: firestore.FieldValue.serverTimestamp(),
+      });
     } catch (e) {
       Alert.alert("Error", "Failed to update notification settings");
     } finally {
@@ -146,21 +138,13 @@ export default function ProfileScreen() {
 
   const handleSave = async () => {
     try {
-      if (!profile) return;
-      const snap = await firestore()
-        .collection("clients")
-        .where("authUid", "==", uid)
-        .limit(1)
-        .get();
-
-      if (!snap.empty) {
-        await snap.docs[0].ref.update({
-          firstName,
-          lastName,
-          bio,
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        });
-      }
+      if (!clientDocId) return;
+      await firestore().collection("clients").doc(clientDocId).update({
+        firstName,
+        lastName,
+        bio,
+        updatedAt: firestore.FieldValue.serverTimestamp(),
+      });
 
       Alert.alert("Saved", "Profile updated successfully");
     } catch (e: any) {
@@ -169,7 +153,7 @@ export default function ProfileScreen() {
   };
 
   const handleChangePhoto = async () => {
-    if (!uid || !profile) return;
+    if (!clientDocId || !profile) return;
     console.log("TYTYHT");
     console.log("AUTH UID:", auth().currentUser?.uid);
     console.log("AUTH TOKEN:", await auth().currentUser?.getIdToken());
@@ -198,18 +182,10 @@ export default function ProfileScreen() {
       const downloadURL = await uploadImage(compressedUri, "avatar");
 
       // 🔥 Save URL in Firestore
-      const snap = await firestore()
-        .collection("clients")
-        .where("authUid", "==", uid)
-        .limit(1)
-        .get();
-
-      if (!snap.empty) {
-        await snap.docs[0].ref.update({
-          profilePicture: downloadURL,
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        });
-      }
+      await firestore().collection("clients").doc(clientDocId).update({
+        profilePicture: downloadURL,
+        updatedAt: firestore.FieldValue.serverTimestamp(),
+      });
 
       // ✅ Update UI instantly
       setProfile((prev) =>
@@ -219,6 +195,7 @@ export default function ProfileScreen() {
       Alert.alert("Upload failed", e.message);
     } finally {
       setUploading(false);
+      Image.prefetch("");
     }
   };
 
@@ -458,7 +435,13 @@ export default function ProfileScreen() {
                   value={notificationsEnabled}
                   onValueChange={handleToggleNotifications}
                   disabled={savingNotif}
-                  thumbColor={colors.primary}
+                  trackColor={{
+                    false: "#374151",
+                    true: colors.primary,
+                  }}
+                  thumbColor={
+                    Platform.OS === "android" ? colors.primary : undefined
+                  }
                 />
               </View>
 

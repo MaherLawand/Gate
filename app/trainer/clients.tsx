@@ -13,8 +13,10 @@ import {
 } from "@/src/services/ClientService";
 import { Ionicons } from "@expo/vector-icons";
 import firestore from "@react-native-firebase/firestore";
-import { router, useFocusEffect, useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { router, useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import {
   Alert,
   Animated,
@@ -106,10 +108,47 @@ function ClientCard({ item, index, onArchive, onUnarchive }: ClientCardProps) {
     : "Account not verified";
   const tiltX = useRef(new Animated.Value(0)).current;
   const tiltY = useRef(new Animated.Value(0)).current;
+  const actionScalePackages = useRef(new Animated.Value(1)).current;
+  const actionScaleSessions = useRef(new Animated.Value(1)).current;
+  const actionScaleNotes = useRef(new Animated.Value(1)).current;
+  const pressIn = (scale: Animated.Value) => {
+    Animated.spring(scale, {
+      toValue: 0.88,
+      stiffness: 300,
+      damping: 18,
+      mass: 0.4,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const pressOut = (scale: Animated.Value) => {
+    Animated.spring(scale, {
+      toValue: 1,
+      stiffness: 220,
+      damping: 16,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const shimmerX = useRef(new Animated.Value(-1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(shimmerX, {
+        toValue: 1,
+        duration: 2200,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, []);
+
+  //check this out later
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 6 || Math.abs(g.dy) > 6,
       onPanResponderMove: (_, g) => {
         tiltX.setValue(g.dy / 20);
         tiltY.setValue(-g.dx / 20);
@@ -132,42 +171,34 @@ function ClientCard({ item, index, onArchive, onUnarchive }: ClientCardProps) {
   return (
     <Animated.View
       {...panResponder.panHandlers}
-      style={{
-        borderWidth: 1,
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "flex-end",
-        flex: 1,
-        opacity: anim,
-        transform: [
-          { perspective: 800 },
-
-          // ENTRY ANIMATION
-          {
-            translateY: anim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [20, 0],
-            }),
-          },
-
-          // 3D TILT
-          {
-            rotateX: tiltX.interpolate({
-              inputRange: [-2, 2],
-              outputRange: ["-10deg", "10deg"],
-            }),
-          },
-          {
-            rotateY: tiltY.interpolate({
-              inputRange: [-2, 2],
-              outputRange: ["-10deg", "10deg"],
-            }),
-          },
-
-          // PRESS SCALE
-          { scale },
-        ],
-      }}
+      style={[
+        styles.cardShadow,
+        {
+          opacity: anim,
+          transform: [
+            { perspective: 800 },
+            {
+              translateY: anim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [20, 0],
+              }),
+            },
+            {
+              rotateX: tiltX.interpolate({
+                inputRange: [-2, 2],
+                outputRange: ["-10deg", "10deg"],
+              }),
+            },
+            {
+              rotateY: tiltY.interpolate({
+                inputRange: [-2, 2],
+                outputRange: ["-10deg", "10deg"],
+              }),
+            },
+            { scale },
+          ],
+        },
+      ]}
     >
       <TouchableOpacity
         onPressIn={onPressIn}
@@ -230,33 +261,120 @@ function ClientCard({ item, index, onArchive, onUnarchive }: ClientCardProps) {
             {accountText}
           </Text>
         </View> */}
+
         <View style={styles.cardActions}>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() =>
-              router.push(`/trainer/client/${item.id}/packages` as any)
-            }
+          <Animated.View
+            style={{
+              transform: [
+                { scale: actionScalePackages },
+                {
+                  translateY: actionScalePackages.interpolate({
+                    inputRange: [0.88, 1],
+                    outputRange: [2, 0],
+                  }),
+                },
+              ],
+            }}
           >
-            <Ionicons name="cube-outline" size={18} color="#ef4444" />
-          </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={styles.actionBtn}
+              onPressIn={() => pressIn(actionScalePackages)}
+              onPressOut={() => pressOut(actionScalePackages)}
+              onPress={() =>
+                router.push(`/trainer/client/${item.id}/packages` as any)
+              }
+            >
+              <LinearGradient
+                colors={[
+                  "rgba(239,68,68,0.35)",
+                  "rgba(239,68,68,0.05)",
+                  "rgba(239,68,68,0)",
+                ]}
+                style={StyleSheet.absoluteFill}
+                start={{ x: 1, y: 1 }}
+                end={{ x: -0.5, y: -0.5 }}
+              />
 
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() =>
-              router.push(`/trainer/client/${item.id}/sessions` as any)
-            }
-          >
-            <Ionicons name="barbell-outline" size={18} color="#ef4444" />
-          </TouchableOpacity>
+              <Ionicons name="cube-outline" size={20} color="#ef4444" />
+            </TouchableOpacity>
+          </Animated.View>
 
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() =>
-              router.push(`/trainer/client/${item.id}/notes` as any)
-            }
+          <Animated.View
+            style={{
+              transform: [
+                { scale: actionScaleSessions },
+                {
+                  translateY: actionScaleSessions.interpolate({
+                    inputRange: [0.88, 1],
+                    outputRange: [2, 0],
+                  }),
+                },
+              ],
+            }}
           >
-            <Ionicons name="document-text-outline" size={18} color="#ef4444" />
-          </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={styles.actionBtn}
+              onPressIn={() => pressIn(actionScaleSessions)}
+              onPressOut={() => pressOut(actionScaleSessions)}
+              onPress={() =>
+                router.push(`/trainer/client/${item.id}/sessions` as any)
+              }
+            >
+              <LinearGradient
+                colors={[
+                  "rgba(239,68,68,0.35)",
+                  "rgba(239,68,68,0.05)",
+                  "rgba(239,68,68,0)",
+                ]}
+                style={StyleSheet.absoluteFill}
+                start={{ x: 1, y: 1 }}
+                end={{ x: -0.5, y: -0.5 }}
+              />
+
+              <Ionicons name="barbell-outline" size={20} color="#ef4444" />
+            </TouchableOpacity>
+          </Animated.View>
+          <Animated.View
+            style={{
+              transform: [
+                { scale: actionScaleNotes },
+                {
+                  translateY: actionScaleNotes.interpolate({
+                    inputRange: [0.88, 1],
+                    outputRange: [2, 0],
+                  }),
+                },
+              ],
+            }}
+          >
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={styles.actionBtn}
+              onPressIn={() => pressIn(actionScaleNotes)}
+              onPressOut={() => pressOut(actionScaleNotes)}
+              onPress={() =>
+                router.push(`/trainer/client/${item.id}/notes` as any)
+              }
+            >
+              <LinearGradient
+                colors={[
+                  "rgba(239,68,68,0.35)",
+                  "rgba(239,68,68,0.05)",
+                  "rgba(239,68,68,0)",
+                ]}
+                style={StyleSheet.absoluteFill}
+                start={{ x: 1, y: 1 }}
+                end={{ x: -0.5, y: -0.5 }}
+              />
+              <Ionicons
+                name="document-text-outline"
+                size={20}
+                color="#ef4444"
+              />
+            </TouchableOpacity>
+          </Animated.View>
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -286,6 +404,23 @@ export default function ClientsScreen() {
       };
     }, [])
   );
+
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    if (Platform.OS !== "ios") return;
+
+    const unsub = navigation.addListener("beforeRemove", (e) => {
+      // Allow programmatic redirects
+      if (e.data.action?.type === "REPLACE") return;
+
+      e.preventDefault();
+
+      router.replace("/trainer/dashboard");
+    });
+
+    return unsub;
+  }, [navigation]);
   const [clients, setClients] = useState<ClientWithPackageStatus[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -666,7 +801,9 @@ export default function ClientsScreen() {
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
       (e) => {
         Animated.timing(keyboardOffset, {
-          toValue: e.endCoordinates.height - 20,
+          // toValue: e.endCoordinates.height - 20,
+          //check this out later
+          toValue: Math.max(0, e.endCoordinates.height - 40),
           duration: 250,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
@@ -1165,9 +1302,11 @@ export default function ClientsScreen() {
         <Text style={[typography.small, styles.loading]}>No clients found</Text>
       ) : (
         <View style={styles.pagerSection}>
+          {/*check this out later*/}
           <PagerView
             style={{
-              height: getPagerHeight(pages[page - 1]?.length || 0),
+              // height: getPagerHeight(pages[page - 1]?.length || 0),
+              height: PAGER_HEIGHT,
             }}
             initialPage={0}
             overdrag={false}
@@ -1246,6 +1385,16 @@ const styles = StyleSheet.create({
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
     justifyContent: "space-between",
+    overflow: "hidden", // 🔑 THIS IS THE FIX
+  },
+  shimmerWrap: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
+  },
+
+  shimmer: {
+    width: "140%",
+    height: "100%",
   },
 
   avatar: {
@@ -1555,12 +1704,26 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   actionBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 19,
-    backgroundColor: "rgba(239,68,68,0.14)",
-    justifyContent: "center",
+    width: 32,
+    height: 32,
+    borderRadius: 12,
     alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+
+    // DARK GLASS BASE
+    backgroundColor: "rgba(18, 18, 22, 0.55)",
+
+    // SUBTLE BORDER
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.25)",
+  },
+  actionGlow: {
+    borderRadius: 14,
+    shadowColor: "#ef4444",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.6,
+    shadowRadius: 14,
   },
   cardActions: {
     flexDirection: "row",
@@ -1663,4 +1826,12 @@ const styles = StyleSheet.create({
   dotCancelled: {
     backgroundColor: "#f59e0b", // orange
   },
+  cardShadow: {
+    borderRadius: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+  },
+
 });
