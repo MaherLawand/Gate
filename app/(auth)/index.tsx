@@ -9,7 +9,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { withSequence } from "react-native-reanimated";
 import { Image } from "react-native";
 
-import messaging from "@react-native-firebase/messaging";
 import {
   Alert,
   BackHandler,
@@ -30,7 +29,7 @@ import AppButton from "../../src/components/AppButton";
 import { colors } from "../../src/theme/colors";
 import { typography } from "../../src/theme/typography";
 import { auth, firestore } from "@/src/services/firebase";
-
+import * as Notifications from "expo-notifications";
 const { width, height } = Dimensions.get("window");
 
 type AppState =
@@ -111,16 +110,23 @@ useEffect(() => {
   useEffect(() => {
     const initPush = async () => {
       try {
-        await messaging().requestPermission();
-        // await messaging().registerDeviceForRemoteMessages();
-        console.log("✅ Push permission granted");
+        const { status } = await Notifications.requestPermissionsAsync();
+  
+        if (status !== "granted") {
+          console.log("❌ Permission not granted");
+          return;
+        }
+  
+        const token = await Notifications.getExpoPushTokenAsync();
+        console.log("📲 Expo Push Token:", token.data);
       } catch (e) {
         console.log("❌ Push permission error:", e);
       }
     };
-
+  
     initPush();
   }, []);
+  
 
   const handlePhoneChange = (text: string) => {
     // digits only
