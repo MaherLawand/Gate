@@ -67,75 +67,74 @@ export default function OTPScreen() {
     );
   };
 
- const handleConfirm = async () => {
-  if (!code || code.length < 6) {
-    Alert.alert("Invalid code", "Enter the 6-digit OTP");
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const client = await confirmOtp(code);
-    await registerForPushNotifications();
-
-    if (client.role === "trainer") {
-      router.replace("/(app)/trainer/dashboard");
-    } else {
-      router.replace("/(app)/client/Gate");
+  const handleConfirm = async () => {
+    if (!code || code.length < 6) {
+      Alert.alert("Invalid code", "Enter the 6-digit OTP");
+      return;
     }
 
-  } catch (e: any) {
-    Alert.alert("OTP Failed", e.message);
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      setLoading(true);
+
+      const client = await confirmOtp(code);
+      await registerForPushNotifications();
+
+      // if (client.role === "trainer") {
+      //   router.replace("/(app)/trainer/dashboard");
+      // } else {
+      //   router.replace("/(app)/client/Gate");
+      // }
+    } catch (e: any) {
+      Alert.alert("OTP Failed", e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.root}>
       {/* BACKGROUND */}
       <Pressable
-              style={StyleSheet.absoluteFill}
-              onPress={(e) =>
-                onBackgroundPress(e.nativeEvent.locationX, e.nativeEvent.locationY)
-              }
-            >
-              {/* DARK BASE */}
-              <View style={styles.backgroundBase} />
-      
-              <VenomBubble
-                size={360}
-                baseX={-120}
-                baseY={40}
-                strength={3}
-                impulseX={impulseX}
-                impulseY={impulseY}
-                colors={["#DE1F2E", "rgba(175, 29, 29, 0.15)"]}
-              />
-      
-              {/* BUBBLE 2 – mid depth */}
-              <VenomBubble
-                size={240}
-                baseX={width - 220}
-                baseY={250}
-                strength={2}
-                impulseX={impulseX}
-                impulseY={impulseY}
-                colors={["#DE1F2E", "rgba(175, 29, 29, 0.15)"]}
-              />
-      
-              {/* BUBBLE 3 – background */}
-              <VenomBubble
-                size={280}
-                baseX={40}
-                baseY={height - 380}
-                strength={2}
-                impulseX={impulseX}
-                impulseY={impulseY}
-                colors={["#DE1F2E", "rgba(175, 29, 29, 0.15)"]}
-              />
-            </Pressable>
+        style={StyleSheet.absoluteFill}
+        onPress={(e) =>
+          onBackgroundPress(e.nativeEvent.locationX, e.nativeEvent.locationY)
+        }
+      >
+        {/* DARK BASE */}
+        <View style={styles.backgroundBase} />
+
+        <VenomBubble
+          size={360}
+          baseX={-120}
+          baseY={40}
+          strength={3}
+          impulseX={impulseX}
+          impulseY={impulseY}
+          colors={["#DE1F2E", "rgba(175, 29, 29, 0.15)"]}
+        />
+
+        {/* BUBBLE 2 – mid depth */}
+        <VenomBubble
+          size={240}
+          baseX={width - 220}
+          baseY={250}
+          strength={2}
+          impulseX={impulseX}
+          impulseY={impulseY}
+          colors={["#DE1F2E", "rgba(175, 29, 29, 0.15)"]}
+        />
+
+        {/* BUBBLE 3 – background */}
+        <VenomBubble
+          size={280}
+          baseX={40}
+          baseY={height - 380}
+          strength={2}
+          impulseX={impulseX}
+          impulseY={impulseY}
+          colors={["#DE1F2E", "rgba(175, 29, 29, 0.15)"]}
+        />
+      </Pressable>
       {/* FOREGROUND */}
       <View style={styles.container}>
         <View style={styles.glassCard}>
@@ -241,4 +240,3 @@ const styles = StyleSheet.create({
     letterSpacing: 4, // 🔥 OTP feel
   },
 });
-
