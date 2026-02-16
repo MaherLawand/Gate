@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.anonymous.Gate</string>
+	<string>com.maherlawand.GatePrivateGym</string>
 	<key>PROJECT_ID</key>
 	<string>gate-2056a</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:334248254952:ios:53fa9c110e612845bb585d</string>
+	<string>1:334248254952:ios:6fa6073f596bf9dfbb585d</string>
 </dict>
 </plist>

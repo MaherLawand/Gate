@@ -15,11 +15,17 @@
     "ios": {
       "icon": "./assets/images/gate-logo.png",
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.Gate",
+      "bundleIdentifier": "com.maherlawand.GatePrivateGym",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "app-1-334248254952-ios-6fa6073f596bf9dfbb585d"
+            ]
+          }
+        ],
         "UIBackgroundModes": ["remote-notification"],
-        "CFBundleURLSchemes": ["app-1-334248254952-ios-53fa9c110e612845bb585d"],
         "NSPhotoLibraryUsageDescription": "We need access to your photos to upload profile pictures and bug screenshots.",
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -35,7 +41,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.Gate",
+      "package": "com.maherlawand.GatePrivateGym",
       "googleServicesFile": "./google-services.json"
     },
     "web": {
