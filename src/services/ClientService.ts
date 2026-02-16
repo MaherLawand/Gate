@@ -1,10 +1,10 @@
-import { router } from "expo-router";
-import { Alert } from "react-native";
-
 import firestore, {
   FirebaseFirestoreTypes,
 } from "@react-native-firebase/firestore";
 import { auth } from "../services/firebase";
+
+import { router } from "expo-router";
+import { Alert } from "react-native";
 
 import {
   ClientPackage,
@@ -39,9 +39,9 @@ export const redirectAfterLogin = async (uid: string) => {
   console.info("[Auth] User role resolved", { uid, role });
 
   if (role === "trainer") {
-    router.replace("/trainer/dashboard");
+    router.replace("/(app)/trainer/dashboard");
   } else if (role === "client") {
-    router.replace("/client/Gate");
+    router.replace("/(app)/client/Gate");
   } else {
     console.error("[Auth] Invalid user role", { uid, role });
     Alert.alert("Error", "Invalid user role");
@@ -197,7 +197,7 @@ export const getClientSessions = async (
 export const updateSession = async (
   clientId: string,
   sessionId: string,
-  data: SessionData
+    data: Partial<SessionData>
 ) => {
   console.info("[Session:updateSession]", { clientId, sessionId });
 
@@ -579,4 +579,3 @@ export const deleteExerciseFromSession = async (
     remaining: updatedExercises.length,
   });
 };
-

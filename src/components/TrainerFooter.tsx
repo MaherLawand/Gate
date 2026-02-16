@@ -13,7 +13,7 @@ export default function TrainerFooter() {
 
   const navigate = (path: TrainerRoute) => {
     if (current !== path) {
-      router.replace(`/trainer/${path}` as const);
+      router.replace(`/(app)/trainer/${path}` as const);
     }
   };
 

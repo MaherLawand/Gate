@@ -51,13 +51,13 @@ import Toast from "react-native-toast-message";
 //check this out later
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
-    "Inter-Regular": require("../../assets/fonts/Inter_18pt-Regular.ttf"),
-    "Inter-Medium": require("../../assets/fonts/Inter_18pt-Medium.ttf"),
-    "Inter-SemiBold": require("../../assets/fonts/Inter_18pt-SemiBold.ttf"),
-    "Inter-Bold": require("../../assets/fonts/Inter_18pt-Bold.ttf"),
-    "Sora-Medium": require("../../assets/fonts/Sora-Medium.ttf"),
-    "Sora-SemiBold": require("../../assets/fonts/Sora-SemiBold.ttf"),
-    "Sora-Bold": require("../../assets/fonts/Sora-Bold.ttf"),
+    "Inter-Regular": require("../../../assets/fonts/Inter_18pt-Regular.ttf"),
+    "Inter-Medium": require("../../../assets/fonts/Inter_18pt-Medium.ttf"),
+    "Inter-SemiBold": require("../../../assets/fonts/Inter_18pt-SemiBold.ttf"),
+    "Inter-Bold": require("../../../assets/fonts/Inter_18pt-Bold.ttf"),
+    "Sora-Medium": require("../../../assets/fonts/Sora-Medium.ttf"),
+    "Sora-SemiBold": require("../../../assets/fonts/Sora-SemiBold.ttf"),
+    "Sora-Bold": require("../../../assets/fonts/Sora-Bold.ttf"),
   });
 
   useForegroundNotifications();

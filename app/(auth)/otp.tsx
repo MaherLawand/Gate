@@ -19,9 +19,9 @@ import {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import AppButton from "../src/components/AppButton";
-import { confirmOtp } from "../src/services/phoneAuth";
-import { colors } from "../src/theme/colors";
+import AppButton from "../../src/components/AppButton";
+import { confirmOtp } from "../../src/services/phoneAuth";
+import { colors } from "../../src/theme/colors";
 
 const { width, height } = Dimensions.get("window");
 
@@ -67,31 +67,30 @@ export default function OTPScreen() {
     );
   };
 
-  const handleConfirm = async () => {
-    if (!code || code.length < 6) {
-      Alert.alert("Invalid code", "Enter the 6-digit OTP");
-      return;
+ const handleConfirm = async () => {
+  if (!code || code.length < 6) {
+    Alert.alert("Invalid code", "Enter the 6-digit OTP");
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const client = await confirmOtp(code);
+    await registerForPushNotifications();
+
+    if (client.role === "trainer") {
+      router.replace("/(app)/trainer/dashboard");
+    } else {
+      router.replace("/(app)/client/Gate");
     }
 
-    try {
-      setLoading(true);
-
-      const client = await confirmOtp(code);
-
-      if (client.role === "trainer") {
-        await registerForPushNotifications();
-        router.replace("/trainer/dashboard");
-        return;
-      }
-      await registerForPushNotifications();
-      router.replace("/client/Gate");
-      return;
-    } catch (e: any) {
-      Alert.alert("OTP Failed", e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (e: any) {
+    Alert.alert("OTP Failed", e.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <View style={styles.root}>
@@ -231,14 +230,15 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     color: colors.textPrimary,
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: "rgba(0, 0, 0, 0.12)",
     textAlign: "center",
     letterSpacing: 4, // 🔥 OTP feel
   },
 });
+

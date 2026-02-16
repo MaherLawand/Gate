@@ -5,10 +5,9 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { View } from "react-native";
 
-
-export const unstable_settings = {
-  initialRouteName: "entry",
-};
+// export const unstable_settings = {
+//   initialRouteName: "entry",
+// };
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -23,21 +22,17 @@ export default function RootLayout() {
 
   // 🔔 FOREGROUND PUSH HANDLER
 
-
   if (!fontsLoaded) {
-    return <View style={{ flex: 1, backgroundColor: "black" }} />;
+    return <View style={{ flex: 1 }} />;
   }
 
   return (
     <>
       <StatusBar style="auto" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          animation: "none",
-        }}
-      />
-     
+      <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(app)" />
+    </Stack>
     </>
   );
 }

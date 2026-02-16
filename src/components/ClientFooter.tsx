@@ -20,7 +20,7 @@ export default function ClientFooter() {
         {/* Sessions */}
         <TouchableOpacity
           style={styles.sideButton}
-          onPress={() => go("/client/ClientWeeklyPreferencesScreen")}
+          onPress={() => go("(app)/client/ClientWeeklyPreferencesScreen")}
         >
           <Ionicons
             name="options-outline"
@@ -36,7 +36,7 @@ export default function ClientFooter() {
         {/* Gate */}
         <TouchableOpacity
           style={styles.centerButton}
-          onPress={() => router.replace("/client/Gate")}
+          onPress={() => router.replace("/(app)/client/Gate")}
         >
           <Image
             source={require("../../assets/images/gate-logo.png")}

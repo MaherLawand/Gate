@@ -1,3 +1,6 @@
+import auth from "@react-native-firebase/auth";
+import firestore from "@react-native-firebase/firestore";
+
 import AnimatedAppear from "@/src/components/AnimatedAppear";
 import AppButton from "@/src/components/AppButton";
 import { setupNotifications } from "@/src/notifications/setupNotifications";
@@ -6,11 +9,10 @@ import { compressImage } from "@/src/services/compressImage";
 import { uploadImage } from "@/src/services/uploadImage";
 import { colors } from "@/src/theme/colors";
 import { typography } from "@/src/theme/typography";
-import auth from "@react-native-firebase/auth";
-import firestore from "@react-native-firebase/firestore";
+
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useNavigation } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -42,24 +44,33 @@ type TrainerProfile = {
 export default function TrainerDashboard() {
   const navigation = useNavigation();
 
-  useEffect(() => {
-    if (Platform.OS !== "ios") return;
 
-    const unsub = navigation.addListener("beforeRemove", (e) => {
-      e.preventDefault(); // ⛔ stop swipe/back
 
-      Alert.alert("Leave Gate?", "Are you sure you want to leave?", [
-        { text: "Stay", style: "cancel" },
-        {
-          text: "Leave",
-          style: "destructive",
-          onPress: () => navigation.dispatch(e.data.action),
-        },
-      ]);
-    });
+useEffect(() => {
+  if (Platform.OS !== "ios") return;
 
-    return unsub;
-  }, [navigation]);
+  const unsub = navigation.addListener("beforeRemove", (e) => {
+    const actionType = e.data.action.type;
+
+    // Only block back-like actions
+    if (actionType !== "GO_BACK") {
+      return; // allow navigate/replace/etc
+    }
+
+    e.preventDefault();
+
+    Alert.alert("Leave Gate?", "Are you sure you want to leave?", [
+      { text: "Stay", style: "cancel" },
+      {
+        text: "Leave",
+        style: "destructive",
+        onPress: () => navigation.dispatch(e.data.action),
+      },
+    ]);
+  });
+
+  return unsub;
+}, [navigation]);
 
   useFocusEffect(
     useCallback(() => {
@@ -210,6 +221,7 @@ export default function TrainerDashboard() {
         if (!snap.exists) return;
 
         const data = snap.data()!;
+        console.log("data: " , data)
         setProfile({
           firstName: data.firstName,
           lastName: data.lastName,
@@ -308,7 +320,7 @@ export default function TrainerDashboard() {
             source={
               profile.coverImage
                 ? { uri: profile.coverImage }
-                : require("../../assets/images/avatar-placeholder.png")
+                : require("../../../assets/images/avatar-placeholder.png")
             }
             style={[styles.cover, { opacity: coverOpacity }]}
             resizeMode="cover"
@@ -345,7 +357,7 @@ export default function TrainerDashboard() {
               source={
                 profile.profilePicture
                   ? { uri: profile.profilePicture }
-                  : require("../../assets/images/avatar-placeholder.png")
+                  : require("../../../assets/images/avatar-placeholder.png")
               }
               style={[styles.avatar, { opacity: avatarOpacity }]}
               resizeMode="cover"

@@ -266,12 +266,15 @@ export async function bookSession({
   };
 
   const clientSessionPayload = {
-    packageId: clientPackageId,
-    date: dateKey,
-    exercises: [],
-    attendance: editingSession ? editingSession.attendance : "pending", // ✅
-    updatedAt: firestore.FieldValue.serverTimestamp(),
-  };
+  packageId: clientPackageId,
+  date: dateKey,
+  exercises: [],
+  attendance: editingSession ? editingSession.attendance : "pending",
+  startTime: formatTime(fromTime),   // ✅ ADD THIS
+  endTime: formatTime(toTime),       // ✅ ADD THIS
+  trainerId,                         // ✅ ADD THIS
+  updatedAt: firestore.FieldValue.serverTimestamp(),
+};
 
   if (editingSession) {
     // ✏️ EDIT — do NOT reset status

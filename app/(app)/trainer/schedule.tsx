@@ -1,3 +1,6 @@
+import auth from "@react-native-firebase/auth";
+import firestore from "@react-native-firebase/firestore";
+
 import ScheduleHeaderSkeleton from "@/src/components/skeletons/Schedule/ScheduleHeaderSkeleton";
 import ScheduleTimeColumnSkeleton from "@/src/components/skeletons/Schedule/ScheduleTimeColumnSkeleton";
 import ScheduleTimelineSkeleton from "@/src/components/skeletons/Schedule/ScheduleTimelineSkeleton";
@@ -5,8 +8,7 @@ import { cancelBooking } from "@/src/services/cancelBooking";
 import { resolveAttendance } from "@/src/services/resolveAttendance";
 import { colors } from "@/src/theme/colors";
 import { ScheduledSession } from "@/src/types/models";
-import auth from "@react-native-firebase/auth";
-import firestore from "@react-native-firebase/firestore";
+
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -21,7 +23,7 @@ import {
 } from "react-native";
 import { useNavigation } from "expo-router";
 import { ActionSheetRef } from "react-native-actions-sheet";
-import BookingModal from "../../src/components/BookingModal";
+import BookingModal from "@/src/components/BookingModal";
 
 type EnrichedScheduledSession = ScheduledSession & {
   clientIsHijabi?: boolean;
@@ -77,7 +79,7 @@ export default function TrainerScheduleScreen() {
   useFocusEffect(
     useCallback(() => {
       const onBack = () => {
-        router.replace("/trainer/dashboard");
+        router.replace("/(app)/trainer/dashboard");
         return true; // ⛔ block default back
       };
 
@@ -104,7 +106,7 @@ useEffect(() => {
 
     e.preventDefault();
 
-    router.replace("/trainer/dashboard");
+    router.replace("/(app)/trainer/dashboard");
   });
 
   return unsub;

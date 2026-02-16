@@ -256,7 +256,7 @@ export default function AppHeader() {
 /* ================= STYLES ================= */
 const styles = StyleSheet.create({
   unreadRow: {
-    backgroundColor: "rgba(59,130,246,0.08)", // subtle blue tint
+    backgroundColor: "rgba(229, 45, 17, 0.08)", // subtle blue tint
     borderLeftWidth: 3,
     borderLeftColor: colors.primary,
   },
@@ -269,7 +269,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    zIndex: 20,
   },
   logo: {
     color: colors.textPrimary,
@@ -281,17 +280,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 14,
   },
-  overlay: {
-    //check this out later
-    ...StyleSheet.absoluteFillObject,
-   // position: "absolute",
-   // top: 0,
-    //left: 0,
-   // right: 0,
-    //bottom: 0,
-    backgroundColor: "transparent",
-    zIndex: 50,
-  },
+overlay: {
+  position: "absolute",
+  top: 40, // 👈 START BELOW HEADER
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: "transparent",
+  zIndex: 50,
+},
   /* ACCOUNT MENU */
   menu: {
     position: "absolute",
@@ -315,31 +312,37 @@ const styles = StyleSheet.create({
   /* NOTIFICATIONS MENU */
   menuWide: {
     position: "absolute",
-    top: 56,
+    top: 50,
     right: 16,
     width: 320,
     maxHeight: 360,
     backgroundColor: colors.card,
     borderRadius: 10,
     paddingVertical: 8,
-    elevation: 8,
+     shadowColor: "#000",
+  shadowOpacity: 0.25,
+  shadowOffset: { width: 0, height: 8 },
+  shadowRadius: 16,
+    elevation: 20,
+    zIndex:999,
   },
   notificationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
+  flexDirection: "row",
+  alignItems: "center",
+  paddingHorizontal: 16,
+  paddingVertical: 10, // slightly tighter
+  borderBottomWidth: 1,
+  borderBottomColor: colors.border,
+},
   notificationContent: {
     flex: 1,
   },
   notificationTitle: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    marginBottom: 4,
-  },
+  color: colors.textPrimary,
+  fontSize: 11,
+  fontWeight: "600",
+  marginBottom: 2,
+},
   notificationBodyUnread: {
     color: colors.textPrimary,
   },
@@ -348,9 +351,10 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   notificationBody: {
-    color: colors.textSecondary,
-    fontSize: 12,
-  },
+  color: colors.textSecondary,
+  fontSize: 11,
+  lineHeight: 16,
+},
   emptyText: {
     padding: 20,
     textAlign: "center",
@@ -385,7 +389,7 @@ const styles = StyleSheet.create({
   },
 
   notificationDate: {
-    fontSize: 11,
+    fontSize: 9,
     color: colors.textSecondary,
   },
 });

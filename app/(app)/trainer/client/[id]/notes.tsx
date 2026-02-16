@@ -1,3 +1,8 @@
+import auth from "@react-native-firebase/auth";
+import firestore, {
+  FirebaseFirestoreTypes,
+} from "@react-native-firebase/firestore";
+
 import AnimatedAppear from "@/src/components/AnimatedAppear";
 import AppButton from "@/src/components/AppButton";
 import { colors } from "@/src/theme/colors";
@@ -20,10 +25,7 @@ import ActionSheet, {
 
 import NoteSkeleton from "@/src/components/skeletons/Notes/NoteSkeleton";
 import { typography } from "@/src/theme/typography";
-import auth from "@react-native-firebase/auth";
-import firestore, {
-  FirebaseFirestoreTypes,
-} from "@react-native-firebase/firestore";
+
 
 /* ------------------ PAGE ------------------ */
 

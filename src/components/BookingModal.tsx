@@ -7,6 +7,7 @@ import firestore from "@react-native-firebase/firestore";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -58,6 +59,7 @@ export default function BookingModal({
 
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
+  const [tempFromTime, setTempFromTime] = useState<Date | null>(null);
 
   const [preferredTimes, setPreferredTimes] = useState<string[]>([]);
   const [loadingPrefs, setLoadingPrefs] = useState(false);
@@ -272,7 +274,7 @@ export default function BookingModal({
 
   function getMaxTime() {
     const d = new Date();
-    d.setHours(20, 0, 0, 0); // latest START time
+    d.setHours(21, 0, 0, 0); // latest START time
     return d;
   }
   function formatTime(d: Date | null) {
@@ -841,7 +843,7 @@ export default function BookingModal({
         backgroundColor: colors.background,
         borderTopLeftRadius: 16,
         borderTopRightRadius: 16,
-        paddingTop: 8,
+        paddingTop: 15,
       }}
       onBeforeClose={() => {
         // ✅ allow close after save / discard
@@ -884,8 +886,8 @@ export default function BookingModal({
       }}
     >
       <SheetScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{
+          keyboardShouldPersistTaps="always"
+          contentContainerStyle={{
           paddingHorizontal: 20,
           paddingBottom: 30,
         }}
@@ -911,10 +913,10 @@ export default function BookingModal({
             setShowDropdown(true);
           }}
         />
-        <View style={{ position: "relative" }}>
+        <View style={{ position: "relative" }} >
           {showDropdown && filteredClients.length > 0 && (
             <View style={styles.dropdown}>
-              <ScrollView>
+              <ScrollView keyboardShouldPersistTaps="always">
                 {filteredClients.map((c) => (
                   <TouchableOpacity
                     key={c.id}
@@ -962,7 +964,9 @@ export default function BookingModal({
         <View style={styles.timeRow}>
           <TouchableOpacity
             style={styles.timeBox}
-            onPress={() => setShowFromPicker(true)}
+            onPress={() => { setTempFromTime(fromTime ?? getMinTime());
+              setShowFromPicker(true);
+            }}
           >
             <Text style={styles.timeLabel}>From</Text>
             <Text style={styles.timeValue}>{formatTime(fromTime)}</Text>
@@ -973,22 +977,43 @@ export default function BookingModal({
             <Text style={styles.timeValue}>{formatTime(toTime)}</Text>
           </TouchableOpacity>
         </View>
-        {showFromPicker && (
-          <DateTimePicker
-            mode="time"
-            is24Hour={true}
-            minuteInterval={5}
-            value={fromTime ?? getMinTime()}
-            minimumDate={getMinTime()} // ✅ 06:00
-            maximumDate={getMaxTime()} // ✅ 20:00
-            display={Platform.OS === "android" ? "spinner" : "default"}
-            onChange={(_, d) => {
-              setShowFromPicker(false);
-              if (!d) return;
+        {showFromPicker && Platform.OS === "android" && (
+  <DateTimePicker
+    mode="time"
+    is24Hour
+    minuteInterval={5}
+    value={fromTime ?? getMinTime()}
+    minimumDate={getMinTime()}
+    maximumDate={getMaxTime()}
+    display="default"
+    onChange={(_, d) => {
+      setShowFromPicker(false);
+      if (!d) return;
 
-              const rounded = roundToFiveMinutes(d);
+      const rounded = roundToFiveMinutes(d);
+      if (!isWithinWorkingHours(rounded)) return;
 
-              // 🔒 Safety clamp
+      setFromTime(rounded);
+      setToTime(addOneHour(rounded));
+    }}
+  />
+)}
+{showFromPicker && Platform.OS === "ios" && (
+  <Modal animationType="slide" transparent>
+    <View style={styles.pickerModal}>
+      <View style={styles.pickerContainer}>
+        
+        <View style={styles.pickerHeader}>
+          <TouchableOpacity onPress={() => setShowFromPicker(false)}>
+            <Text style={styles.cancelText}>Cancel</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => {
+              if (!tempFromTime) return;
+
+              const rounded = roundToFiveMinutes(tempFromTime);
+
               if (!isWithinWorkingHours(rounded)) {
                 Alert.alert(
                   "Outside working hours",
@@ -998,10 +1023,33 @@ export default function BookingModal({
               }
 
               setFromTime(rounded);
-              setToTime(addOneHour(rounded)); // ✅ force 1 hour
+              setToTime(addOneHour(rounded));
+              setShowFromPicker(false);
             }}
-          />
-        )}
+          >
+            <Text style={styles.doneText}>Done</Text>
+          </TouchableOpacity>
+        </View>
+
+        <DateTimePicker
+          mode="time"
+    is24Hour
+    minuteInterval={5}
+    value={tempFromTime ?? getMinTime()}
+    minimumDate={getMinTime()}
+    maximumDate={getMaxTime()}
+    display="spinner"
+    onChange={(_, d) => {
+  if (d) setTempFromTime(d);
+}}
+        />
+      </View>
+    </View>
+  </Modal>
+
+
+)}
+
 
         {showToPicker && (
           <DateTimePicker
@@ -1166,4 +1214,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
   },
+  pickerModal: {
+  flex: 1,
+  justifyContent: "flex-end",
+  backgroundColor: "rgba(0,0,0,0.4)",
+},
+
+pickerContainer: {
+  backgroundColor: "#ffffff", // NOT transparent
+  borderTopLeftRadius: 20,
+  borderTopRightRadius: 20,
+  paddingBottom: 20,
+},
+
+pickerHeader: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  padding: 16,
+},
+
+cancelText: {
+  color: "#999",
+  fontSize: 16,
+},
+
+doneText: {
+  color: "#DE1F2E",
+  fontSize: 16,
+  fontWeight: "600",
+},
 });

@@ -18,6 +18,9 @@
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],
+        "CFBundleURLSchemes": [
+                     "app-1-334248254952-ios-53fa9c110e612845bb585d"
+                   ],
         "NSPhotoLibraryUsageDescription": "We need access to your photos to upload profile pictures and bug screenshots.",
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -36,11 +39,16 @@
     },
     "plugins": [
       "expo-router",
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      "@react-native-firebase/crashlytics",
+      "@react-native-firebase/messaging",
       [
         "expo-build-properties",
         {
           "ios": {
-            "useFrameworks": "static"
+            "useFrameworks": "static",
+            "buildReactNativeFromSource": true
           }
         }
       ],

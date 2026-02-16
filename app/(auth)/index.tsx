@@ -5,9 +5,11 @@ import { sendOtp } from "@/src/services/phoneAuth";
 import { ResizeMode, Video } from "expo-av";
 import { BlurView } from "expo-blur";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { withSequence } from "react-native-reanimated";
+import { Image } from "react-native";
 
+import messaging from "@react-native-firebase/messaging";
 import {
   Alert,
   BackHandler,
@@ -24,26 +26,52 @@ import {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import AppButton from "../src/components/AppButton";
-import { colors } from "../src/theme/colors";
-import { typography } from "../src/theme/typography";
+import AppButton from "../../src/components/AppButton";
+import { colors } from "../../src/theme/colors";
+import { typography } from "../../src/theme/typography";
+import { auth, firestore } from "@/src/services/firebase";
+
 const { width, height } = Dimensions.get("window");
+
+type AppState =
+  | "checking"
+  | "signedOutIntro"
+  | "login"
+  | "signedInLoading";
 
 export default function Index() {
   const router = useRouter();
   const videoRef = useRef<Video>(null);
 
-  const { ready, user } = useAuthReady();
+  // const { ready, user } = useAuthReady();
 
-  const [showLogin, setShowLogin] = useState(false);
+  // const [showLogin, setShowLogin] = useState(false);
   const [digits, setDigits] = useState("");
   const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(false);
+const [appState, setAppState] = useState<
+  "checking" | "signedOutIntro" | "login" | "signedInLoading"
+>("checking");
 
+useEffect(() => {
+  const unsub = auth().onAuthStateChanged((user) => {
+    if (!user) {
+      setAppState("signedOutIntro");
+      return;
+    }
+
+    // 🔥 JUST redirect to app root
+    router.replace("/(app)");
+  });
+
+  return unsub;
+}, []);
+
+  
   /* 🔙 Back handler */
   useFocusEffect(
     useCallback(() => {
-      if (!ready || user || Platform.OS !== "android") {
+      if (appState !== "login" || Platform.OS !== "android") {
         return;
       }
 
@@ -61,8 +89,38 @@ export default function Index() {
       );
 
       return () => sub.remove();
-    }, [ready, user])
+    }, [appState])
   );
+  useEffect(() => {
+    if (appState === "signedOutIntro") {
+      const timer = setTimeout(() => {
+        console.log("⏱ fallback → show login");
+        setAppState("login");
+      }, 10000); // match your video length
+
+      return () => clearTimeout(timer);
+    }
+  }, [appState]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(false);
+    }, [])
+  );
+
+  useEffect(() => {
+    const initPush = async () => {
+      try {
+        await messaging().requestPermission();
+        // await messaging().registerDeviceForRemoteMessages();
+        console.log("✅ Push permission granted");
+      } catch (e) {
+        console.log("❌ Push permission error:", e);
+      }
+    };
+
+    initPush();
+  }, []);
 
   const handlePhoneChange = (text: string) => {
     // digits only
@@ -125,7 +183,7 @@ export default function Index() {
     try {
       setLoading(true);
       await sendOtp(phoneRaw);
-      router.replace("/otp");
+      router.push("/otp");
     } catch (e: any) {
       Alert.alert("Login failed", e.message);
     } finally {
@@ -171,31 +229,49 @@ export default function Index() {
   /* ⛔ HARD GUARD
      - Auth not ready → block
      - User signed in → entry will redirect */
-  if (!ready || user) {
-    return <View style={styles.black} />;
-  }
-  console.log(
-    showLogin ? "🟢 INDEX: showing LOGIN UI" : "🟣 INDEX: showing INTRO VIDEO"
+  // if (!ready || user) {
+  //   return <View style={styles.black} />;
+  // }
+  // console.log(
+  //   showLogin ? "🟢 INDEX: showing LOGIN UI" : "🟣 INDEX: showing INTRO VIDEO"
+  // );
+
+if (appState === "checking" || appState === "signedInLoading") {
+  return (
+    <View style={styles.container}>
+       <Image
+              source={require("../../assets/images/gate-logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
+              onLoadStart={() => console.log("🟡 ENTRY: logo load start")}
+              onLoadEnd={() => console.log("🟢 ENTRY: logo load end")}
+            />
+    </View>
   );
+}
 
   /* 🎬 STEP 1: Intro video */
-  if (!showLogin) {
+
+
+  if (appState === "signedOutIntro") {
     return (
-      <View style={styles.videoContainer}>
+      <View style={{ flex: 1 }}>
         <Video
           ref={videoRef}
-          source={require("../assets/images/Final_Gate_animation.mp4")}
+          source={require("../../assets/images/Final_Gate_animation.mp4")}
+          style={{ width: "100%", height: "100%" }}
           resizeMode={ResizeMode.COVER}
-          style={StyleSheet.absoluteFill}
           shouldPlay
+          isMuted
           isLooping={false}
-          onLoadStart={() => console.log("🟣 VIDEO: load start")}
-          onLoad={() => console.log("🟣 VIDEO: loaded")}
+          progressUpdateIntervalMillis={250}
+          onReadyForDisplay={() => console.log("🎬 ready for display")}
           onPlaybackStatusUpdate={(status) => {
             if (!status.isLoaded) return;
+
             if (status.didJustFinish) {
-              console.log("🟣 VIDEO: finished → show login");
-              setShowLogin(true);
+              console.log("🎬 finished");
+            setAppState("login");
             }
           }}
         />
@@ -332,6 +408,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     justifyContent: "center",
+    alignItems: "center",
     backgroundColor: "transparent", // 👈 key
   },
   title: {
@@ -391,5 +468,9 @@ const styles = StyleSheet.create({
   },
   contentStack: {
     gap: 10,
+  },
+  logo: {
+    width: 160,
+    height: 160,
   },
 });

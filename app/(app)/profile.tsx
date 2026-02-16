@@ -1,13 +1,15 @@
+import auth from "@react-native-firebase/auth";
+import firestore from "@react-native-firebase/firestore";
+import Constants from "expo-constants";
+import * as ImagePicker from "expo-image-picker";
 import AppButton from "@/src/components/AppButton";
 import { compressImage } from "@/src/services/compressImage";
 import { uploadBugImage, uploadImage } from "@/src/services/uploadImage";
 import { colors } from "@/src/theme/colors";
 import { typography } from "@/src/theme/typography";
 import { BugDoc } from "@/src/types/models";
-import auth from "@react-native-firebase/auth";
-import firestore from "@react-native-firebase/firestore";
-import Constants from "expo-constants";
-import * as ImagePicker from "expo-image-picker";
+
+
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -361,7 +363,7 @@ export default function ProfileScreen() {
                       source={
                         profile.profilePicture
                           ? { uri: profile.profilePicture }
-                          : require("../assets/images/avatar-placeholder.png")
+                          : require("../../assets/images/avatar-placeholder.png")
                       }
                       style={styles.avatar}
                     />

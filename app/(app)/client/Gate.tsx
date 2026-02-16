@@ -1,6 +1,7 @@
+import firestore from "@react-native-firebase/firestore";
 import { setupNotifications } from "@/src/notifications/setupNotifications";
 import { colors } from "@/src/theme/colors";
-import firestore from "@react-native-firebase/firestore";
+
 import { router, useFocusEffect, useNavigation } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -46,24 +47,31 @@ export default function TrainerHome() {
 
   const navigation = useNavigation();
 
-  useEffect(() => {
-    if (Platform.OS !== "ios") return;
+useEffect(() => {
+  if (Platform.OS !== "ios") return;
 
-    const unsub = navigation.addListener("beforeRemove", (e) => {
-      e.preventDefault(); // ⛔ stop swipe/back
+  const unsub = navigation.addListener("beforeRemove", (e) => {
+    const actionType = e.data.action.type;
 
-      Alert.alert("Leave Gate?", "Are you sure you want to leave?", [
-        { text: "Stay", style: "cancel" },
-        {
-          text: "Leave",
-          style: "destructive",
-          onPress: () => navigation.dispatch(e.data.action),
-        },
-      ]);
-    });
+    // Only block back-like actions
+    if (actionType !== "GO_BACK") {
+      return; // allow navigate/replace/etc
+    }
 
-    return unsub;
-  }, [navigation]);
+    e.preventDefault();
+
+    Alert.alert("Leave Gate?", "Are you sure you want to leave?", [
+      { text: "Stay", style: "cancel" },
+      {
+        text: "Leave",
+        style: "destructive",
+        onPress: () => navigation.dispatch(e.data.action),
+      },
+    ]);
+  });
+
+  return unsub;
+}, [navigation]);
 
   useFocusEffect(
     useCallback(() => {

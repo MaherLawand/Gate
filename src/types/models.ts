@@ -86,6 +86,9 @@ export type SessionData = {
   exercises: SessionExercise[];
   packageId: string;
   attendance: string;
+  trainerId: string;     // 🔥 add this
+  startTime: string;     // 🔥 add this
+  endTime: string;
 };
 
 export type SessionWithId = SessionData & {

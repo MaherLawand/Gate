@@ -1,3 +1,5 @@
+import firestore from "@react-native-firebase/firestore";
+
 import AnimatedAppear from "@/src/components/AnimatedAppear";
 import ClientsGridSkeleton from "@/src/components/skeletons/Clients/ClientsGridSkeleton";
 import SearchInputSkeleton from "@/src/components/skeletons/Clients/SearchInputSkeleton";
@@ -12,7 +14,7 @@ import {
   unarchiveClient,
 } from "@/src/services/ClientService";
 import { Ionicons } from "@expo/vector-icons";
-import firestore from "@react-native-firebase/firestore";
+
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -37,9 +39,9 @@ import {
 import { ExpandingDot } from "react-native-animated-pagination-dots";
 import PagerView from "react-native-pager-view";
 import { useSharedValue } from "react-native-reanimated";
-import AppButton from "../../src/components/AppButton";
-import { colors } from "../../src/theme/colors";
-import { ClientProfile } from "../../src/types/models";
+import AppButton from "@/src/components/AppButton";
+import { colors } from "@/src/theme/colors";
+import { ClientProfile } from "@/src/types/models";
 
 import { typography } from "@/src/theme/typography";
 import ActionSheet, {
@@ -48,7 +50,7 @@ import ActionSheet, {
 } from "react-native-actions-sheet";
 
 const DEV_SKELETON_DELAY = 2200; // ms
-const DEFAULT_AVATAR = require("../../assets/images/avatar-placeholder.png");
+const DEFAULT_AVATAR = require("../../../assets/images/avatar-placeholder.png");
 
 const CARD_HEIGHT = 180;
 
@@ -389,7 +391,7 @@ export default function ClientsScreen() {
   useFocusEffect(
     useCallback(() => {
       const onBack = () => {
-        router.replace("/trainer/dashboard");
+        router.replace("/(app)/trainer/dashboard");
         return true; // ⛔ block default back
       };
 
@@ -416,7 +418,7 @@ export default function ClientsScreen() {
 
       e.preventDefault();
 
-      router.replace("/trainer/dashboard");
+      router.replace("/(app)/trainer/dashboard");
     });
 
     return unsub;

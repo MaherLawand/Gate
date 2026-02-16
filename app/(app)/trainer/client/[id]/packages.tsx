@@ -1,3 +1,9 @@
+import {
+  doc,
+  getDoc,
+  serverTimestamp,
+} from "../../../../../src/services/fireStoreHelpers";
+
 import AnimatedAppear from "@/src/components/AnimatedAppear";
 import PackageSkeleton from "@/src/components/skeletons/Packages/PackageSkeleton";
 import { typography } from "@/src/theme/typography";
@@ -17,7 +23,7 @@ import ActionSheet, {
   ActionSheetRef,
   ScrollView as SheetScrollView,
 } from "react-native-actions-sheet";
-import AppButton from "../../../../src/components/AppButton";
+import AppButton from "../../../../../src/components/AppButton";
 import {
   addClientPackage,
   cancelPackage,
@@ -25,14 +31,10 @@ import {
   reactivatePackage,
   renewPackage,
   updatePackage,
-} from "../../../../src/services/ClientService";
-import {
-  doc,
-  getDoc,
-  serverTimestamp,
-} from "../../../../src/services/fireStoreHelpers";
-import { colors } from "../../../../src/theme/colors";
-import { ClientPackage } from "../../../../src/types/models";
+} from "../../../../../src/services/ClientService";
+
+import { colors } from "../../../../../src/theme/colors";
+import { ClientPackage } from "../../../../../src/types/models";
 
 export default function PackagesScreen() {
   const { id, expired } = useLocalSearchParams<{

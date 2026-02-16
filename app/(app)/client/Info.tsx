@@ -17,9 +17,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   getActivePackage,
   getClientSessions,
-} from "../../src/services/ClientService";
-import { colors } from "../../src/theme/colors";
-import { SessionWithId } from "../../src/types/models";
+} from "../../../src/services/ClientService";
+import { colors } from "../../../src/theme/colors";
+import { SessionWithId } from "../../../src/types/models";
 import { useNavigation } from "@react-navigation/native";
 
 /* ------------------ DATE HELPERS ------------------ */
@@ -48,7 +48,7 @@ export default function ClientSessionsScreen() {
   useFocusEffect(
     useCallback(() => {
       const onBack = () => {
-        router.replace("/client/Gate");
+        router.replace("/(app)/client/Gate");
         return true; // ⛔ block default back
       };
 
@@ -75,7 +75,7 @@ useEffect(() => {
     if (e.data.action?.type === "REPLACE") return;
 
     e.preventDefault();
-    router.replace("/client/Gate");
+    router.replace("/(app)/client/Gate");
   });
 
   return unsub;
@@ -92,11 +92,6 @@ useEffect(() => {
   const [sessions, setSessions] = useState<SessionWithId[]>([]);
   const [activeDate, setActiveDate] = useState(new Date());
 
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [currentSession, setCurrentSession] = useState<SessionWithId | null>(
-    null
-  );
-  const [modalVisible, setModalVisible] = useState(false);
   const getAttendanceBorderColor = (attendance?: string) => {
     console.log("attendance: ", attendance);
     switch (attendance) {
@@ -168,29 +163,18 @@ useEffect(() => {
       return;
     }
 
-    setSelectedDate(dateKey);
-    setCurrentSession(session);
-    setModalVisible(true);
+    router.push({
+  pathname: "/(app)/client/exercises",
+  params: {
+    sessionId: session.id,
+    date: dateKey,
+  },
+});
   };
 
-  const closeModal = () => {
-    setModalVisible(false);
-    setSelectedDate(null);
-    setCurrentSession(null);
-  };
+ 
 
-  useEffect(() => {
-    if (!modalVisible) return;
-
-    const onBackPress = () => {
-      closeModal();
-      return true; // 👈 block default behavior
-    };
-
-    const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
-
-    return () => sub.remove();
-  }, [modalVisible]);
+ 
   /* ------------------ RENDER ------------------ */
 
   return (
@@ -230,113 +214,56 @@ useEffect(() => {
             console.log("sessionForDay: ", sessionForDay);
 
             return (
-              <Pressable
-                key={key}
-                disabled={
-                  !hasSession || sessionForDay?.attendance !== "confirmed"
-                }
-                onPress={() => onDayPress(key)}
-                style={[
-                  styles.dayCard,
-                  hasSession && styles.activeDay,
-                  isToday && styles.today,
-                  hasSession && {
-                    borderWidth: 2,
-                    borderColor,
-                  },
-                  hasSession &&
-                    sessionForDay?.attendance !== "confirmed" && {
-                      opacity: 0.6,
-                    },
-                ]}
-              >
-                <Text
-                  style={[typography.small, { color: colors.textSecondary }]}
-                >
-                  {d.toLocaleDateString("en-US", { weekday: "short" })}
-                </Text>
+             <Pressable
+  key={key}
+  disabled={!hasSession || sessionForDay?.attendance !== "confirmed"}
+  onPress={() => onDayPress(key)}
+  style={[
+    styles.dayCard,
+    hasSession && styles.activeDay,
+    isToday && styles.today,
+    hasSession && {
+      borderWidth: 2,
+      borderColor,
+    },
+    hasSession &&
+      sessionForDay?.attendance !== "confirmed" && {
+        opacity: 0.7,
+      },
+  ]}
+>
+  <Text
+    style={[typography.small, { color: colors.textSecondary }]}
+  >
+    {d.toLocaleDateString("en-US", { weekday: "short" })}
+  </Text>
 
-                <Text style={[typography.stat, { color: colors.textPrimary }]}>
-                  {d.getDate()}
-                </Text>
+  <Text style={[typography.stat, { color: colors.textPrimary }]}>
+    {d.getDate()}
+  </Text>
 
-                {hasSession && (
-                  <View
-                    style={[
-                      styles.sessionIndicator,
-                      { backgroundColor: borderColor },
-                    ]}
-                  />
-                )}
-              </Pressable>
+  {/* 🔥 TIME DISPLAY */}
+  {hasSession && sessionForDay?.startTime && (
+    <Text style={styles.timeText}>
+  {sessionForDay.startTime} - {sessionForDay.endTime}
+</Text>
+  )}
+
+  {hasSession && (
+    <View
+      style={[
+        styles.sessionIndicator,
+        { backgroundColor: borderColor },
+      ]}
+    />
+  )}
+</Pressable>
             );
           })}
         </View>
       </View>
 
-      {/* SESSION VIEW MODAL */}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        onRequestClose={closeModal}
-      >
-        <SafeAreaView style={styles.modal}>
-          <Pressable onPress={closeModal}>
-            <Text style={[typography.small, { color: colors.textSecondary }]}>
-              ← Back
-            </Text>
-          </Pressable>
-
-          <Text style={[typography.title, { color: colors.textPrimary }]}>
-            Session • {selectedDate}
-          </Text>
-
-          <ScrollView>
-            {currentSession?.exercises.map((ex, i) => (
-              <View key={i} style={styles.exerciseCard}>
-                <Text style={[typography.title, { color: colors.textPrimary }]}>
-                  {ex.name}
-                </Text>
-
-                <View style={styles.readonlyGroup}>
-                  {Array.isArray(ex.sets) ? (
-                    ex.sets.map((set, setIndex) => (
-                      <View key={setIndex} style={styles.readonlyRow}>
-                        <Text
-                          style={[
-                            typography.small,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          Set {setIndex + 1}
-                        </Text>
-
-                        <Text
-                          style={[
-                            typography.bodyMedium,
-                            { color: colors.textPrimary },
-                          ]}
-                        >
-                          {set.reps} reps • {set.weightKg} kg
-                        </Text>
-                      </View>
-                    ))
-                  ) : (
-                    <Text
-                      style={[
-                        typography.small,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      Invalid set data
-                    </Text>
-                  )}
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
+      
     </View>
   );
 }
@@ -475,4 +402,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 14,
   },
+  timeText: {
+  marginTop: 6,
+  fontSize: 9,
+  color: colors.textSecondary,
+  fontWeight: "300",
+},
 });

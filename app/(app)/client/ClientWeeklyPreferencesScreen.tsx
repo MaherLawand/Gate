@@ -1,9 +1,11 @@
+import auth from "@react-native-firebase/auth";
+import firestore from "@react-native-firebase/firestore";
+
 import { useClient } from "@/src/components/ClientContext";
 import WeeklyPreferencesSkeleton from "@/src/components/skeletons/WeeklyPreferences/WeeklyPreferencesSkeleton";
 import { colors } from "@/src/theme/colors";
 import { typography } from "@/src/theme/typography";
-import auth from "@react-native-firebase/auth";
-import firestore from "@react-native-firebase/firestore";
+
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigation } from "@react-navigation/native";
@@ -48,7 +50,7 @@ export default function ClientWeeklyPreferencesScreen() {
   useFocusEffect(
     useCallback(() => {
       const onBack = () => {
-        router.replace("/client/Gate");
+        router.replace("/(app)/client/Gate");
         return true; // ⛔ block default back
       };
 
@@ -74,7 +76,7 @@ useEffect(() => {
     if (e.data.action?.type === "REPLACE") return;
 
     e.preventDefault();
-    router.replace("/client/Gate");
+    router.replace("/(app)/client/Gate");
   });
 
   return unsub;

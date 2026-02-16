@@ -8,9 +8,14 @@ export async function sendOtp(phone: string) {
   try {
     console.log("Sending OTP to:", phone);
 
+// if (__DEV__) {
+//   auth().settings.appVerificationDisabledForTesting = true;
+// }
+// auth().settings.forceRecaptchaFlowForTesting = true;
     confirmationResult = await auth().signInWithPhoneNumber(phone);
 
     if (!confirmationResult) {
+      console.log("Confirmation:", confirmationResult);
       throw new Error("Failed to start OTP session");
     }
 

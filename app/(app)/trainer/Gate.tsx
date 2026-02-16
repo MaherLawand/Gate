@@ -19,7 +19,7 @@ export default function TrainerHome() {
   useFocusEffect(
     useCallback(() => {
       const onBack = () => {
-        router.replace("/trainer/dashboard");
+        router.replace("/(app)/trainer/dashboard");
         return true; // ⛔ block default back
       };
 

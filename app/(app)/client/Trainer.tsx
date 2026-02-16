@@ -135,7 +135,7 @@ export default function TrainerDashboard() {
             source={
               coverImage
                 ? { uri: coverImage }
-                : require("../../assets/images/avatar-placeholder.png")
+                : require("../../../assets/images/avatar-placeholder.png")
             }
             style={[styles.cover, { opacity: coverOpacity }]}
             resizeMode="cover"
@@ -162,7 +162,7 @@ export default function TrainerDashboard() {
               source={
                 profilePicture
                   ? { uri: profilePicture }
-                  : require("../../assets/images/avatar-placeholder.png")
+                  : require("../../../assets/images/avatar-placeholder.png")
               }
               style={[styles.avatar, { opacity: avatarOpacity }]}
               resizeMode="cover"
@@ -225,10 +225,10 @@ export default function TrainerDashboard() {
               activeImage === "cover"
                 ? coverImage
                   ? { uri: coverImage }
-                  : require("../../assets/images/avatar-placeholder.png")
+                  : require("../../../assets/images/avatar-placeholder.png")
                 : profilePicture
                 ? { uri: profilePicture }
-                : require("../../assets/images/avatar-placeholder.png")
+                : require("../../../assets/images/avatar-placeholder.png")
             }
             style={[
               styles.viewerImage,
