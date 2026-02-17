@@ -1057,7 +1057,7 @@ export default function BookingModal({
             is24Hour={true}
             minuteInterval={5} // ✅ THIS
             value={toTime ?? new Date()}
-            display={Platform.OS === "android" ? "spinner" : "default"}
+            display="default"
             onChange={(_, d) => {
               setShowToPicker(false);
               if (d) setToTime(d);

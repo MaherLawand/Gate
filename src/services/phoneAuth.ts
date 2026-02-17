@@ -1,7 +1,6 @@
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import { serverTimestamp } from "./fireStoreHelpers";
-
 let confirmationResult: FirebaseAuthTypes.ConfirmationResult | null = null;
 
 export async function sendOtp(phone: string) {

@@ -8,6 +8,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { withSequence } from "react-native-reanimated";
 import { Image } from "react-native";
+import { getApp } from "@react-native-firebase/app";
 
 import {
   Alert,
@@ -116,7 +117,7 @@ useEffect(() => {
           console.log("❌ Permission not granted");
           return;
         }
-  
+  console.log("Firebase Project ID:", getApp().options.projectId);
         const token = await Notifications.getExpoPushTokenAsync();
         console.log("📲 Expo Push Token:", token.data);
       } catch (e) {
