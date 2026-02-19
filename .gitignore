@@ -46,8 +46,8 @@ app-example
 *.log
 
 # generated native folders
-/ios
-/android
+# /ios
+# /android
 serviceAccountKey.json
 serviceAccountKeyDev.json
 

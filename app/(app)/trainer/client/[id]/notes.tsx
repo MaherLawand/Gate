@@ -3,6 +3,7 @@ import firestore, {
   FirebaseFirestoreTypes,
 } from "@react-native-firebase/firestore";
 import { root } from "@/src/services/db";
+import { log, error } from "@/src/utils/logger";
 
 import AnimatedAppear from "@/src/components/AnimatedAppear";
 import AppButton from "@/src/components/AppButton";
@@ -145,7 +146,7 @@ export default function NotesScreen() {
 
       setNotes(arr);
     } catch (e) {
-      console.error("Error fetching notes:", e);
+      error("Error fetching notes:", e);
     } finally {
       setTimeout(() => setLoading(false), 400);
     }
@@ -167,7 +168,7 @@ export default function NotesScreen() {
       sheetRef.current?.hide();
       fetchNotes(id);
     } catch (e) {
-      console.error("Error adding note:", e);
+      error("Error adding note:", e);
     }
   };
 
@@ -195,7 +196,7 @@ export default function NotesScreen() {
       sheetRef.current?.hide();
       fetchNotes(id);
     } catch (e) {
-      console.error("Error updating note:", e);
+      error("Error updating note:", e);
     }
   };
 
@@ -216,7 +217,7 @@ export default function NotesScreen() {
       sheetRef.current?.hide();
       fetchNotes(id);
     } catch (e) {
-      console.error("Error deleting note:", e);
+      error("Error deleting note:", e);
     }
   };
 

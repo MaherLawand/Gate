@@ -6,6 +6,7 @@ import { useClient } from "@/src/components/ClientContext";
 import WeeklyPreferencesSkeleton from "@/src/components/skeletons/WeeklyPreferences/WeeklyPreferencesSkeleton";
 import { colors } from "@/src/theme/colors";
 import { typography } from "@/src/theme/typography";
+import { log, error } from "@/src/utils/logger";
 
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -151,7 +152,7 @@ useEffect(() => {
 
     const load = async () => {
       try {
-        console.log("clientId", clientId);
+       log("clientId", clientId);
 
         const pkgSnap = await collection("clients", clientId || "", "packages")
   .where("status", "==", "active")
@@ -307,13 +308,13 @@ useEffect(() => {
 
       {TRAINING_DAYS.map((day, index) => {
         const dateKeyForDay = getDateForWeekday(weekKey, index);
-        console.log("dateKeyForDay ", dateKeyForDay);
+       log("dateKeyForDay ", dateKeyForDay);
         const selectedTimes = preferences[dateKeyForDay] ?? [];
-        console.log("preferences ", preferences);
-        console.log("selectedTimes ", selectedTimes);
+       log("preferences ", preferences);
+       log("selectedTimes ", selectedTimes);
 
         const isActive = selectedTimes.length > 0;
-        console.log("isActive ", isActive);
+       log("isActive ", isActive);
 
         const disabled = !isActive && maxDaysReached;
 

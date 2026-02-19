@@ -15,6 +15,7 @@ import { listenUnreadNotificationsCount } from "../services/notifications/notifi
 import { colors } from "../theme/colors";
 import { useClient } from "./ClientContext";
 import { collection, doc } from "../services/db";
+import { log, error, warn } from "@/src/utils/logger";
 
 
 type ClientNotification = {
@@ -57,7 +58,7 @@ export default function AppHeader() {
   .onSnapshot(
         (    snap: FirebaseFirestoreTypes.QuerySnapshot<FirebaseFirestoreTypes.DocumentData>) => {
           if (!snap) {
-            console.warn("[Notifications] snapshot is null");
+            warn("[Notifications] snapshot is null");
             setNotifications([]);
             return;
           }
@@ -72,7 +73,7 @@ export default function AppHeader() {
           setNotifications(data);
         },
   (error:any) => {
-          console.error("[Notifications] listener error", error);
+          error("[Notifications] listener error", error);
           setNotifications([]);
         }
       );

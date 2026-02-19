@@ -2,6 +2,7 @@ import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import { Platform } from "react-native";
 import { collection } from "./fireStoreHelpers"; // 👈 IMPORTANT
+import {log,warn,error,info} from "../utils/logger"
 
 export async function registerForPushNotifications() {
   try {
@@ -9,7 +10,7 @@ export async function registerForPushNotifications() {
     const Device = await import("expo-device");
 
     if (!Device.isDevice) {
-      console.log("⚠️ Push notifications require a physical device");
+      log("⚠️ Push notifications require a physical device");
       return;
     }
 
@@ -26,7 +27,7 @@ export async function registerForPushNotifications() {
     }
 
     if (finalStatus !== "granted") {
-      console.log("❌ Push notification permission not granted");
+      log("❌ Push notification permission not granted");
       return;
     }
 
@@ -38,7 +39,7 @@ export async function registerForPushNotifications() {
 
     const pushToken = tokenResponse.data;
 
-    console.log("✅ Expo push token:", pushToken);
+    log("✅ Expo push token:", pushToken);
 
     /* ================= ANDROID CHANNEL ================= */
 
@@ -72,7 +73,7 @@ export async function registerForPushNotifications() {
         { merge: true }
       );
 
-      console.log("✅ Push token saved for TRAINER");
+      log("✅ Push token saved for TRAINER");
       return;
     }
 
@@ -91,12 +92,12 @@ export async function registerForPushNotifications() {
         { merge: true }
       );
 
-      console.log("✅ Push token saved for CLIENT");
+      log("✅ Push token saved for CLIENT");
       return;
     }
 
-    console.log("⚠️ No user or client document found for push token");
+    log("⚠️ No user or client document found for push token");
   } catch (err) {
-    console.error("🔥 registerForPushNotifications failed:", err);
+    error("🔥 registerForPushNotifications failed:", err);
   }
 }

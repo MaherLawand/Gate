@@ -2,11 +2,12 @@
 
 import firestore from "@react-native-firebase/firestore";
 import { root } from "./db";
+import {log,warn,error,info} from "../utils/logger"
 
 /* ---------------- DOC ---------------- */
 
 export const doc = (...path: string[]) => {
-  console.info("[FirestoreHelper:doc]", { path });
+  info("[FirestoreHelper:doc]", { path });
 
   let ref: any = root(); // ✅ start from environments/{ENV}
 
@@ -20,7 +21,7 @@ export const doc = (...path: string[]) => {
 /* ---------------- COLLECTION ---------------- */
 
 export const collection = (...path: string[]) => {
-  console.info("[FirestoreHelper:collection]", { path });
+  info("[FirestoreHelper:collection]", { path });
 
   let ref: any = root(); // ✅ start from environments/{ENV}
 
@@ -34,28 +35,28 @@ export const collection = (...path: string[]) => {
 /* ---------------- BASIC OPS ---------------- */
 
 export const getDoc = (ref: any) => {
-  console.info("[FirestoreHelper:getDoc]");
+  info("[FirestoreHelper:getDoc]");
   return ref.get();
 };
 
 export const addDoc = (colRef: any, data: any) => {
-  console.info("[FirestoreHelper:addDoc]");
+  info("[FirestoreHelper:addDoc]");
   return colRef.add(data);
 };
 
 export const deleteDoc = (ref: any) => {
-  console.info("[FirestoreHelper:deleteDoc]");
+  info("[FirestoreHelper:deleteDoc]");
   return ref.delete();
 };
 
 export const setDoc = (ref: any, data: any, options?: any) => {
-  console.info("[FirestoreHelper:setDoc]", {
+  info("[FirestoreHelper:setDoc]", {
     merge: options?.merge ?? false,
   });
   return ref.set(data, options);
 };
 
 export const serverTimestamp = () => {
-  console.info("[FirestoreHelper:serverTimestamp]");
+  info("[FirestoreHelper:serverTimestamp]");
   return firestore.FieldValue.serverTimestamp();
 };

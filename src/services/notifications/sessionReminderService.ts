@@ -1,7 +1,7 @@
 import firestore from "@react-native-firebase/firestore";
 import dayjs from "dayjs";
 import { createClientNotification } from "./notificationService";
-
+import {log,warn,error,info} from "../../utils/logger"
 type UpdateSessionReminderParams = {
   clientId: string;
   sessionId: string;
@@ -26,7 +26,7 @@ export async function updateSessionReminder({
 
   // ❌ Do not create reminders in the past
   if (reminderTime.isBefore(dayjs())) {
-    console.info("[Reminder] Skipped (past time)", {
+    info("[Reminder] Skipped (past time)", {
       sessionId,
       reminderTime: reminderTime.toISOString(),
     });
@@ -63,7 +63,7 @@ export async function updateSessionReminder({
     relatedSessionId: sessionId,
   });
 
-  console.info("[Reminder] Updated successfully", {
+  info("[Reminder] Updated successfully", {
     sessionId,
     scheduledFor: reminderTime.toISOString(),
   });

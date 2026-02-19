@@ -21,6 +21,7 @@ import {
 import { colors } from "../../../src/theme/colors";
 import { SessionWithId } from "../../../src/types/models";
 import { useNavigation } from "@react-navigation/native";
+import { log, error } from "@/src/utils/logger";
 
 /* ------------------ DATE HELPERS ------------------ */
 
@@ -93,7 +94,7 @@ useEffect(() => {
   const [activeDate, setActiveDate] = useState(new Date());
 
   const getAttendanceBorderColor = (attendance?: string) => {
-    console.log("attendance: ", attendance);
+    log("attendance: ", attendance);
     switch (attendance) {
       case "confirmed":
       case "attended":
@@ -113,13 +114,13 @@ useEffect(() => {
   /* ------------------ LOAD DATA ------------------ */
 
   useEffect(() => {
-    console.log("clientId?: ", clientId);
+    log("clientId?: ", clientId);
     if (!clientId) return;
 
     const load = async () => {
       try {
         const sessionsData = await getClientSessions(clientId);
-        console.log("sessionData: ", sessionsData);
+        log("sessionData: ", sessionsData);
         setSessions(sessionsData);
 
         // optional: preload package (future use)
@@ -148,7 +149,7 @@ useEffect(() => {
 
   const onDayPress = (dateKey: string) => {
     const session = sessions.find((s) => s.date === dateKey);
-    console.log("session pressed: ", session);
+    log("session pressed: ", session);
 
     if (!session) {
       Alert.alert("No session", "No session on this day.");
@@ -202,7 +203,7 @@ useEffect(() => {
         <View style={styles.weekGrid}>
           {weekDays.map((d) => {
             const key = formatDateKey(d);
-            console.log("key: ", key);
+            log("key: ", key);
             const sessionForDay = sessions.find((s) => s.date === key);
             const hasSession = !!sessionForDay;
             const isToday = key === formatDateKey(new Date());
@@ -210,8 +211,8 @@ useEffect(() => {
             const borderColor = getAttendanceBorderColor(
               sessionForDay?.attendance
             );
-            console.log("borderColor: ", borderColor);
-            console.log("sessionForDay: ", sessionForDay);
+            log("borderColor: ", borderColor);
+            log("sessionForDay: ", sessionForDay);
 
             return (
              <Pressable

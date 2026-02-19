@@ -1,6 +1,7 @@
 import firestore from "@react-native-firebase/firestore";
 import { ScheduledSession } from "../types/models";
 import { root } from "./db";
+import {log,warn,error,info} from "../utils/logger"
 
 export async function cancelBooking({
   trainerId,
@@ -9,7 +10,7 @@ export async function cancelBooking({
   trainerId: string;
   session: ScheduledSession;
 }) {
-  console.info("🟡 [CancelBooking] START (atomic batch)", {
+  info("🟡 [CancelBooking] START (atomic batch)", {
     trainerId,
     sessionId: session.id,
     clientId: session.clientId,
@@ -26,7 +27,7 @@ export async function cancelBooking({
       .where("sessionId", "==", session.id)
       .get();
 
-    console.info("🔍 Slot locks found", {
+    info("🔍 Slot locks found", {
       count: slotsSnap.size,
     });
 
@@ -74,11 +75,11 @@ export async function cancelBooking({
 
     await batch.commit();
 
-    console.info("✅ [CancelBooking] SUCCESS (atomic)", {
+    info("✅ [CancelBooking] SUCCESS (atomic)", {
       sessionId: session.id,
     });
   } catch (error: any) {
-    console.error("🔥 [CancelBooking] FAILED (nothing deleted)", {
+    error("🔥 [CancelBooking] FAILED (nothing deleted)", {
       sessionId: session.id,
       code: error?.code,
       message: error?.message,

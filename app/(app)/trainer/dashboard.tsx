@@ -9,6 +9,7 @@ import { compressImage } from "@/src/services/compressImage";
 import { uploadImage } from "@/src/services/uploadImage";
 import { colors } from "@/src/theme/colors";
 import { typography } from "@/src/theme/typography";
+import { log, error } from "@/src/utils/logger";
 
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useNavigation } from "expo-router";
@@ -226,7 +227,7 @@ useEffect(() => {
         if (!snap.exists) return;
 
         const data = snap.data()!;
-        console.log("data: " , data)
+       log("data: " , data)
         setProfile({
           firstName: data.firstName,
           lastName: data.lastName,
@@ -235,10 +236,10 @@ useEffect(() => {
           coverImage: data.coverImage,
           isAdmin: data.isAdmin === true,
         });
-        console.log("PROFILE PIC URL:", data.profilePicture);
-        console.log("COVER URL:", data.coverImage);
+       log("PROFILE PIC URL:", data.profilePicture);
+       log("COVER URL:", data.coverImage);
       } catch (e) {
-        console.error("Failed to load trainer profile", e);
+       error("Failed to load trainer profile", e);
       } finally {
         setLoading(false);
       }

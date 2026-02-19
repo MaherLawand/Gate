@@ -1,7 +1,8 @@
 import * as ImageManipulator from "expo-image-manipulator";
+import {log,warn,error,info} from "../utils/logger"
 
 export async function compressImage(uri: string) {
-  console.info("[Image:compressImage] start", { uri });
+  info("[Image:compressImage] start", { uri });
 
   const result = await ImageManipulator.manipulateAsync(
     uri,
@@ -12,7 +13,7 @@ export async function compressImage(uri: string) {
     }
   );
 
-  console.info("[Image:compressImage] success", {
+  info("[Image:compressImage] success", {
     originalUri: uri,
     compressedUri: result.uri,
     width: result.width,

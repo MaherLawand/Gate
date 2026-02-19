@@ -3,14 +3,14 @@ import 'dotenv/config';
 const variant = process.env.APP_VARIANT ?? "prod";
 console.log("CONFIG VARIANT:", variant);
 const isDev = variant === "dev";
-
+console.log("isDev:", isDev);
 export default {
   expo: {
     slug: "Gate",
     name: isDev ? "Gate (Dev)" : "Gate",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/gate-logo.png",
+    icon: "./assets/images/gate-logo2.png",
     scheme: "gate",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
@@ -20,7 +20,7 @@ export default {
     platforms: ["ios", "android"],
 
     ios: {
-      icon: "./assets/images/gate-logo.png",
+      icon: "./assets/images/gate-logo2.png",
       supportsTablet: true,
       bundleIdentifier: isDev
         ? "com.maherlawand.GatePrivateGym.dev"
@@ -47,7 +47,7 @@ export default {
 
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/images/gate-logo.png",
+        foregroundImage: "./assets/images/gate-logo2.png",
         backgroundColor: "#E6F4FE"
       },
       notification: {
@@ -90,7 +90,7 @@ export default {
       [
         "expo-notifications",
         {
-          icon: "./assets/images/gate-logo.png",
+          icon: "./assets/images/gate-logo2.png",
           color: "#E6F4Fe"
         }
       ],

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "93366333711",
+    "project_id": "gateprivategym-951cf",
+    "storage_bucket": "gateprivategym-951cf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:93366333711:android:259a2a8b8d7ec10ad84e7a",
+        "android_client_info": {
+          "package_name": "com.maherlawand.GatePrivateGym.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAfn3F1SOTV-OYMfo2Jn48P7HIOS7AFmPA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

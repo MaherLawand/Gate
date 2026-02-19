@@ -1,5 +1,6 @@
 import firestore from "@react-native-firebase/firestore";
 import { root } from "./db";
+import { log, error } from "@/src/utils/logger";
 
 export type CreateAnnouncementParams = {
   title?: string;
@@ -36,7 +37,7 @@ export async function createAnnouncement({
       expiresAt: null,
     });
 
-  console.log("📢 Announcement created → Cloud Function will dispatch");
+  log("📢 Announcement created → Cloud Function will dispatch");
 
   return doc.id;
 }

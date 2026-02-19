@@ -21,6 +21,7 @@ import ActionSheet, {
   ActionSheetRef,
   ScrollView as SheetScrollView,
 } from "react-native-actions-sheet";
+import { log, error } from "@/src/utils/logger";
 
 type Client = {
   id: string;
@@ -104,7 +105,7 @@ export default function BookingModal({
   };
 
   // const attemptCloseSheet = () => {
-  //   console.log("unsavedchanges: ", hasUnsavedChanges);
+  //   log("unsavedchanges: ", hasUnsavedChanges);
   //   if (!hasUnsavedChanges) {
   //     forceCloseSheet();
   //     return;
@@ -175,7 +176,7 @@ export default function BookingModal({
 
         setPreferredTimes(prefsForDay);
       } catch (e) {
-        console.error("Failed to load client preferences", e);
+        error("Failed to load client preferences", e);
         setPreferredTimes([]);
       } finally {
         setLoadingPrefs(false);
@@ -190,14 +191,14 @@ export default function BookingModal({
   // -------- load clients --------
   useEffect(() => {
     if (!trainerId || !sheetRef) return;
-    console.log("Loading clients for trainer:", trainerId);
+    log("Loading clients for trainer:", trainerId);
 
     collection("clients")
   .where("trainerId", "==", trainerId)
   .get()
       .then((snap:any) => {
         snap.docs.map((d:any) => {
-          console.log("ddata: ", d);
+          log("ddata: ", d);
         }),
           setClients(
             snap.docs.map((d:any) => ({
@@ -250,8 +251,8 @@ export default function BookingModal({
   // -------- filtered clients --------
   const filteredClients = useMemo(() => {
     if (query.trim().length < 1 || selectedClient) return [];
-    console.log("Filtering clients with query:", query);
-    console.log("All clients:", clients);
+    log("Filtering clients with query:", query);
+    log("All clients:", clients);
     return clients.filter((c) =>
       `${c.firstName} ${c.lastName}`.toLowerCase().includes(query.toLowerCase())
     );
@@ -307,16 +308,16 @@ export default function BookingModal({
   }
 
   function logStep(step: string, data?: any) {
-    console.log(`🧩 [BOOKING DEBUG] ${step}`, data ?? "");
+    log(`🧩 [BOOKING DEBUG] ${step}`, data ?? "");
   }
 
   // -------- old save --------
   // const handleSave = async () => {
-  //   console.log("🚀 handleSave started");
-  //   console.log("selectedClient2 : ", selectedClient);
+  //   log("🚀 handleSave started");
+  //   log("selectedClient2 : ", selectedClient);
 
   //   if (!trainerId || !selectedClient || !fromTime || !toTime) {
-  //     console.warn("❌ Missing required data", {
+  //     warn("❌ Missing required data", {
   //       trainerId,
   //       selectedClient,
   //       fromTime,
@@ -327,7 +328,7 @@ export default function BookingModal({
   //   }
 
   //   if (toTime <= fromTime) {
-  //     console.warn("❌ Invalid time range", { fromTime, toTime });
+  //     warn("❌ Invalid time range", { fromTime, toTime });
   //     Alert.alert("Invalid time", "`To` must be after `From`");
   //     return;
   //   }
@@ -339,11 +340,11 @@ export default function BookingModal({
   //       .collection("trainer_schedules")
   //       .doc(trainerId);
 
-  //     console.log("scheduleRootRef: ", scheduleRootRef);
+  //     log("scheduleRootRef: ", scheduleRootRef);
 
   //     const rootSnap = await scheduleRootRef.get();
 
-  //     console.log("rootSnap: ", rootSnap);
+  //     log("rootSnap: ", rootSnap);
 
   //     if (!rootSnap.exists) {
   //       await scheduleRootRef.set({
@@ -351,7 +352,7 @@ export default function BookingModal({
   //       });
   //     }
 
-  //     console.log("🔍 RULE 1: Checking existing client booking");
+  //     log("🔍 RULE 1: Checking existing client booking");
 
   //     const existingSnap = await firestore()
   //       .collection("trainer_schedules")
@@ -362,13 +363,13 @@ export default function BookingModal({
   //       .where("clientId", "==", selectedClient.id)
   //       .get();
 
-  //     console.log("✅ RULE 1 query success. Docs:", existingSnap.docs.length);
+  //     log("✅ RULE 1 query success. Docs:", existingSnap.docs.length);
 
   //     const hasConflict = existingSnap.docs.some(
   //       (doc) => doc.id !== editingSession?.id
   //     );
 
-  //     console.log("hasConflict:", hasConflict);
+  //     log("hasConflict:", hasConflict);
 
   //     if (hasConflict) {
   //       Alert.alert(
@@ -379,7 +380,7 @@ export default function BookingModal({
   //     }
 
   //     /* ---------------- RULE 2 ---------------- */
-  //     console.log("🔍 RULE 2: Checking trainer overlap");
+  //     log("🔍 RULE 2: Checking trainer overlap");
 
   //     const overlappingSnap = await firestore()
   //       .collection("trainer_schedules")
@@ -389,7 +390,7 @@ export default function BookingModal({
   //       .collection("sessions")
   //       .get();
 
-  //     console.log(
+  //     log(
   //       "✅ RULE 2 query success. Sessions:",
   //       overlappingSnap.docs.length
   //     );
@@ -397,7 +398,7 @@ export default function BookingModal({
   //     const newStart = fromTime.getHours() * 60 + fromTime.getMinutes();
   //     const newEnd = toTime.getHours() * 60 + toTime.getMinutes();
 
-  //     console.log("New session minutes:", { newStart, newEnd });
+  //     log("New session minutes:", { newStart, newEnd });
 
   //     const hasOverlap = overlappingSnap.docs.some((doc) => {
   //       if (doc.id === editingSession?.id) return false;
@@ -406,7 +407,7 @@ export default function BookingModal({
   //       const existingStart = timeToMinutes(s.startTime);
   //       const existingEnd = timeToMinutes(s.endTime);
 
-  //       console.log("Comparing with session:", {
+  //       log("Comparing with session:", {
   //         sessionId: doc.id,
   //         existingStart,
   //         existingEnd,
@@ -415,7 +416,7 @@ export default function BookingModal({
   //       return newStart < existingEnd && newEnd > existingStart;
   //     });
 
-  //     console.log("hasOverlap:", hasOverlap);
+  //     log("hasOverlap:", hasOverlap);
 
   //     if (hasOverlap) {
   //       Alert.alert(
@@ -426,9 +427,9 @@ export default function BookingModal({
   //     }
 
   //     /* ---------------- RULE 4 ---------------- */
-  //     console.log("🔍 RULE 4: Hijabi privacy rule");
+  //     log("🔍 RULE 4: Hijabi privacy rule");
 
-  //     console.log("Selected client gender data:", {
+  //     log("Selected client gender data:", {
   //       gender: selectedClient.gender,
   //       isHijabi: selectedClient.isHijabi,
   //     });
@@ -437,19 +438,19 @@ export default function BookingModal({
   //       selectedClient.gender === "male" ||
   //       (selectedClient.gender === "female" && selectedClient.isHijabi)
   //     ) {
-  //       console.log("➡️ Hijabi rule ACTIVE, loading trainer_schedules");
+  //       log("➡️ Hijabi rule ACTIVE, loading trainer_schedules");
 
   //       const trainersSnap = await firestore()
   //         .collection("trainer_schedules")
   //         .get();
 
-  //       console.log(
+  //       log(
   //         "✅ trainer_schedules read success. Trainers:",
   //         trainersSnap.docs.map((d) => d.id)
   //       );
 
   //       for (const trainerDoc of trainersSnap.docs) {
-  //         console.log("🔎 Checking trainer:", trainerDoc.id);
+  //         log("🔎 Checking trainer:", trainerDoc.id);
 
   //         const daysRef = trainerDoc.ref
   //           .collection("days")
@@ -458,7 +459,7 @@ export default function BookingModal({
 
   //         const sessionsSnap = await daysRef.get();
 
-  //         console.log(
+  //         log(
   //           `📅 ${trainerDoc.id} sessions on ${dateKey}:`,
   //           sessionsSnap.docs.length
   //         );
@@ -467,7 +468,7 @@ export default function BookingModal({
   //           if (doc.id === editingSession?.id) continue;
 
   //           const s = doc.data();
-  //           console.log("s: ", s);
+  //           log("s: ", s);
   //           const existingStart = timeToMinutes(s.startTime);
   //           const existingEnd = timeToMinutes(s.endTime);
 
@@ -475,9 +476,9 @@ export default function BookingModal({
 
   //           if (!overlaps) continue;
 
-  //           console.log("⚠️ Overlap found with session:", doc.id);
+  //           log("⚠️ Overlap found with session:", doc.id);
 
-  //           console.log("Other client gender data:", s);
+  //           log("Other client gender data:", s);
 
   //           const isHijabiFemale =
   //             s?.clientGender === "female" && s.isHijabi === true;
@@ -509,7 +510,7 @@ export default function BookingModal({
   //     }
 
   //     /* ---------------- RULE 5 ---------------- */
-  //     console.log("🔍 RULE 5: Checking active package");
+  //     log("🔍 RULE 5: Checking active package");
 
   //     let clientPackageId = editingSession?.clientPackageId;
 
@@ -523,7 +524,7 @@ export default function BookingModal({
   //         .limit(1)
   //         .get();
 
-  //       console.log("📦 Package query result:", packageSnap.docs.length);
+  //       log("📦 Package query result:", packageSnap.docs.length);
 
   //       if (packageSnap.empty) {
   //         Alert.alert(
@@ -537,7 +538,7 @@ export default function BookingModal({
   //     }
 
   //     /* ---------------- SAVE ---------------- */
-  //     console.log("💾 Saving booking");
+  //     log("💾 Saving booking");
 
   //     const payload = {
   //       clientId: selectedClient.id,
@@ -551,7 +552,7 @@ export default function BookingModal({
   //       attendance: editingSession ? editingSession.attendance : "pending",
   //       updatedAt: firestore.FieldValue.serverTimestamp(),
   //     };
-  //     console.log(payload);
+  //     log(payload);
 
   //     const sessionsRef = firestore()
   //       .collection("trainer_schedules")
@@ -560,7 +561,7 @@ export default function BookingModal({
   //       .doc(dateKey)
   //       .collection("sessions");
 
-  //     console.log("sessionRef: ", sessionsRef);
+  //     log("sessionRef: ", sessionsRef);
 
   //     if (editingSession) {
   //       await sessionsRef.doc(editingSession.id).update(payload);
@@ -571,19 +572,19 @@ export default function BookingModal({
   //       });
   //     }
 
-  //     console.log("✅ Booking saved successfully");
+  //     log("✅ Booking saved successfully");
 
   //     onSaved();
   //     onClose();
   //   } catch (e: any) {
-  //     console.error("🔥 ERROR saving booking:", e);
+  //     error("🔥 ERROR saving booking:", e);
   //     Alert.alert("Error", e.message);
   //   }
   // };
 
   // -------- new save --------
   // const handleSave = async () => {
-  //   console.log("🚀 handleSave started");
+  //   log("🚀 handleSave started");
 
   //   if (!trainerId || !selectedClient || !fromTime || !toTime) {
   //     Alert.alert("Missing data", "Fill all fields");
@@ -714,7 +715,7 @@ export default function BookingModal({
   //       : sessionsRef.doc().id;
   //     /* ---------------- SLOT LOCK ---------------- */
 
-  //     console.log("🔒 Locking gym time slot");
+  //     log("🔒 Locking gym time slot");
 
   //     // If editing, release old slot first
   //     if (
@@ -764,12 +765,12 @@ export default function BookingModal({
   //       });
   //     }
 
-  //     console.log("✅ Booking saved successfully");
+  //     log("✅ Booking saved successfully");
 
   //     onSaved();
   //     onClose();
   //   } catch (e: any) {
-  //     console.error("🔥 Booking failed:", e);
+  //     error("🔥 Booking failed:", e);
   //     Alert.alert("Booking failed", e.message);
   //   }
   // };
@@ -827,7 +828,7 @@ export default function BookingModal({
       });
     } catch (e: any) {
       isSubmittingRef.current = false;
-      console.error("🔥 Booking failed:", e);
+      error("🔥 Booking failed:", e);
       Alert.alert("Booking failed", e.message);
     }
   };

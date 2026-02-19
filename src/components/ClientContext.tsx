@@ -7,6 +7,7 @@ type ClientContextType = {
   trainerId: string | null;
   clientloading: boolean;
 };
+import { log, error } from "@/src/utils/logger";
 
 const ClientContext = createContext<ClientContextType | null>(null);
 
@@ -49,7 +50,7 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
           setTrainerId(null);
         }
       } catch (err) {
-        console.error("[ClientProvider] Failed to load client", err);
+        error("[ClientProvider] Failed to load client", err);
         setClientId(null);
         setTrainerId(null);
       } finally {

@@ -21,6 +21,7 @@ import React from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { useNavigation } from "expo-router";
 import { usePreventRemove } from "@react-navigation/native";
+import { log, error } from "@/src/utils/logger";
 
 const AddExerciseSheet = React.memo(
   ({
@@ -296,7 +297,7 @@ const sheetRef = useRef<React.ElementRef<typeof ActionSheet>>(null);
     useEffect(() => {
         const loadExercises = async () => {
           const data = await getExercises();
-          console.log("data: ", data);
+          log("data: ", data);
           setAllExercises(data);
           setFilteredExercises(data);
         };
@@ -403,7 +404,7 @@ sheetRef.current?.hide();
     setHasSessionUnsavedChanges(false);
 router.back();
   } catch (e) {
-    console.error(e);
+    error(e);
     Alert.alert("Error", "Failed to save session");
   }
 };

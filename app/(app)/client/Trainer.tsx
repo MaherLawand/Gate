@@ -4,13 +4,14 @@ import { useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { Easing } from "react-native-reanimated";
+import { log, error } from "@/src/utils/logger";
 
 function normalizeParam(label: string, value?: string | string[]) {
-  console.log(`🔎 PARAM [${label}] RAW →`, value, typeof value);
+ log(`🔎 PARAM [${label}] RAW →`, value, typeof value);
 
   if (!value) return undefined;
   if (Array.isArray(value)) {
-    console.log(`⚠️ PARAM [${label}] was array, using first element`);
+   log(`⚠️ PARAM [${label}] was array, using first element`);
     return value[0];
   }
   return value;
@@ -38,7 +39,7 @@ export default function TrainerDashboard() {
       return url;
     }
   }
-  console.log("🧪 RAW PARAMS OBJECT:", params);
+ log("🧪 RAW PARAMS OBJECT:", params);
 
   const firstName = normalizeParam("firstName", params.firstName) ?? "Trainer";
   const lastName = normalizeParam("lastName", params.lastName) ?? "";
@@ -108,7 +109,7 @@ export default function TrainerDashboard() {
     });
   };
 
-  console.log("🧾 FINAL VALUES", {
+ log("🧾 FINAL VALUES", {
     firstName,
     lastName,
     bio,
@@ -117,7 +118,7 @@ export default function TrainerDashboard() {
   });
 
   const fadeIn = (opacity: Animated.Value, label: string) => {
-    console.log(`🎞️ fadeIn triggered for ${label}`);
+   log(`🎞️ fadeIn triggered for ${label}`);
     Animated.timing(opacity, {
       toValue: 1,
       duration: 300,
@@ -140,15 +141,15 @@ export default function TrainerDashboard() {
             style={[styles.cover, { opacity: coverOpacity }]}
             resizeMode="cover"
             onLoadStart={() => {
-              console.log("📸 COVER load start");
+             log("📸 COVER load start");
               coverOpacity.setValue(0);
             }}
             onLoadEnd={() => {
-              console.log("✅ COVER load end");
+             log("✅ COVER load end");
               fadeIn(coverOpacity, "cover");
             }}
             onError={(e) => {
-              console.log("❌ COVER IMAGE ERROR", e.nativeEvent);
+             log("❌ COVER IMAGE ERROR", e.nativeEvent);
             }}
           />
         </Pressable>
@@ -167,15 +168,15 @@ export default function TrainerDashboard() {
               style={[styles.avatar, { opacity: avatarOpacity }]}
               resizeMode="cover"
               onLoadStart={() => {
-                console.log("📸 AVATAR load start");
+               log("📸 AVATAR load start");
                 avatarOpacity.setValue(0);
               }}
               onLoadEnd={() => {
-                console.log("✅ AVATAR load end");
+               log("✅ AVATAR load end");
                 fadeIn(avatarOpacity, "avatar");
               }}
               onError={(e) => {
-                console.log("❌ AVATAR IMAGE ERROR", e.nativeEvent);
+               log("❌ AVATAR IMAGE ERROR", e.nativeEvent);
               }}
             />
           </Pressable>

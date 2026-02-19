@@ -2,6 +2,8 @@ import { getExercises } from "@/src/services/ExerciseService";
 import { typography } from "@/src/theme/typography";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
+import { log, error } from "@/src/utils/logger";
+
 import {
   Alert,
   Modal,
@@ -90,8 +92,8 @@ export default function ClientSessionsScreen() {
         getClientSessions(clientId),
         getActivePackage(clientId),
       ]);
-      console.log("loaded sessions", sessionsData);
-      console.log("loaded package", pkg);
+      log("loaded sessions", sessionsData);
+      log("loaded package", pkg);
 
       setSessions(sessionsData);
 
@@ -100,7 +102,7 @@ export default function ClientSessionsScreen() {
           ? { id: pkg.id, sessionsRemaining: pkg.sessionsRemaining }
           : null
       );
-      console.log("active package", pkg);
+      log("active package", pkg);
     };
 
     load();
@@ -147,7 +149,7 @@ export default function ClientSessionsScreen() {
   /* ------------------ RENDER ------------------ */
 
   const getAttendanceBorderColor = (attendance?: string) => {
-    console.log("attendance: ", attendance);
+    log("attendance: ", attendance);
     switch (attendance) {
       case "confirmed":
       case "attended":

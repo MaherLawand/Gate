@@ -2,6 +2,7 @@ import type { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 import firestore from "@react-native-firebase/firestore";
 import dayjs from "dayjs";
 import { CreateNotificationParams } from "./notificationTypes";
+import {log,warn,error,info} from "@src/utils/logger"
 
 /* =========================
    CREATE NOTIFICATION
@@ -19,7 +20,7 @@ export async function createClientNotification({
 }: CreateNotificationParams) {
   const db = firestore();
 
-  console.log("🟡 [Notification] Creating", {
+  log("🟡 [Notification] Creating", {
     clientId,
     type,
     scheduledFor: scheduledFor?.toDate?.(),
@@ -56,7 +57,7 @@ export async function createClientNotification({
     expiresAt,
   });
 
-  console.log("🟢 [Notification] Created successfully", {
+  log("🟢 [Notification] Created successfully", {
     clientId,
     type,
     expiresAt: expiresAt.toDate(),
@@ -90,7 +91,7 @@ export function listenUnreadNotificationsCount(
   clientId: string,
   onChange: (count: number) => void
 ) {
-  console.log("🔵 [Notifications] Subscribing unread count", { clientId });
+  log("🔵 [Notifications] Subscribing unread count", { clientId });
 
   return firestore()
     .collection("clients")
@@ -102,12 +103,12 @@ export function listenUnreadNotificationsCount(
     .onSnapshot(
       (snap) => {
         if (!snap) {
-          console.warn("⚠️ [Notifications] unread count snapshot null");
+          warn("⚠️ [Notifications] unread count snapshot null");
           onChange(0);
           return;
         }
 
-        console.log("🔔 [Notifications] Unread count updated", {
+        log("🔔 [Notifications] Unread count updated", {
           clientId,
           count: snap.size,
         });
@@ -115,7 +116,7 @@ export function listenUnreadNotificationsCount(
         onChange(snap.size);
       },
       (error) => {
-        console.warn("❌ [Notifications] unread count listener error", error);
+        warn("❌ [Notifications] unread count listener error", error);
         onChange(0);
       }
     );
@@ -129,7 +130,7 @@ export function listenClientNotifications(
   clientId: string,
   onChange: (items: ClientNotification[]) => void
 ) {
-  console.log("🔵 [Notifications] Subscribing list", { clientId });
+  log("🔵 [Notifications] Subscribing list", { clientId });
 
   return firestore()
     .collection("clients")
@@ -141,7 +142,7 @@ export function listenClientNotifications(
     .onSnapshot(
       (snap) => {
         if (!snap) {
-          console.warn("⚠️ [Notifications] list snapshot null");
+          warn("⚠️ [Notifications] list snapshot null");
           onChange([]);
           return;
         }
@@ -151,7 +152,7 @@ export function listenClientNotifications(
           ...(doc.data() as Omit<ClientNotification, "id">),
         }));
 
-        console.log("📥 [Notifications] List updated", {
+        log("📥 [Notifications] List updated", {
           clientId,
           count: items.length,
         });
@@ -159,7 +160,7 @@ export function listenClientNotifications(
         onChange(items);
       },
       (error) => {
-        console.warn("❌ [Notifications] list listener error", error);
+        warn("❌ [Notifications] list listener error", error);
         onChange([]);
       }
     );

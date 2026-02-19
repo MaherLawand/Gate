@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { withSequence } from "react-native-reanimated";
 import { Image } from "react-native";
 import { getApp } from "@react-native-firebase/app";
+import { log, error } from "@/src/utils/logger";
 
 import {
   Alert,
@@ -94,7 +95,7 @@ useEffect(() => {
   useEffect(() => {
     if (appState === "signedOutIntro") {
       const timer = setTimeout(() => {
-        console.log("⏱ fallback → show login");
+        log("⏱ fallback → show login");
         setAppState("login");
       }, 10000); // match your video length
 
@@ -114,14 +115,14 @@ useEffect(() => {
         const { status } = await Notifications.requestPermissionsAsync();
   
         if (status !== "granted") {
-          console.log("❌ Permission not granted");
+          log("❌ Permission not granted");
           return;
         }
-  console.log("Firebase Project ID:", getApp().options.projectId);
+  log("Firebase Project ID:", getApp().options.projectId);
         const token = await Notifications.getExpoPushTokenAsync();
-        console.log("📲 Expo Push Token:", token.data);
+        log("📲 Expo Push Token:", token.data);
       } catch (e) {
-        console.log("❌ Push permission error:", e);
+        log("❌ Push permission error:", e);
       }
     };
   
@@ -239,7 +240,7 @@ useEffect(() => {
   // if (!ready || user) {
   //   return <View style={styles.black} />;
   // }
-  // console.log(
+  // log(
   //   showLogin ? "🟢 INDEX: showing LOGIN UI" : "🟣 INDEX: showing INTRO VIDEO"
   // );
 
@@ -250,8 +251,8 @@ if (appState === "checking" || appState === "signedInLoading") {
               source={require("../../assets/images/gate-logo.png")}
               style={styles.logo}
               resizeMode="contain"
-              onLoadStart={() => console.log("🟡 ENTRY: logo load start")}
-              onLoadEnd={() => console.log("🟢 ENTRY: logo load end")}
+              onLoadStart={() => log("🟡 ENTRY: logo load start")}
+              onLoadEnd={() => log("🟢 ENTRY: logo load end")}
             />
     </View>
   );
@@ -272,12 +273,12 @@ if (appState === "checking" || appState === "signedInLoading") {
           isMuted
           isLooping={false}
           progressUpdateIntervalMillis={250}
-          onReadyForDisplay={() => console.log("🎬 ready for display")}
+          onReadyForDisplay={() => log("🎬 ready for display")}
           onPlaybackStatusUpdate={(status) => {
             if (!status.isLoaded) return;
 
             if (status.didJustFinish) {
-              console.log("🎬 finished");
+              log("🎬 finished");
             setAppState("login");
             }
           }}

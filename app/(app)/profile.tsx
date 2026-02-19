@@ -9,6 +9,7 @@ import { colors } from "@/src/theme/colors";
 import { typography } from "@/src/theme/typography";
 import { BugDoc } from "@/src/types/models";
 import { collection, doc } from "@/src/services/db";
+import { log, error } from "@/src/utils/logger";
 
 import { useEffect, useRef, useState } from "react";
 
@@ -64,7 +65,7 @@ export default function ProfileScreen() {
   const uid = auth().currentUser?.uid;
 
   useEffect(() => {
-    console.log("Profile data:", profile);
+   log("Profile data:", profile);
   }, [profile]);
 
   useEffect(() => {
@@ -155,9 +156,9 @@ export default function ProfileScreen() {
 
   const handleChangePhoto = async () => {
     if (!clientDocId || !profile) return;
-    console.log("TYTYHT");
-    console.log("AUTH UID:", auth().currentUser?.uid);
-    console.log("AUTH TOKEN:", await auth().currentUser?.getIdToken());
+   log("TYTYHT");
+   log("AUTH UID:", auth().currentUser?.uid);
+   log("AUTH TOKEN:", await auth().currentUser?.getIdToken());
 
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {

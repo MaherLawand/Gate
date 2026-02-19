@@ -1,5 +1,6 @@
 import firestore from "@react-native-firebase/firestore";
 import { root } from "./db";
+import {log,warn,error,info} from "../utils/logger"
 
 type ResolveAttendanceParams = {
   trainerId: string;
@@ -24,7 +25,7 @@ export async function resolveAttendance({
   clientPackageId,
   mode,
 }: ResolveAttendanceParams) {
-  console.info("[Attendance:resolveAttendance] START", {
+  info("[Attendance:resolveAttendance] START", {
     trainerId,
     dateKey,
     scheduleSessionId,
@@ -112,7 +113,7 @@ export async function resolveAttendance({
     });
   });
 
-  console.info("[Attendance:resolveAttendance] SUCCESS", {
+  info("[Attendance:resolveAttendance] SUCCESS", {
     scheduleSessionId,
     mode,
   });

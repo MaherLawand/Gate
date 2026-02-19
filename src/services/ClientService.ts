@@ -23,30 +23,31 @@ import {
 } from "../services/fireStoreHelpers";
 
 import { db, root, collection,doc } from "./db";
+import {log,warn,error,info} from "../utils/logger"
 
 
 
 
 export const redirectAfterLogin = async (uid: string) => {
-  console.info("[Auth] redirectAfterLogin:start", { uid });
+  info("[Auth] redirectAfterLogin:start", { uid });
 
   const snap = await getDoc(doc("users", uid));
 
   if (!snap.exists) {
-    console.warn("[Auth] User record not found", { uid });
+    warn("[Auth] User record not found", { uid });
     return;
   }
 
   const { role } = snap.data();
 
-  console.info("[Auth] User role resolved", { uid, role });
+  info("[Auth] User role resolved", { uid, role });
 
   if (role === "trainer") {
     router.replace("/(app)/trainer/dashboard");
   } else if (role === "client") {
     router.replace("/(app)/client/Gate");
   } else {
-    console.error("[Auth] Invalid user role", { uid, role });
+    error("[Auth] Invalid user role", { uid, role });
     Alert.alert("Error", "Invalid user role");
   }
 };
@@ -62,11 +63,11 @@ export async function addClient(
   const user = auth().currentUser;
 
   if (!user) {
-    console.error("[ClientService:addClient] Not authenticated");
+    error("[ClientService:addClient] Not authenticated");
     throw new Error("Not authenticated");
   }
 
-  console.info("[ClientService:addClient] Start", {
+  info("[ClientService:addClient] Start", {
     trainerId: user.uid,
   });
 
@@ -83,13 +84,13 @@ export async function addClient(
   try {
     const ref = await addDoc(collection("clients"), newClient);
 
-    console.info("[ClientService:addClient] Success", {
+    info("[ClientService:addClient] Success", {
       clientId: ref.id,
     });
 
     return { ...newClient, id: ref.id };
   } catch (e: any) {
-    console.error("[ClientService:addClient] Failed", {
+    error("[ClientService:addClient] Failed", {
       message: e.message,
     });
     throw e;
@@ -102,18 +103,18 @@ export async function getTrainerClients() {
   const uid = auth().currentUser?.uid;
 
   if (!uid) {
-    console.warn("[ClientService:getTrainerClients] No authenticated user");
+    warn("[ClientService:getTrainerClients] No authenticated user");
     return [];
   }
 
-  console.info("[ClientService:getTrainerClients] Fetching", { uid });
+  info("[ClientService:getTrainerClients] Fetching", { uid });
 
   const snap = await collection("clients")
     .where("trainerId", "==", uid)
     .orderBy("createdAt", "desc")
     .get();
 
-  console.info("[ClientService:getTrainerClients] Result", {
+  info("[ClientService:getTrainerClients] Result", {
     count: snap.size,
   });
 
@@ -129,12 +130,12 @@ export const updateClient = async (
   clientId: string,
   data: Partial<ClientProfile>
 ) => {
-  console.info("[ClientService:updateClient]", { clientId });
+  info("[ClientService:updateClient]", { clientId });
   await setDoc(doc("clients", clientId), data, { merge: true });
 };
 
 export const archiveClient = async (clientId: string) => {
-  console.info("[ClientService:archiveClient]", { clientId });
+  info("[ClientService:archiveClient]", { clientId });
 
   await setDoc(
     doc("clients", clientId),
@@ -144,7 +145,7 @@ export const archiveClient = async (clientId: string) => {
 };
 
 export const unarchiveClient = async (clientId: string) => {
-  console.info("[ClientService:unarchiveClient]", { clientId });
+  info("[ClientService:unarchiveClient]", { clientId });
 
   await setDoc(
     doc("clients", clientId),
@@ -154,7 +155,7 @@ export const unarchiveClient = async (clientId: string) => {
 };
 
 export async function deleteClient(clientId: string) {
-  console.info("[ClientService:deleteClient]", { clientId });
+  info("[ClientService:deleteClient]", { clientId });
   await deleteDoc(doc("clients", clientId));
 }
 
@@ -176,7 +177,7 @@ export const addSession = async (
     packageId: string;
   }
 ) => {
-  console.info("[Session:addSession]", { clientId, date: data.date });
+  info("[Session:addSession]", { clientId, date: data.date });
 
   await addDoc(collection("clients", clientId, "sessions"), {
     ...data,
@@ -187,7 +188,7 @@ export const addSession = async (
 export const getClientSessions = async (
   clientId: string
 ): Promise<SessionWithId[]> => {
-  console.info("[Session:getClientSessions]", { clientId });
+  info("[Session:getClientSessions]", { clientId });
 
   const snap = await collection("clients", clientId, "sessions").get();
 
@@ -202,7 +203,7 @@ export const updateSession = async (
   sessionId: string,
     data: Partial<SessionData>
 ) => {
-  console.info("[Session:updateSession]", { clientId, sessionId });
+  info("[Session:updateSession]", { clientId, sessionId });
 
   await setDoc(doc("clients", clientId, "sessions", sessionId), data, {
     merge: true,
@@ -213,7 +214,7 @@ export const deleteClientSession = async (
   clientId: string,
   sessionId: string
 ) => {
-  console.info("[Session:deleteClientSession]", { clientId, sessionId });
+  info("[Session:deleteClientSession]", { clientId, sessionId });
   await deleteDoc(doc("clients", clientId, "sessions", sessionId));
 };
 
@@ -228,7 +229,7 @@ export const addClientPackage = async (
     isPaid: boolean;
   }
 ) => {
-  console.info("[Package:addClientPackage]", {
+  info("[Package:addClientPackage]", {
     clientId,
     totalSessions: data.totalSessions,
   });
@@ -240,7 +241,7 @@ export const addClientPackage = async (
     paidAt: data.isPaid ? serverTimestamp() : null,
   });
 
-  console.info("[Package:addClientPackage] success", { clientId });
+  info("[Package:addClientPackage] success", { clientId });
 };
 
 export const renewPackage = async (
@@ -251,13 +252,13 @@ export const renewPackage = async (
     isPaid: boolean;
   }
 ) => {
-  console.info("[Package:renewPackage] start", { clientId });
+  info("[Package:renewPackage] start", { clientId });
 
   const snap = await collection("clients", clientId, "packages")
     .where("status", "==", "active")
     .get();
 
-  console.info("[Package:renewPackage] active packages found", {
+  info("[Package:renewPackage] active packages found", {
     count: snap.docs.length,
   });
 
@@ -283,19 +284,19 @@ export const renewPackage = async (
     paidAt: data.isPaid ? serverTimestamp() : null,
   });
 
-  console.info("[Package:renewPackage] success", { clientId });
+  info("[Package:renewPackage] success", { clientId });
 };
 
 export const getClientPackages = async (
   clientId: string
 ): Promise<ClientPackage[]> => {
-  console.info("[Package:getClientPackages]", { clientId });
+  info("[Package:getClientPackages]", { clientId });
 
   const snap = await collection("clients", clientId, "packages")
     .orderBy("createdAt", "desc")
     .get();
 
-  console.info("[Package:getClientPackages] result", {
+  info("[Package:getClientPackages] result", {
     count: snap.docs.length,
   });
 
@@ -310,19 +311,19 @@ export const getClientPackages = async (
 export const getActivePackage = async (
   clientId: string
 ): Promise<ClientPackage | null> => {
-  console.info("[Package:getActivePackage]", { clientId });
+  info("[Package:getActivePackage]", { clientId });
 
   const snap = await collection("clients", clientId, "packages")
     .where("status", "==", "active")
     .get();
 
   if (snap.empty) {
-    console.info("[Package:getActivePackage] none found", { clientId });
+    info("[Package:getActivePackage] none found", { clientId });
     return null;
   }
 
   const d = snap.docs[0];
-  console.info("[Package:getActivePackage] found", {
+  info("[Package:getActivePackage] found", {
     clientId,
     packageId: d.id,
   });
@@ -337,7 +338,7 @@ export const updatePackage = async (
   packageId: string,
   data: Partial<ClientPackage>
 ) => {
-  console.info("[Package:updatePackage]", { clientId, packageId });
+  info("[Package:updatePackage]", { clientId, packageId });
 
   await setDoc(doc("clients", clientId, "packages", packageId), data, {
     merge: true,
@@ -348,7 +349,7 @@ export const consumePackageSession = async (
   clientId: string,
   packageId: string
 ) => {
-  console.info("[Package:consumePackageSession]", { clientId, packageId });
+  info("[Package:consumePackageSession]", { clientId, packageId });
 
   await setDoc(
     doc("clients", clientId, "packages", packageId),
@@ -368,7 +369,7 @@ export const refreshPackageStatus = async (
   if (pkg.sessionsRemaining <= 0) status = "completed";
   else if (pkg.sessionsRemaining <= 2) status = "low";
 
-  console.info("[Package:refreshPackageStatus]", {
+  info("[Package:refreshPackageStatus]", {
     clientId,
     packageId: pkg.id,
     status,
@@ -382,7 +383,7 @@ export const refreshPackageStatus = async (
 };
 
 export const completeActivePackage = async (clientId: string) => {
-  console.info("[Package:completeActivePackage]", { clientId });
+  info("[Package:completeActivePackage]", { clientId });
 
   const snap = await collection("clients", clientId, "packages")
     .where("status", "==", "active")
@@ -392,7 +393,7 @@ export const completeActivePackage = async (clientId: string) => {
     await setDoc(docSnap.ref, { status: "completed" }, { merge: true });
   }
 
-  console.info("[Package:completeActivePackage] completed", {
+  info("[Package:completeActivePackage] completed", {
     count: snap.docs.length,
   });
 };
@@ -400,20 +401,20 @@ export const completeActivePackage = async (clientId: string) => {
 // ClientService.ts
 
 export const deletePackage = async (clientId: string, packageId: string) => {
-  console.info("[Package:deletePackage]", { clientId, packageId });
+  info("[Package:deletePackage]", { clientId, packageId });
 
   const ref = doc("clients", clientId, "packages", packageId);
   const snap = await getDoc(ref);
 
   if (!snap.exists()) {
-    console.warn("[Package:deletePackage] not found", { packageId });
+    warn("[Package:deletePackage] not found", { packageId });
     return;
   }
 
   const data = snap.data();
 
   if (data.status !== "active") {
-    console.error("[Package:deletePackage] denied - not active", {
+    error("[Package:deletePackage] denied - not active", {
       packageId,
       status: data.status,
     });
@@ -421,20 +422,20 @@ export const deletePackage = async (clientId: string, packageId: string) => {
   }
 
   await deleteDoc(ref);
-  console.info("[Package:deletePackage] success", { packageId });
+  info("[Package:deletePackage] success", { packageId });
 };
 
 export const decrementPackageSession = async (
   clientId: string,
   packageId: string
 ) => {
-  console.info("[Package:decrementPackageSession]", { clientId, packageId });
+  info("[Package:decrementPackageSession]", { clientId, packageId });
 
   const ref = doc("clients", clientId, "packages", packageId);
   const snap = await getDoc(ref);
 
   if (!snap.exists()) {
-    console.warn("[Package:decrementPackageSession] package not found", {
+    warn("[Package:decrementPackageSession] package not found", {
       packageId,
     });
     return;
@@ -443,7 +444,7 @@ export const decrementPackageSession = async (
   const data = snap.data() as ClientPackage;
 
   if (data.sessionsRemaining <= 0) {
-    console.error("[Package:decrementPackageSession] no sessions remaining", {
+    error("[Package:decrementPackageSession] no sessions remaining", {
       packageId,
     });
     throw new Error("No sessions remaining to decrement");
@@ -457,7 +458,7 @@ export const decrementPackageSession = async (
     completedAt: remaining <= 0 ? serverTimestamp() : null,
   });
 
-  console.info("[Package:decrementPackageSession] success", {
+  info("[Package:decrementPackageSession] success", {
     packageId,
     remaining,
   });
@@ -467,13 +468,13 @@ export const incrementPackageSession = async (
   clientId: string,
   packageId: string
 ) => {
-  console.info("[Package:incrementPackageSession]", { clientId, packageId });
+  info("[Package:incrementPackageSession]", { clientId, packageId });
 
   const ref = doc("clients", clientId, "packages", packageId);
   const snap = await getDoc(ref);
 
   if (!snap.exists()) {
-    console.warn("[Package:incrementPackageSession] package not found", {
+    warn("[Package:incrementPackageSession] package not found", {
       packageId,
     });
     return;
@@ -482,7 +483,7 @@ export const incrementPackageSession = async (
   const pkg = snap.data() as ClientPackage;
 
   if (pkg.status !== "active") {
-    console.warn("[Package:incrementPackageSession] skipped - not active", {
+    warn("[Package:incrementPackageSession] skipped - not active", {
       packageId,
       status: pkg.status,
     });
@@ -497,11 +498,11 @@ export const incrementPackageSession = async (
     { merge: true }
   );
 
-  console.info("[Package:incrementPackageSession] success", { packageId });
+  info("[Package:incrementPackageSession] success", { packageId });
 };
 
 export const cancelPackage = async (clientId: string, packageId: string) => {
-  console.info("[Package:cancelPackage]", { clientId, packageId });
+  info("[Package:cancelPackage]", { clientId, packageId });
 
   await setDoc(
     doc("clients", clientId, "packages", packageId),
@@ -519,7 +520,7 @@ export const reactivatePackage = async (
   clientId: string,
   packageId: string
 ) => {
-  console.info("[Package:reactivatePackage]", { clientId, packageId });
+  info("[Package:reactivatePackage]", { clientId, packageId });
 
   await setDoc(
     doc("clients", clientId, "packages", packageId),
@@ -547,7 +548,7 @@ export const deleteExerciseFromSession = async (
   sessionId: string,
   exerciseId: string
 ) => {
-  console.info("[Session:deleteExerciseFromSession]", {
+  info("[Session:deleteExerciseFromSession]", {
     clientId,
     sessionId,
     exerciseId,
@@ -557,7 +558,7 @@ export const deleteExerciseFromSession = async (
   const snap = await getDoc(sessionRef);
 
   if (!snap.exists()) {
-    console.warn("[Session:deleteExerciseFromSession] session not found", {
+    warn("[Session:deleteExerciseFromSession] session not found", {
       sessionId,
     });
     return;
@@ -577,7 +578,7 @@ export const deleteExerciseFromSession = async (
     { merge: true }
   );
 
-  console.info("[Session:deleteExerciseFromSession] success", {
+  info("[Session:deleteExerciseFromSession] success", {
     remaining: updatedExercises.length,
   });
 };

@@ -1,4 +1,5 @@
 import firestore from "@react-native-firebase/firestore";
+import {log,warn,error,info} from "../utils/logger"
 
 export const db = firestore();
 
@@ -7,7 +8,7 @@ export function root() {
 }
 
 export const doc = (...path: string[]) => {
-  console.info("[FirestoreHelper:doc]", { path });
+  info("[FirestoreHelper:doc]", { path });
 
   let ref: any = root();
 
@@ -19,7 +20,7 @@ export const doc = (...path: string[]) => {
 };
 
 export const collection = (...path: string[]) => {
-  console.info("[FirestoreHelper:collection]", { path });
+  info("[FirestoreHelper:collection]", { path });
 
   let ref: any = root();
 

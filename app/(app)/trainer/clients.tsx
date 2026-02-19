@@ -19,6 +19,7 @@ import { collection } from "@/src/services/db";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { log, error } from "@/src/utils/logger";
 
 import {
   Alert,
@@ -661,12 +662,12 @@ export default function ClientsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      console.log("🟢 Clients screen focused → refresh data");
+      log("🟢 Clients screen focused → refresh data");
 
       fetchClients(); // 👈 your refresh logic here
 
       return () => {
-        console.log("🟡 Clients screen unfocused");
+        log("🟡 Clients screen unfocused");
       };
     }, [])
   );

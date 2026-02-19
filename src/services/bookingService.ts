@@ -3,6 +3,7 @@ import firestore from "@react-native-firebase/firestore";
 import { lockGymTimeSlot } from "./SlotLockService";
 import { updateSessionReminder } from "./notifications/sessionReminderService";
 import { db, root } from "./db";
+import {log,warn,error,info} from "../utils/logger"
 /* ---------------- TYPES ---------------- */
 
 type SelectedClient = {
@@ -102,7 +103,7 @@ export async function bookSession({
   toTime,
   editingSession,
 }: BookSessionParams) {
-  console.info("[BookingService] bookSession → start", {
+  info("[BookingService] bookSession → start", {
     trainerId,
     dateKey,
     editing: Boolean(editingSession),
@@ -309,7 +310,7 @@ export async function bookSession({
       startTime: formatTime(fromTime),
     });
   } catch (err) {
-    console.warn(
+    warn(
       "[BookingService] Reminder update failed (non-blocking)",
       err
     );

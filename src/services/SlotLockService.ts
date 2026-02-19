@@ -1,5 +1,7 @@
 import firestore from "@react-native-firebase/firestore";
 import { root ,db} from "./db"; // ✅ add this
+import {log,warn,error,info} from "../utils/logger"
+
 /* ---------------- TYPES ---------------- */
 
 export type LockSlotParams = {
@@ -55,7 +57,7 @@ export async function lockGymTimeSlot({
   clientGender,
   clientIsHijabi,
 }: LockSlotParams) {
-  console.info("[SlotLock] START", {
+  info("[SlotLock] START", {
     sessionId,
     date,
     startTime,
@@ -116,7 +118,7 @@ export async function lockGymTimeSlot({
     }
   });
 
-  console.info("[SlotLock] SUCCESS", {
+  info("[SlotLock] SUCCESS", {
     sessionId,
     date,
     startTime,

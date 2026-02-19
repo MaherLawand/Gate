@@ -8,6 +8,7 @@ import { cancelBooking } from "@/src/services/cancelBooking";
 import { resolveAttendance } from "@/src/services/resolveAttendance";
 import { colors } from "@/src/theme/colors";
 import { ScheduledSession } from "@/src/types/models";
+import { log, error } from "@/src/utils/logger";
 
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -176,7 +177,7 @@ useEffect(() => {
         (snap) => {
           const data: ScheduledSession[] = snap.docs.map((d) => {
             const s = d.data();
-            console.log("sdata: ", s);
+            log("sdata: ", s);
 
             const startMinutes = timeToMinutes(s.startTime);
             const endMinutes = timeToMinutes(s.endTime);
@@ -212,11 +213,11 @@ useEffect(() => {
 
   useEffect(() => {
     if (!authReady || !uid) return;
-    console.log("🔥 auth ready, loading hijabi blocks");
+    log("🔥 auth ready, loading hijabi blocks");
     const loadHijabiBlocks = async () => {
       const collectedHijabiBlocks: HijabiBlock[] = [];
 
-      console.log(
+      log(
         "AUTH:",
         auth().currentUser?.uid,
         "FIRESTORE AUTH:",
@@ -250,7 +251,7 @@ for (const trainerDoc of trainersSnap.docs) {
   });
 }
 
-      console.log("🟡 FINAL hijabi blocks:", collectedHijabiBlocks);
+      log("🟡 FINAL hijabi blocks:", collectedHijabiBlocks);
       setHijabiBlocks(collectedHijabiBlocks);
     };
 
@@ -287,7 +288,7 @@ for (const trainerDoc of trainersSnap.docs) {
         mode,
       });
 
-      // console.log("uid: ", uid);
+      // log("uid: ", uid);
       // // 🔄 reload schedule
       // const snap = await firestore()
       //   .collection("trainer_schedules")
@@ -374,9 +375,9 @@ for (const trainerDoc of trainersSnap.docs) {
               });
 
               // 🔄 UI refresh is automatic via onSnapshot
-              console.log("✅ Booking cancelled:", session.id);
+              log("✅ Booking cancelled:", session.id);
             } catch (e: any) {
-              console.error("🔥 Cancel booking failed:", e);
+              error("🔥 Cancel booking failed:", e);
               Alert.alert("Error", e.message);
             }
           },
