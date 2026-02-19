@@ -49,6 +49,7 @@ app-example
 /ios
 /android
 serviceAccountKey.json
+serviceAccountKeyDev.json
 
 #android / ios
 android/build/

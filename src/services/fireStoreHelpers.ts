@@ -1,11 +1,14 @@
 // src/services/firestoreHelpers.ts
 
 import firestore from "@react-native-firebase/firestore";
+import { root } from "./db";
+
+/* ---------------- DOC ---------------- */
 
 export const doc = (...path: string[]) => {
   console.info("[FirestoreHelper:doc]", { path });
 
-  let ref: any = firestore();
+  let ref: any = root(); // ✅ start from environments/{ENV}
 
   path.forEach((segment, i) => {
     ref = i % 2 === 0 ? ref.collection(segment) : ref.doc(segment);
@@ -13,11 +16,13 @@ export const doc = (...path: string[]) => {
 
   return ref;
 };
+
+/* ---------------- COLLECTION ---------------- */
 
 export const collection = (...path: string[]) => {
   console.info("[FirestoreHelper:collection]", { path });
 
-  let ref: any = firestore();
+  let ref: any = root(); // ✅ start from environments/{ENV}
 
   path.forEach((segment, i) => {
     ref = i % 2 === 0 ? ref.collection(segment) : ref.doc(segment);
@@ -25,6 +30,8 @@ export const collection = (...path: string[]) => {
 
   return ref;
 };
+
+/* ---------------- BASIC OPS ---------------- */
 
 export const getDoc = (ref: any) => {
   console.info("[FirestoreHelper:getDoc]");
@@ -42,7 +49,9 @@ export const deleteDoc = (ref: any) => {
 };
 
 export const setDoc = (ref: any, data: any, options?: any) => {
-  console.info("[FirestoreHelper:setDoc]", { merge: options?.merge ?? false });
+  console.info("[FirestoreHelper:setDoc]", {
+    merge: options?.merge ?? false,
+  });
   return ref.set(data, options);
 };
 

@@ -8,7 +8,7 @@ import { uploadBugImage, uploadImage } from "@/src/services/uploadImage";
 import { colors } from "@/src/theme/colors";
 import { typography } from "@/src/theme/typography";
 import { BugDoc } from "@/src/types/models";
-
+import { collection, doc } from "@/src/services/db";
 
 import { useEffect, useRef, useState } from "react";
 
@@ -73,11 +73,10 @@ export default function ProfileScreen() {
     const loadProfile = async () => {
       try {
         // 2️⃣ Otherwise client
-        const clientSnap = await firestore()
-          .collection("clients")
-          .where("authUid", "==", uid)
-          .limit(1)
-          .get();
+       const clientSnap = await collection("clients")
+  .where("authUid", "==", uid)
+  .limit(1)
+  .get();
 
         if (!clientSnap.empty) {
           const doc = clientSnap.docs[0];
@@ -115,7 +114,7 @@ export default function ProfileScreen() {
     setSavingNotif(true);
 
     try {
-      await firestore().collection("clients").doc(clientDocId).update({
+      await doc("clients", clientDocId).update({
         notificationsEnabled: enabled,
         updatedAt: firestore.FieldValue.serverTimestamp(),
       });
@@ -141,7 +140,7 @@ export default function ProfileScreen() {
   const handleSave = async () => {
     try {
       if (!clientDocId) return;
-      await firestore().collection("clients").doc(clientDocId).update({
+      await doc("clients", clientDocId).update({
         firstName,
         lastName,
         bio,
@@ -184,7 +183,7 @@ export default function ProfileScreen() {
       const downloadURL = await uploadImage(compressedUri, "avatar");
 
       // 🔥 Save URL in Firestore
-      await firestore().collection("clients").doc(clientDocId).update({
+      await doc("clients", clientDocId).update({
         profilePicture: downloadURL,
         updatedAt: firestore.FieldValue.serverTimestamp(),
       });
@@ -262,7 +261,7 @@ export default function ProfileScreen() {
         createdAt: firestore.FieldValue.serverTimestamp(),
       };
 
-      await firestore().collection("bugs").add(bug);
+      await collection("bugs").add(bug);
 
       Alert.alert("Thanks 🙏", "Bug reported successfully.");
 

@@ -7,16 +7,19 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "RCT_NEW_ARCH_ENABLED": "1"
+        "RCT_NEW_ARCH_ENABLED": "1",
+        "APP_VARIANT": "dev"
       },
       "ios": {
         "simulator": false
       }
     },
+
     "preview": {
       "distribution": "internal",
       "env": {
-        "RCT_NEW_ARCH_ENABLED": "1"
+        "RCT_NEW_ARCH_ENABLED": "1",
+        "APP_VARIANT": "dev"
       },
       "android": {
         "buildType": "apk"
@@ -25,10 +28,12 @@
         "simulator": false
       }
     },
+
     "production": {
       "distribution": "store",
       "env": {
-        "RCT_NEW_ARCH_ENABLED": "1"
+        "RCT_NEW_ARCH_ENABLED": "1",
+        "APP_VARIANT": "prod"
       },
       "android": {
         "buildType": "app-bundle"

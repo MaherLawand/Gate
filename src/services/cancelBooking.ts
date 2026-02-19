@@ -1,5 +1,6 @@
 import firestore from "@react-native-firebase/firestore";
 import { ScheduledSession } from "../types/models";
+import { root } from "./db";
 
 export async function cancelBooking({
   trainerId,
@@ -15,13 +16,12 @@ export async function cancelBooking({
     date: session.date,
   });
 
-  const db = firestore();
-  const batch = db.batch();
+  const batch = firestore().batch();
 
   try {
     /* ================= SLOT LOCKS ================= */
 
-    const slotsSnap = await db
+    const slotsSnap = await root()
       .collection("gym_time_slots")
       .where("sessionId", "==", session.id)
       .get();
@@ -36,7 +36,7 @@ export async function cancelBooking({
 
     /* ================= TRAINER SESSION ================= */
 
-    const trainerSessionRef = db
+    const trainerSessionRef = root()
       .collection("trainer_schedules")
       .doc(trainerId)
       .collection("days")
@@ -48,7 +48,7 @@ export async function cancelBooking({
 
     /* ================= CLIENT SESSION ================= */
 
-    const clientSessionRef = db
+    const clientSessionRef = root()
       .collection("clients")
       .doc(session.clientId)
       .collection("sessions")
@@ -58,7 +58,7 @@ export async function cancelBooking({
 
     /* ================= CLIENT NOTIFICATIONS ================= */
 
-    const notificationsSnap = await db
+    const notificationsSnap = await root()
       .collection("clients")
       .doc(session.clientId)
       .collection("notifications")

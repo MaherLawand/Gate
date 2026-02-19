@@ -2,40 +2,65 @@ import { useEffect } from "react";
 import { router } from "expo-router";
 import { auth } from "@/src/services/firebase";
 import firestore from "@react-native-firebase/firestore";
+import { doc, root } from "@/src/services/db"; // or correct relative path
+import { getDoc } from "@/src/services/fireStoreHelpers";
+import Constants from "expo-constants";
+
+const ENV =
+  Constants.expoConfig?.extra?.variant ?? "prod";
 
 export default function AppIndex() {
-  useEffect(() => {
-    const checkUser = async () => {
-      const user = auth().currentUser;
+ useEffect(() => {
+  
+  const checkUser = async () => {
+    
+    const user = auth().currentUser;
 
-      if (!user) {
-        router.replace("/(auth)");
-        return;
-      }
+    console.log("ENV:", ENV);
 
-      try {
-        // 🔥 Only check USERS collection
-        const trainerDoc = await firestore()
-          .collection("users")
-          .doc(user.uid)
-          .get();
+    if (!user) {
+      router.replace("/(auth)");
+      return;
+    }
 
-        if (trainerDoc.exists() && trainerDoc.data()?.role === "trainer") {
-          router.replace("/(app)/trainer/dashboard");
-          return;
-        }
+    try {
+      const userDocRef = await doc("users", user.uid);
 
-        // If no role → client
-        router.replace("/(app)/client/Gate");
+      // 🔥 listen instead of get (prevents race condition)
+     const unsubscribe = userDocRef.onSnapshot(
+  (snap :any) => {
+    if (!snap || !snap.exists()) {
+      console.log("⏳ Waiting for user document...");
+      return;
+    }
 
-      } catch (e) {
-        console.log("Routing error:", e);
-        router.replace("/(auth)");
-      }
-    };
+    const role = snap.data()?.role;
 
-    checkUser();
-  }, []);
+    if (role === "trainer") {
+      router.replace("/(app)/trainer/dashboard");
+    } else if (role === "client") {
+      router.replace("/(app)/client/Gate");
+    } else {
+      router.replace("/(auth)");
+    }
+
+    unsubscribe();
+  },
+  (error: any) => {
+    console.error("🔥 Firestore listener error:", error);
+    unsubscribe();   // 🚨 stop infinite loop
+    router.replace("/(auth)");
+  }
+);
+
+    } catch (e) {
+      console.log("Routing error:", e);
+      router.replace("/(auth)");
+    }
+  };
+
+  checkUser();
+}, []);
 
   return null;
 }

@@ -22,6 +22,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
+import { collection } from "@/src/services/db";
 
 /* ---------------- TYPES ---------------- */
 
@@ -100,30 +101,29 @@ useEffect(() => {
   /* -------- LOAD ADMIN TRAINERS -------- */
 
   useEffect(() => {
-    const loadAdmins = async () => {
-      const snap = await firestore()
-        .collection("users")
-        .where("isAdmin", "==", true)
-        .limit(2)
-        .get();
+  const loadAdmins = async () => {
+    const snap = await collection("users")
+      .where("isAdmin", "==", true)
+      .limit(2)
+      .get();
 
-      const data: AdminTrainer[] = snap.docs.map((doc) => {
-        const d = doc.data();
-        return {
-          id: doc.id,
-          firstName: d.firstName,
-          lastName: d.lastName,
-          bio: d.bio,
-          profilePicture: d.profilePicture,
-          coverImage: d.coverImage,
-        };
-      });
+    const data: AdminTrainer[] = snap.docs.map((doc:any) => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        firstName: d.firstName,
+        lastName: d.lastName,
+        bio: d.bio,
+        profilePicture: d.profilePicture,
+        coverImage: d.coverImage,
+      };
+    });
 
-      setAdmins(data);
-    };
+    setAdmins(data);
+  };
 
-    loadAdmins();
-  }, []);
+  loadAdmins();
+}, []);
 
   useEffect(() => {
     setupNotifications();

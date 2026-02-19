@@ -1,10 +1,11 @@
 import firestore from "@react-native-firebase/firestore";
 import { Exercise } from "../types/models";
+import { root } from "./db";
 
 export async function getExercises(): Promise<Exercise[]> {
   console.info("[Exercise:getExercises] start");
 
-  const snap = await firestore()
+  const snap = await root()
     .collection("Exercises")
     .orderBy("name")
     .get();

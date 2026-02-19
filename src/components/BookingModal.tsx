@@ -3,7 +3,8 @@ import { colors } from "@/src/theme/colors";
 import { ScheduledSession } from "@/src/types/models";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import auth from "@react-native-firebase/auth";
-import firestore from "@react-native-firebase/firestore";
+import { collection, doc } from "@/src/services/db";
+import firestore from "@react-native-firebase/firestore"; // keep ONLY if you need FieldValue
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
@@ -157,12 +158,12 @@ export default function BookingModal({
 
         const weekKey = getWeekKeyFromDate(dateKey);
 
-        const prefSnap = await firestore()
-          .collection("clients")
-          .doc(selectedClient.id)
-          .collection("weekly_preferences")
-          .doc(weekKey)
-          .get();
+        const prefSnap = await doc(
+  "clients",
+  selectedClient.id,
+  "weekly_preferences",
+  weekKey
+).get();
 
         if (!prefSnap.exists) {
           setPreferredTimes([]);
@@ -191,16 +192,15 @@ export default function BookingModal({
     if (!trainerId || !sheetRef) return;
     console.log("Loading clients for trainer:", trainerId);
 
-    firestore()
-      .collection("clients")
-      .where("trainerId", "==", trainerId)
-      .get()
-      .then((snap) => {
-        snap.docs.map((d) => {
+    collection("clients")
+  .where("trainerId", "==", trainerId)
+  .get()
+      .then((snap:any) => {
+        snap.docs.map((d:any) => {
           console.log("ddata: ", d);
         }),
           setClients(
-            snap.docs.map((d) => ({
+            snap.docs.map((d:any) => ({
               id: d.id,
               firstName: d.data().firstName,
               lastName: d.data().lastName,
@@ -985,7 +985,7 @@ export default function BookingModal({
     value={fromTime ?? getMinTime()}
     minimumDate={getMinTime()}
     maximumDate={getMaxTime()}
-    display="default"
+    display="spinner"
     onChange={(_, d) => {
       setShowFromPicker(false);
       if (!d) return;

@@ -2,6 +2,7 @@ import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import { lockGymTimeSlot } from "./SlotLockService";
 import { updateSessionReminder } from "./notifications/sessionReminderService";
+import { db, root } from "./db";
 /* ---------------- TYPES ---------------- */
 
 type SelectedClient = {
@@ -60,11 +61,11 @@ export async function updateSessionStatus({
   clientId: string;
   dateKey: string;
   sessionId: string;
-  status: SessionStatus;
+  status: "pending" | "confirmed" | "postponed" | "charged";
 }) {
-  const batch = firestore().batch();
+  const batch = db.batch();
 
-  const trainerRef = firestore()
+  const trainerRef = root()
     .collection("trainer_schedules")
     .doc(trainerId)
     .collection("days")
@@ -72,7 +73,7 @@ export async function updateSessionStatus({
     .collection("sessions")
     .doc(sessionId);
 
-  const clientRef = firestore()
+  const clientRef = root()
     .collection("clients")
     .doc(clientId)
     .collection("sessions")
@@ -119,16 +120,15 @@ export async function bookSession({
 
   const newStart = fromTime.getHours() * 60 + fromTime.getMinutes();
   const newEnd = toTime.getHours() * 60 + toTime.getMinutes();
-  if (newEnd - newStart !== 60) {
-    throw new Error("Sessions must be exactly 1 hour long");
-  }
-  if (newStart < WORK_START_MINUTES || newEnd > WORK_END_MINUTES) {
-    throw new Error("Sessions must be between 06:00 and 21:00");
-  }
 
   if (newEnd - newStart !== 60) {
     throw new Error("Sessions must be exactly 1 hour long");
   }
+
+  if (newStart < WORK_START_MINUTES || newEnd > WORK_END_MINUTES) {
+    throw new Error("Sessions must be between 06:00 and 21:00");
+  }
+
   /* ---------------- PAST CHECK ---------------- */
 
   const now = new Date();
@@ -147,18 +147,20 @@ export async function bookSession({
     }
   }
 
-  const db = firestore();
+  /* 🔒 Ensure trainer_schedules parent exists */
 
-  // 🔒 Ensure trainer_schedules parent doc exists (IMPORTANT)
-  await firestore().collection("trainer_schedules").doc(trainerId).set(
-    {
-      trainerId,
-      createdAt: firestore.FieldValue.serverTimestamp(),
-    },
-    { merge: true }
-  );
+  await root()
+    .collection("trainer_schedules")
+    .doc(trainerId)
+    .set(
+      {
+        trainerId,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
 
-  const sessionsRef = db
+  const sessionsRef = root()
     .collection("trainer_schedules")
     .doc(trainerId)
     .collection("days")
@@ -171,11 +173,11 @@ export async function bookSession({
     .where("clientId", "==", selectedClient.id)
     .get();
 
-  const hasClientConflict = existingClientSnap.docs.some(
-    (d) => d.id !== editingSession?.id
-  );
-
-  if (hasClientConflict) {
+  if (
+    existingClientSnap.docs.some(
+      (d) => d.id !== editingSession?.id
+    )
+  ) {
     throw new Error("This client already has a session booked on this day");
   }
 
@@ -187,7 +189,8 @@ export async function bookSession({
     if (doc.id === editingSession?.id) return false;
     const s = doc.data();
     return (
-      newStart < timeToMinutes(s.endTime) && newEnd > timeToMinutes(s.startTime)
+      newStart < timeToMinutes(s.endTime) &&
+      newEnd > timeToMinutes(s.startTime)
     );
   });
 
@@ -200,7 +203,7 @@ export async function bookSession({
   let clientPackageId = editingSession?.clientPackageId;
 
   if (!editingSession) {
-    const packageSnap = await db
+    const packageSnap = await root()
       .collection("clients")
       .doc(selectedClient.id)
       .collection("packages")
@@ -216,11 +219,11 @@ export async function bookSession({
     clientPackageId = packageSnap.docs[0].id;
   }
 
-  /* ---------------- SESSION ID ---------------- */
+  const sessionId = editingSession
+    ? editingSession.id
+    : sessionsRef.doc().id;
 
-  const sessionId = editingSession ? editingSession.id : sessionsRef.doc().id;
-
-  const ClientSessionRef = db
+  const clientSessionsRef = root()
     .collection("clients")
     .doc(selectedClient.id)
     .collection("sessions");
@@ -232,7 +235,7 @@ export async function bookSession({
     (editingSession.startTime !== formatTime(fromTime) ||
       editingSession.endTime !== formatTime(toTime))
   ) {
-    await db
+    await root()
       .collection("gym_time_slots")
       .doc(editingSession.id)
       .delete()
@@ -261,44 +264,42 @@ export async function bookSession({
     endTime: formatTime(toTime),
     clientGender: selectedClient.gender,
     isHijabi: selectedClient.isHijabi ?? false,
-    attendance: editingSession ? editingSession.attendance : "pending",
+    attendance: editingSession
+      ? editingSession.attendance
+      : "pending",
     updatedAt: firestore.FieldValue.serverTimestamp(),
   };
 
   const clientSessionPayload = {
-  packageId: clientPackageId,
-  date: dateKey,
-  exercises: [],
-  attendance: editingSession ? editingSession.attendance : "pending",
-  startTime: formatTime(fromTime),   // ✅ ADD THIS
-  endTime: formatTime(toTime),       // ✅ ADD THIS
-  trainerId,                         // ✅ ADD THIS
-  updatedAt: firestore.FieldValue.serverTimestamp(),
-};
+    packageId: clientPackageId,
+    date: dateKey,
+    exercises: [],
+    attendance: editingSession
+      ? editingSession.attendance
+      : "pending",
+    startTime: formatTime(fromTime),
+    endTime: formatTime(toTime),
+    trainerId,
+    updatedAt: firestore.FieldValue.serverTimestamp(),
+  };
 
   if (editingSession) {
-    // ✏️ EDIT — do NOT reset status
     await sessionsRef.doc(sessionId).update(payload);
-    await ClientSessionRef.doc(sessionId).update({
+    await clientSessionsRef.doc(sessionId).update({
       ...clientSessionPayload,
       updatedAt: firestore.FieldValue.serverTimestamp(),
     });
   } else {
-    // 🆕 CREATE — status starts as "pending" on BOTH
     await sessionsRef.doc(sessionId).set({
       ...payload,
       createdAt: firestore.FieldValue.serverTimestamp(),
     });
 
-    await ClientSessionRef.doc(sessionId).set({
+    await clientSessionsRef.doc(sessionId).set({
       ...clientSessionPayload,
       createdAt: firestore.FieldValue.serverTimestamp(),
     });
   }
-
-  console.info("[BookingService] Booking saved successfully", { sessionId });
-
-  /* ---------------- SESSION REMINDER (NON-BLOCKING) ---------------- */
 
   try {
     await updateSessionReminder({
@@ -308,7 +309,10 @@ export async function bookSession({
       startTime: formatTime(fromTime),
     });
   } catch (err) {
-    console.warn("[BookingService] Reminder update failed (non-blocking)", err);
+    console.warn(
+      "[BookingService] Reminder update failed (non-blocking)",
+      err
+    );
   }
 
   return { success: true, sessionId };

@@ -1,5 +1,5 @@
 import firestore from "@react-native-firebase/firestore";
-
+import { root ,db} from "./db"; // ✅ add this
 /* ---------------- TYPES ---------------- */
 
 export type LockSlotParams = {
@@ -66,8 +66,7 @@ export async function lockGymTimeSlot({
     clientIsHijabi,
   });
 
-  const db = firestore();
-  const slotsRef = db.collection("gym_time_slots");
+  const slotsRef = root().collection("gym_time_slots"); // ✅ scoped
 
   const startMinutes = timeToMinutes(startTime);
   const endMinutes = timeToMinutes(endTime);

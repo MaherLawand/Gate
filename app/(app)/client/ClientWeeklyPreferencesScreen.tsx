@@ -1,5 +1,6 @@
 import auth from "@react-native-firebase/auth";
-import firestore from "@react-native-firebase/firestore";
+import { collection, doc } from "@/src/services/db";
+import firestore from "@react-native-firebase/firestore"; // keep this only for FieldValue
 
 import { useClient } from "@/src/components/ClientContext";
 import WeeklyPreferencesSkeleton from "@/src/components/skeletons/WeeklyPreferences/WeeklyPreferencesSkeleton";
@@ -152,13 +153,10 @@ useEffect(() => {
       try {
         console.log("clientId", clientId);
 
-        const pkgSnap = await firestore()
-          .collection("clients")
-          .doc(clientId || "")
-          .collection("packages")
-          .where("status", "==", "active")
-          .limit(1)
-          .get();
+        const pkgSnap = await collection("clients", clientId || "", "packages")
+  .where("status", "==", "active")
+  .limit(1)
+  .get();
 
         if (pkgSnap.empty) {
           setHasActivePackage(false);
@@ -174,12 +172,12 @@ useEffect(() => {
 
         setSessionsPerWeek(derivedSessionsPerWeek);
 
-        const prefSnap = await firestore()
-          .collection("clients")
-          .doc(clientId || "")
-          .collection("weekly_preferences")
-          .doc(weekKey)
-          .get();
+        const prefSnap = await doc(
+  "clients",
+  clientId || "",
+  "weekly_preferences",
+  weekKey
+).get();
 
         if (prefSnap.exists()) {
           const data = prefSnap.data();
@@ -261,12 +259,12 @@ useEffect(() => {
   const handleSave = async () => {
     if (!clientId) return;
 
-    await firestore()
-      .collection("clients")
-      .doc(clientId)
-      .collection("weekly_preferences")
-      .doc(weekKey)
-      .set({
+    await doc(
+  "clients",
+  clientId,
+  "weekly_preferences",
+  weekKey
+).set({
         weekKey,
         preferences,
         updatedAt: firestore.FieldValue.serverTimestamp(),

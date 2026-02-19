@@ -1,10 +1,10 @@
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import { Platform } from "react-native";
+import { collection } from "./fireStoreHelpers"; // 👈 IMPORTANT
 
 export async function registerForPushNotifications() {
   try {
-    // 🔥 Lazy imports (important for Expo)
     const Notifications = await import("expo-notifications");
     const Device = await import("expo-device");
 
@@ -13,7 +13,8 @@ export async function registerForPushNotifications() {
       return;
     }
 
-    // 1️⃣ Permissions
+    /* ================= PERMISSIONS ================= */
+
     const { status: existingStatus } =
       await Notifications.getPermissionsAsync();
 
@@ -29,19 +30,22 @@ export async function registerForPushNotifications() {
       return;
     }
 
-    // 2️⃣ Get Expo push token
+    /* ================= GET TOKEN ================= */
+
     const tokenResponse = await Notifications.getExpoPushTokenAsync({
       projectId: "5bc10cd6-e679-4eb4-a6d5-3bb4abc257d7",
     });
+
     const pushToken = tokenResponse.data;
 
     console.log("✅ Expo push token:", pushToken);
 
-    // 3️⃣ Android notification channel
+    /* ================= ANDROID CHANNEL ================= */
+
     if (Platform.OS === "android") {
       await Notifications.setNotificationChannelAsync("announcements", {
         name: "Announcements",
-        importance: Notifications.AndroidImportance.HIGH, // 🔥 KEY
+        importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: "#FF231F7C",
         enableLights: true,
@@ -51,16 +55,16 @@ export async function registerForPushNotifications() {
       });
     }
 
-    // 4️⃣ Save token to Firestore (trainer OR client)
+    /* ================= SAVE TOKEN ================= */
+
     const uid = auth().currentUser?.uid;
     if (!uid) return;
 
-    const usersRef = firestore().collection("users").doc(uid);
-    const userSnap = await usersRef.get();
+    // 🔵 TRAINER
+    const trainerSnap = await collection("users").doc(uid).get();
 
-    // ✅ TRAINER
-    if (userSnap.exists()) {
-      await usersRef.set(
+    if (trainerSnap.exists) {
+      await trainerSnap.ref.set(
         {
           pushToken,
           pushTokenUpdatedAt: firestore.FieldValue.serverTimestamp(),
@@ -72,9 +76,8 @@ export async function registerForPushNotifications() {
       return;
     }
 
-    // ✅ CLIENT
-    const clientSnap = await firestore()
-      .collection("clients")
+    // 🟢 CLIENT
+    const clientSnap = await collection("clients")
       .where("authUid", "==", uid)
       .limit(1)
       .get();

@@ -1,6 +1,6 @@
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
-
+import { doc, collection } from "@/src/services/db";
 import AnimatedAppear from "@/src/components/AnimatedAppear";
 import AppButton from "@/src/components/AppButton";
 import { setupNotifications } from "@/src/notifications/setupNotifications";
@@ -25,6 +25,9 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+    TouchableWithoutFeedback,
+    Keyboard,
+
 } from "react-native";
 import ActionSheet, {
   ActionSheetRef,
@@ -152,14 +155,15 @@ useEffect(() => {
     if (result.canceled) return;
 
     try {
+      if(!uid ) {return;}
       setUploading(true);
       const compressed = await compressImage(result.assets[0].uri);
       const url = await uploadImage(compressed, "avatar");
 
-      await firestore().collection("users").doc(uid).update({
-        profilePicture: url,
-        updatedAt: firestore.FieldValue.serverTimestamp(),
-      });
+      await doc("users", uid).update({
+  profilePicture: url,
+  updatedAt: firestore.FieldValue.serverTimestamp(),
+});
 
       setProfile((p) => p && { ...p, profilePicture: url });
     } finally {
@@ -184,14 +188,15 @@ useEffect(() => {
     if (result.canceled) return;
 
     try {
+      if(!uid) { return; }
       setUploading(true);
       const compressed = await compressImage(result.assets[0].uri);
       const url = await uploadImage(compressed, "cover");
 
-      await firestore().collection("users").doc(uid).update({
-        coverImage: url,
-        updatedAt: firestore.FieldValue.serverTimestamp(),
-      });
+      await doc("users", uid).update({
+  coverImage: url,
+  updatedAt: firestore.FieldValue.serverTimestamp(),
+});
 
       setProfile((p) => p && { ...p, coverImage: url });
     } finally {
@@ -202,10 +207,10 @@ useEffect(() => {
   const saveBio = async () => {
     if (!uid) return;
 
-    await firestore().collection("users").doc(uid).update({
-      bio: bioDraft.trim(),
-      updatedAt: firestore.FieldValue.serverTimestamp(),
-    });
+    await doc("users", uid).update({
+  bio: bioDraft.trim(),
+  updatedAt: firestore.FieldValue.serverTimestamp(),
+});
 
     setProfile((p) => p && { ...p, bio: bioDraft.trim() });
     setEditingBio(false);
@@ -216,7 +221,7 @@ useEffect(() => {
     setupNotifications();
     const loadTrainer = async () => {
       try {
-        const snap = await firestore().collection("users").doc(uid).get();
+        const snap = await doc("users", uid).get();
 
         if (!snap.exists) return;
 
@@ -304,6 +309,14 @@ useEffect(() => {
   };
 
   return (
+    <TouchableWithoutFeedback
+    onPress={() => {
+      if (Platform.OS === "ios") {
+        Keyboard.dismiss();
+      }
+    }}
+    accessible={false}
+  >
     <View style={styles.container}>
       {/* COVER */}
       {/* COVER */}
@@ -506,6 +519,7 @@ useEffect(() => {
         </SheetScrollView>
       </ActionSheet>
     </View>
+    </TouchableWithoutFeedback>
   );
 }
 

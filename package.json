@@ -10,7 +10,13 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "eas-install": "npm ci",
-    "prebuild": "npm run eas-install"
+    "prebuild": "npm run eas-install",
+    "SetDev": "ENVFILE=.env.dev",
+    "SetProd": "ENVFILE=.env.prod",
+    "ios-dev": "yarn setDev react-native run-ios --mode=Debug --scheme \"GateDev\" --simulator='Iphone 15'",
+    "ios-prod": "yarn setProd react-native run-ios --mode=Debug --scheme \"Gate\" --simulator='Iphone 15'",
+    "android-dev": "yarn setDev react-native run=android",
+    "android-prod": "yarn setProd react-native run=android"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -28,6 +34,7 @@
     "@react-navigation/native": "^7.1.28",
     "@react-navigation/native-stack": "^7.12.0",
     "dayjs": "^1.11.19",
+    "dotenv": "^17.3.1",
     "expo": "~54.0.31",
     "expo-av": "~16.0.8",
     "expo-blur": "~15.0.8",
@@ -60,6 +67,8 @@
     "react-native-actions-sheet": "^0.9.8",
     "react-native-animated-pagination-dots": "^0.1.73",
     "react-native-calendars": "^1.1313.0",
+    "react-native-config": "^1.6.1",
+    "react-native-dotenv": "^3.4.11",
     "react-native-dropdown-picker": "^5.4.6",
     "react-native-gesture-handler": "~2.28.0",
     "react-native-pager-view": "6.9.1",
@@ -76,6 +85,7 @@
     "react-phone-number-input": "^3.4.14"
   },
   "devDependencies": {
+    "@react-native-community/cli": "^20.1.1",
     "@types/react": "~19.1.0",
     "@types/react-native-calendar-picker": "^8.0.0",
     "eslint": "^9.25.0",

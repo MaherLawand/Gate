@@ -24,6 +24,7 @@ import {
 import { useNavigation } from "expo-router";
 import { ActionSheetRef } from "react-native-actions-sheet";
 import BookingModal from "@/src/components/BookingModal";
+import { root } from "@/src/services/db";
 
 type EnrichedScheduledSession = ScheduledSession & {
   clientIsHijabi?: boolean;
@@ -164,14 +165,14 @@ useEffect(() => {
 
     setLoading(true);
 
-    const unsubscribe = firestore()
-      .collection("trainer_schedules")
-      .doc(uid)
-      .collection("days")
-      .doc(dateKey)
-      .collection("sessions")
-      .orderBy("startTime")
-      .onSnapshot(
+   const unsubscribe = root()
+  .collection("trainer_schedules")
+  .doc(uid)
+  .collection("days")
+  .doc(dateKey)
+  .collection("sessions")
+  .orderBy("startTime")
+  .onSnapshot(
         (snap) => {
           const data: ScheduledSession[] = snap.docs.map((d) => {
             const s = d.data();
@@ -222,72 +223,32 @@ useEffect(() => {
         firestore().app.auth()?.currentUser
       );
 
-      const trainersSnap = await firestore()
-        .collection("trainer_schedules")
-        .get();
+     const trainersSnap = await root()
+  .collection("trainer_schedules")
+  .get();
 
-      console.log(
-        "✅ trainer_schedules read success. Trainers:",
-        trainersSnap.docs.map((d) => d.id)
-      );
-      //check this out later
-      // for (const trainerDoc of trainersSnap.docs) {
-      //   console.log("🔎 Checking trainer:", trainerDoc.id);
+for (const trainerDoc of trainersSnap.docs) {
+  if (trainerDoc.id === uid) continue;
 
-      //   const sessionsSnap = await trainerDoc.ref
-      //     .collection("days")
-      //     .doc(dateKey)
-      //     .collection("sessions")
-      //     .get();
+  const sessionsSnap = await trainerDoc.ref
+    .collection("days")
+    .doc(dateKey)
+    .collection("sessions")
+    .where("clientGender", "==", "female")
+    .where("isHijabi", "==", true)
+    .get();
 
-      //   console.log(
-      //     `📅 ${trainerDoc.id} sessions on ${dateKey}:`,
-      //     sessionsSnap.docs.length
-      //   );
+  sessionsSnap.docs.forEach((doc) => {
+    const s = doc.data();
 
-      //   for (const doc of sessionsSnap.docs) {
-      //     const s = doc.data();
-      //     console.log("s: ", s);
-      //     if (s.clientGender === "female" && s.isHijabi === true) {
-      //       console.log("trainerDocid: ", trainerDoc.id);
-      //       console.log("uid: ", uid);
-
-      //       // ❌ skip hijabi sessions of the current trainer
-      //       if (trainerDoc.id === uid) continue;
-      //       console.log("continued");
-      //       collectedHijabiBlocks.push({
-      //         trainerId: trainerDoc.id,
-      //         startMinutes: timeToMinutes(s.startTime),
-      //         endMinutes: timeToMinutes(s.endTime),
-      //         clientName: s.clientName,
-      //       });
-      //     }
-      //   }
-      // }
-
-      await Promise.all(
-        trainersSnap.docs.map(async (trainerDoc) => {
-          if (trainerDoc.id === uid) return;
-
-          const sessionsSnap = await trainerDoc.ref
-            .collection("days")
-            .doc(dateKey)
-            .collection("sessions")
-            .get();
-
-          sessionsSnap.docs.forEach((doc) => {
-            const s = doc.data();
-            if (s.clientGender === "female" && s.isHijabi === true) {
-              collectedHijabiBlocks.push({
-                trainerId: trainerDoc.id,
-                startMinutes: timeToMinutes(s.startTime),
-                endMinutes: timeToMinutes(s.endTime),
-                clientName: s.clientName,
-              });
-            }
-          });
-        })
-      );
+    collectedHijabiBlocks.push({
+      trainerId: trainerDoc.id,
+      startMinutes: timeToMinutes(s.startTime),
+      endMinutes: timeToMinutes(s.endTime),
+      clientName: s.clientName,
+    });
+  });
+}
 
       console.log("🟡 FINAL hijabi blocks:", collectedHijabiBlocks);
       setHijabiBlocks(collectedHijabiBlocks);
@@ -326,20 +287,20 @@ useEffect(() => {
         mode,
       });
 
-      console.log("uid: ", uid);
-      // 🔄 reload schedule
-      const snap = await firestore()
-        .collection("trainer_schedules")
-        .doc(uid)
-        .collection("days")
-        .doc(dateKey)
-        .collection("sessions")
-        .orderBy("startTime")
-        .get();
+      // console.log("uid: ", uid);
+      // // 🔄 reload schedule
+      // const snap = await firestore()
+      //   .collection("trainer_schedules")
+      //   .doc(uid)
+      //   .collection("days")
+      //   .doc(dateKey)
+      //   .collection("sessions")
+      //   .orderBy("startTime")
+      //   .get();
 
-      setSessions(
-        snap.docs.map((d) => ({ id: d.id, ...d.data() } as ScheduledSession))
-      );
+      // setSessions(
+      //   snap.docs.map((d) => ({ id: d.id, ...d.data() } as ScheduledSession))
+      // );
     } catch (e: any) {
       Alert.alert("Error", e.message);
     }

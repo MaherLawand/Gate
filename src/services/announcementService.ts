@@ -1,4 +1,5 @@
 import firestore from "@react-native-firebase/firestore";
+import { root } from "./db";
 
 export type CreateAnnouncementParams = {
   title?: string;
@@ -17,7 +18,7 @@ export async function createAnnouncement({
     throw new Error("Announcement must contain text or an image");
   }
 
-  const doc = await firestore()
+  const doc = await root()
     .collection("announcements")
     .add({
       title: title ?? null,

@@ -14,6 +14,7 @@ import {
   unarchiveClient,
 } from "@/src/services/ClientService";
 import { Ionicons } from "@expo/vector-icons";
+import { collection } from "@/src/services/db";
 
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect, useNavigation, useRouter } from "expo-router";
@@ -575,39 +576,42 @@ export default function ClientsScreen() {
   };
 
   const fetchClients = async () => {
-    setLoading(true);
+  setLoading(true);
 
-    const baseClients = await getTrainerClients();
+  const baseClients = await getTrainerClients();
 
-    const enrichedClients: ClientWithPackageStatus[] = await Promise.all(
-      baseClients.map(async (client: ClientProfile) => {
-        const packagesSnap = await firestore()
-          .collection("clients")
-          .doc(client.id!)
-          .collection("packages")
-          .orderBy("createdAt", "desc")
-          .limit(1)
-          .get();
+  const enrichedClients: ClientWithPackageStatus[] = await Promise.all(
+    baseClients.map(async (client: ClientProfile) => {
+      const packagesSnap = await collection(
+        "clients",
+        client.id!,
+        "packages"
+      )
+        .orderBy("createdAt", "desc")
+        .limit(1)
+        .get();
 
-        const latestPackage = packagesSnap.docs[0]?.data();
+      const latestPackage = packagesSnap.docs[0]?.data();
 
-        const hasActivePackage = latestPackage?.status === "active";
+      const hasActivePackage = latestPackage?.status === "active";
 
-        const needsRenewal =
-          !latestPackage ||
-          ["completed", "expired", "cancelled"].includes(latestPackage.status);
+      const needsRenewal =
+        !latestPackage ||
+        ["completed", "expired", "cancelled"].includes(
+          latestPackage.status
+        );
 
-        return {
-          ...client,
-          hasActivePackage,
-          needsRenewal,
-        };
-      })
-    );
+      return {
+        ...client,
+        hasActivePackage,
+        needsRenewal,
+      };
+    })
+  );
 
-    setClients(enrichedClients);
-    setLoading(false);
-  };
+  setClients(enrichedClients);
+  setLoading(false);
+};
 
   // Filter + search + sort
   useEffect(() => {

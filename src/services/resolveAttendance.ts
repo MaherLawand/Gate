@@ -1,4 +1,5 @@
 import firestore from "@react-native-firebase/firestore";
+import { root } from "./db";
 
 type ResolveAttendanceParams = {
   trainerId: string;
@@ -9,7 +10,6 @@ type ResolveAttendanceParams = {
   mode: "confirmed" | "no_show" | "charged-no-show";
 };
 
-// 🔁 Trainer → Client mapping
 const trainerToClientStatusMap = {
   confirmed: "confirmed",
   no_show: "postponed",
@@ -33,10 +33,10 @@ export async function resolveAttendance({
     mode,
   });
 
-  const db = firestore();
+  const dbRoot = root(); // ✅ ENV ROOT
   const clientStatus = trainerToClientStatusMap[mode];
 
-  const scheduleRef = db
+  const scheduleRef = dbRoot
     .collection("trainer_schedules")
     .doc(trainerId)
     .collection("days")
@@ -44,119 +44,71 @@ export async function resolveAttendance({
     .collection("sessions")
     .doc(scheduleSessionId);
 
-    const clientSessionRef = db
+  const clientSessionRef = dbRoot
     .collection("clients")
     .doc(clientId)
     .collection("sessions")
     .doc(scheduleSessionId);
 
-  const packageRef = db
+  const packageRef = dbRoot
     .collection("clients")
     .doc(clientId)
     .collection("packages")
     .doc(clientPackageId);
 
-  await db.runTransaction(async (tx) => {
-    console.info("[Attendance:transaction] Fetching schedule");
-
+  await firestore().runTransaction(async (tx) => {
     const scheduleSnap = await tx.get(scheduleRef);
 
     if (!scheduleSnap.exists) {
-      console.error("[Attendance] Schedule not found", {
-        scheduleSessionId,
-      });
       throw new Error("Scheduled session not found");
     }
 
     const schedule = scheduleSnap.data()!;
 
     if (schedule.attendance !== "pending") {
-      console.warn("[Attendance] Session already resolved", {
-        attendance: schedule.attendance,
-      });
       throw new Error("Session already resolved");
     }
 
-    // ----------------------------------------
-    // 🔥 Handle package logic
-    // ----------------------------------------
+    /* ================= PACKAGE LOGIC ================= */
 
     if (mode === "confirmed" || mode === "charged-no-show") {
-      console.info("[Attendance] Package decrement required", { mode });
-
       const packageSnap = await tx.get(packageRef);
 
       if (!packageSnap.exists) {
-        console.error("[Attendance] Package not found", {
-          clientPackageId,
-        });
-        throw new Error(
-          "Active package not found. Session may have been edited incorrectly."
-        );
+        throw new Error("Active package not found.");
       }
 
       const pkg = packageSnap.data()!;
 
       if (pkg.sessionsRemaining <= 0) {
-        console.error("[Attendance] No sessions remaining", {
-          remaining: pkg.sessionsRemaining,
-        });
         throw new Error("No sessions remaining");
       }
 
       const newRemaining = pkg.sessionsRemaining - 1;
 
-      console.info("[Attendance] Updating package sessions", {
-        from: pkg.sessionsRemaining,
-        to: newRemaining,
-      });
-
       const packageUpdate: any = {
         sessionsRemaining: newRemaining,
       };
 
-      // ✅ AUTO-COMPLETE PACKAGE
       if (newRemaining === 0) {
-        console.info("[Attendance] Package completed");
-
         packageUpdate.status = "completed";
-        packageUpdate.completedAt = firestore.FieldValue.serverTimestamp();
+        packageUpdate.completedAt =
+          firestore.FieldValue.serverTimestamp();
       }
 
       tx.update(packageRef, packageUpdate);
 
-      const now = firestore.FieldValue.serverTimestamp();
-      
       tx.update(clientSessionRef, {
         attendance: clientStatus,
-        updatedAt: now,
+        updatedAt: firestore.FieldValue.serverTimestamp(),
       });
-
-      // ✅ Create client session ONLY if attended
-      if (mode === "confirmed") {
-        console.info("[Attendance] Creating client session record");
-
-        const clientSessionRef = db
-          .collection("clients")
-          .doc(clientId)
-          .collection("sessions")
-          .doc(scheduleSessionId);
-
-        tx.update(clientSessionRef, {
-          attendance: "confirmed",
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        });
-      }
     }
 
-    // ----------------------------------------
-    // ✅ Update attendance on schedule
-    // ----------------------------------------
-
-    console.info("[Attendance] Updating schedule attendance", { mode });
+    /* ================= UPDATE SCHEDULE ================= */
 
     tx.update(scheduleRef, {
       attendance: mode,
+      updatedAt: firestore.FieldValue.serverTimestamp(),
     });
   });
 

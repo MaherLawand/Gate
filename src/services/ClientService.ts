@@ -16,13 +16,16 @@ import {
 
 import {
   addDoc,
-  collection,
   deleteDoc,
-  doc,
   getDoc,
   serverTimestamp,
   setDoc,
 } from "../services/fireStoreHelpers";
+
+import { db, root, collection,doc } from "./db";
+
+
+
 
 export const redirectAfterLogin = async (uid: string) => {
   console.info("[Auth] redirectAfterLogin:start", { uid });
@@ -529,11 +532,10 @@ export const reactivatePackage = async (
 };
 
 export async function clientExistsByPhone(phone: string) {
-  const snap = await firestore()
-    .collection("clients")
-    .where("phone", "==", phone)
-    .limit(1)
-    .get();
+const snap = await collection("clients")
+  .where("phone", "==", phone)
+  .limit(1)
+  .get();
 
   return !snap.empty;
 }

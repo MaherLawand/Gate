@@ -2,6 +2,7 @@ import auth from "@react-native-firebase/auth";
 import firestore, {
   FirebaseFirestoreTypes,
 } from "@react-native-firebase/firestore";
+import { root } from "@/src/services/db";
 
 import AnimatedAppear from "@/src/components/AnimatedAppear";
 import AppButton from "@/src/components/AppButton";
@@ -120,7 +121,7 @@ export default function NotesScreen() {
     try {
       setLoading(true);
 
-      const clientRef = firestore().doc(`clients/${clientId}`);
+      const clientRef = root().collection("clients").doc(clientId);
       const clientSnap = await clientRef.get();
 
       if (!clientSnap.exists) throw new Error("Client not found");
@@ -130,13 +131,13 @@ export default function NotesScreen() {
         throw new Error("Not authorized");
       }
 
-      const snapshot = await firestore()
-        .collection("clients")
-        .doc(clientId)
-        .collection("notes")
-        .orderBy("createdAt", "desc")
+      const snapshot = await root()
+  .collection("clients")
+  .doc(clientId)
+  .collection("notes")
+ .orderBy("createdAt", "desc")
         .get();
-
+        
       const arr: any[] = [];
       snapshot.forEach((doc: FirebaseFirestoreTypes.QueryDocumentSnapshot) => {
         arr.push({ id: doc.id, ...doc.data() });
@@ -156,7 +157,7 @@ export default function NotesScreen() {
     if (!content || !id) return;
 
     try {
-      await firestore().collection("clients").doc(id).collection("notes").add({
+      await root().collection("clients").doc(id).collection("notes").add({
         content,
         createdAt: firestore.FieldValue.serverTimestamp(),
       });
@@ -176,11 +177,11 @@ export default function NotesScreen() {
     if (!content || !id) return;
 
     try {
-      await firestore()
-        .collection("clients")
-        .doc(id)
-        .collection("notes")
-        .doc(noteId)
+      await root()
+  .collection("clients")
+  .doc(id)
+  .collection("notes")
+  .doc(noteId)
         .set(
           {
             content,
@@ -204,12 +205,12 @@ export default function NotesScreen() {
     if (!id) return;
 
     try {
-      await firestore()
-        .collection("clients")
-        .doc(id)
-        .collection("notes")
-        .doc(noteId)
-        .delete();
+     await root()
+  .collection("clients")
+  .doc(id)
+  .collection("notes")
+  .doc(noteId)
+  .delete();
 
       setEditingNote(null);
       sheetRef.current?.hide();

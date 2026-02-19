@@ -1,7 +1,7 @@
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import { createContext, useContext, useEffect, useState } from "react";
-
+import { collection } from "@/src/services/db";
 type ClientContextType = {
   clientId: string | null;
   trainerId: string | null;
@@ -32,11 +32,10 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
       try {
         setClientLoading(true);
 
-        const snap = await firestore()
-          .collection("clients")
-          .where("authUid", "==", user.uid)
-          .limit(1)
-          .get();
+        const snap = await collection("clients")
+  .where("authUid", "==", user.uid)
+  .limit(1)
+  .get();
 
         if (!mounted) return;
 

@@ -37,6 +37,25 @@ setGlobalOptions({ maxInstances: 10 });
 //   logger.info("Hello logs!", {structuredData: true});
 //   response.send("Hello from Firebase!");
 // });
+
+const PROJECT_ID = process.env.GCLOUD_PROJECT || "unknown";
+
+const ENV =
+  PROJECT_ID === "gateprivategym-951cf"
+    ? "DEV"
+    : PROJECT_ID === "gate-2056a"
+    ? "PROD"
+    : "UNKNOWN";
+
+logger.info(`🚀 Cloud Functions booted`, {
+  projectId: PROJECT_ID,
+  environment: ENV,
+});
+
+function envLogPrefix() {
+  return `[${ENV}]`;
+}
+
 export const dispatchScheduledNotifications = onSchedule(
   {
     schedule: "every 1 minutes",
@@ -46,7 +65,7 @@ export const dispatchScheduledNotifications = onSchedule(
   async () => {
     const now = admin.firestore.Timestamp.now();
 
-    logger.info("🔔 [CF] Dispatch cycle started", {
+    logger.info(`${envLogPrefix()} 🔔 [CF] Dispatch cycle started`, {
       now: now.toDate().toISOString(),
     });
 
@@ -62,24 +81,24 @@ export const dispatchScheduledNotifications = onSchedule(
       if (!pushToken || !notificationsEnabled) continue;
 
       const notificationsSnap = await db
-        .collection("clients")
-        .doc(clientId)
-        .collection("notifications")
-        .where("sent", "==", false)
-        .where("scheduledFor", "<=", now)
-        .get();
+  .collectionGroup("notifications")
+  .where("sent", "==", false)
+  .where("scheduledFor", "<=", now)
+  .get();
 
       if (notificationsSnap.empty) continue;
 
-      logger.info("📦 [CF] Notifications found", {
+      logger.info(`${envLogPrefix()} 📦 [CF] Notifications found`, {
         clientId,
         count: notificationsSnap.size,
       });
 
       for (const notifDoc of notificationsSnap.docs) {
         const notif = notifDoc.data();
+        const clientRef = notifDoc.ref.parent.parent; // clients/{clientId}
+  const clientSnap = await clientRef?.get();
 
-        logger.info("📨 [CF] Notification payload preview", {
+        logger.info(`${envLogPrefix()} 📨 [CF] Notification payload preview`, {
           clientId,
           notificationId: notifDoc.id,
           scheduledFor: notif.scheduledFor?.toMillis?.(),
@@ -91,7 +110,7 @@ export const dispatchScheduledNotifications = onSchedule(
           notif.expiresAt && notif.expiresAt.toMillis() <= now.toMillis();
 
         if (isExpired && notif.type !== "announcement") {
-          logger.info("⏭️ [CF] Skipping expired notification", {
+          logger.info(`${envLogPrefix()} ⏭️ [CF] Skipping expired notification"`, {
             clientId,
             notificationId: notifDoc.id,
           });
@@ -138,7 +157,7 @@ export const dispatchScheduledNotifications = onSchedule(
 
           // ❌ Missing ticket data
           if (!hasData(result)) {
-            logger.warn("Expo push response missing data", {
+            logger.warn(`${envLogPrefix()} Expo push response missing data`, {
               clientId,
               notificationId: notifDoc.id,
               expoResponse: result,
@@ -151,7 +170,7 @@ export const dispatchScheduledNotifications = onSchedule(
           // ✅ Success
           if (expoResult.status === "ok") {
             await notifDoc.ref.update({ sent: true });
-            logger.info("✅ Expo push sent", {
+            logger.info(`${envLogPrefix()}✅ Expo push sent`, {
               clientId,
               notificationId: notifDoc.id,
             });
@@ -159,20 +178,20 @@ export const dispatchScheduledNotifications = onSchedule(
           }
 
           // ❌ Ticket rejected
-          logger.warn("Expo push ticket rejected", {
+          logger.warn(` ${envLogPrefix()}Expo push ticket rejected`, {
             clientId,
             notificationId: notifDoc.id,
             expoResult,
           });
 
           // Optional: auto-clean dead tokens
-          if (expoResult.message === "DeviceNotRegistered") {
-            await clientDoc.ref.update({
-              pushToken: admin.firestore.FieldValue.delete(),
-            });
-          }
+          if (expoResult.details?.error === "DeviceNotRegistered") {
+  await clientDoc.ref.update({
+    pushToken: admin.firestore.FieldValue.delete(),
+  });
+}
         } catch (err: any) {
-          logger.error("❌ [CF] Push failed", {
+          logger.error(`${envLogPrefix()}❌ [CF] Push failed`, {
             clientId,
             notificationId: notifDoc.id,
             error: err?.message,
@@ -182,7 +201,7 @@ export const dispatchScheduledNotifications = onSchedule(
       }
     }
 
-    logger.info("🏁 [CF] Dispatch cycle finished");
+    logger.info(`${envLogPrefix()}🏁 [CF] Dispatch cycle finished`);
   }
 );
 
@@ -271,7 +290,7 @@ export const onAnnouncementCreated = onDocumentCreated(
 
     await batch.commit();
 
-    logger.info("📣 Announcement enqueued for all clients", {
+    logger.info(`${envLogPrefix()}📣 Announcement enqueued for all clients`, {
       announcementId,
       count: clientsSnap.size,
     });
@@ -285,7 +304,7 @@ export const scheduleWeeklyPreferencesReminder = onSchedule(
     maxInstances: 1,
   },
   async () => {
-    logger.info("🗓️ [CF] Weekly preferences reminder started");
+    logger.info(`${envLogPrefix()}🗓️ [CF] Weekly preferences reminder started`);
 
     // Get this week's Saturday key (local time safe)
     const now = new Date();
@@ -325,7 +344,7 @@ export const scheduleWeeklyPreferencesReminder = onSchedule(
         });
     }
 
-    logger.info("✅ [CF] Weekly preferences notifications created", {
+    logger.info(`${envLogPrefix()}✅ [CF] Weekly preferences notifications created`, {
       weekKey,
       count: clientsSnap.size,
     });

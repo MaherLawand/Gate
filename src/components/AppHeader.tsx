@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import auth from "@react-native-firebase/auth";
-import firestore from "@react-native-firebase/firestore";
+import firestore, { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -14,6 +14,8 @@ import {
 import { listenUnreadNotificationsCount } from "../services/notifications/notificationService";
 import { colors } from "../theme/colors";
 import { useClient } from "./ClientContext";
+import { collection, doc } from "../services/db";
+
 
 type ClientNotification = {
   id: string;
@@ -44,15 +46,16 @@ export default function AppHeader() {
       return;
     }
 
-    const unsub = firestore()
-      .collection("clients")
-      .doc(clientId)
-      .collection("notifications")
-      .where("read", "==", false)
-      .where("sent", "==", true)
-      .orderBy("createdAt", "desc")
-      .onSnapshot(
-        (snap) => {
+    const unsub = collection(
+  "clients",
+  clientId,
+  "notifications"
+)
+  .where("read", "==", false)
+  .where("sent", "==", true)
+  .orderBy("createdAt", "desc")
+  .onSnapshot(
+        (    snap: FirebaseFirestoreTypes.QuerySnapshot<FirebaseFirestoreTypes.DocumentData>) => {
           if (!snap) {
             console.warn("[Notifications] snapshot is null");
             setNotifications([]);
@@ -68,7 +71,7 @@ export default function AppHeader() {
 
           setNotifications(data);
         },
-        (error) => {
+  (error:any) => {
           console.error("[Notifications] listener error", error);
           setNotifications([]);
         }
@@ -93,13 +96,13 @@ export default function AppHeader() {
   const markAsRead = async (notificationId: string) => {
     if (!clientId) return;
 
-    await firestore()
-      .collection("clients")
-      .doc(clientId)
-      .collection("notifications")
-      .doc(notificationId)
-      .update({ read: true });
-  };
+    await doc(
+  "clients",
+  clientId,
+  "notifications",
+  notificationId
+).update({ read: true });
+  }
 
   const formatNotificationDate = (createdAt: any) => {
     if (!createdAt) return "";
@@ -114,6 +117,7 @@ export default function AppHeader() {
       day: "numeric",
     });
   };
+
 
   /* ---------------- HEADER ---------------- */
   return (
