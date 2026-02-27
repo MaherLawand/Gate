@@ -12,9 +12,7 @@ import { setGlobalOptions } from "firebase-functions";
 import * as logger from "firebase-functions/logger";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
-
 import fetch from "node-fetch";
-
 admin.initializeApp();
 
 const db = admin.firestore();
@@ -44,8 +42,8 @@ const ENV =
   PROJECT_ID === "gateprivategym-951cf"
     ? "DEV"
     : PROJECT_ID === "gate-2056a"
-    ? "PROD"
-    : "UNKNOWN";
+      ? "PROD"
+      : "UNKNOWN";
 
 logger.info(`🚀 Cloud Functions booted`, {
   projectId: PROJECT_ID,
@@ -81,10 +79,12 @@ export const dispatchScheduledNotifications = onSchedule(
       if (!pushToken || !notificationsEnabled) continue;
 
       const notificationsSnap = await db
-  .collectionGroup("notifications")
-  .where("sent", "==", false)
-  .where("scheduledFor", "<=", now)
-  .get();
+        .collection("clients")
+        .doc(clientId)
+        .collection("notifications")
+        .where("sent", "==", false)
+        .where("scheduledFor", "<=", now)
+        .get();
 
       if (notificationsSnap.empty) continue;
 
@@ -95,8 +95,12 @@ export const dispatchScheduledNotifications = onSchedule(
 
       for (const notifDoc of notificationsSnap.docs) {
         const notif = notifDoc.data();
+        logger.info(`${envLogPrefix()} 🔑 Push token check`, {
+          clientId,
+          pushToken,
+        });
         const clientRef = notifDoc.ref.parent.parent; // clients/{clientId}
-  const clientSnap = await clientRef?.get();
+        const clientSnap = await clientRef?.get();
 
         logger.info(`${envLogPrefix()} 📨 [CF] Notification payload preview`, {
           clientId,
@@ -110,10 +114,13 @@ export const dispatchScheduledNotifications = onSchedule(
           notif.expiresAt && notif.expiresAt.toMillis() <= now.toMillis();
 
         if (isExpired && notif.type !== "announcement") {
-          logger.info(`${envLogPrefix()} ⏭️ [CF] Skipping expired notification"`, {
-            clientId,
-            notificationId: notifDoc.id,
-          });
+          logger.info(
+            `${envLogPrefix()} ⏭️ [CF] Skipping expired notification"`,
+            {
+              clientId,
+              notificationId: notifDoc.id,
+            },
+          );
 
           await notifDoc.ref.update({
             sent: true,
@@ -122,23 +129,26 @@ export const dispatchScheduledNotifications = onSchedule(
 
           continue;
         }
+const mode = clientData.notificationSettings?.mode ?? "sound";
 
-        const payload = {
-          to: pushToken,
-          title: notif.title,
-          body: notif.body,
-          sound: "default",
-          priority: "high",
-          data: {
-            route: notif.route ?? null,
-            params: notif.params ?? null,
-          },
-        };
-
+const payload = {
+  to: pushToken,
+  title: notif.title,
+  body: notif.body ?? "",
+  sound: mode === "sound" ? "default" : null,
+  priority: "high",
+  channelId: mode, // 👈 KEY LINE
+  data: {
+    route: notif.route ?? null,
+    params: notif.params ?? null,
+  },
+};
         try {
           const res = await fetch("https://exp.host/--/api/v2/push/send", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+            },
             body: JSON.stringify([payload]), // 👈 MUST be array
           });
 
@@ -178,18 +188,21 @@ export const dispatchScheduledNotifications = onSchedule(
           }
 
           // ❌ Ticket rejected
-          logger.warn(` ${envLogPrefix()}Expo push ticket rejected`, {
+          // ❌ Ticket rejected
+          logger.warn(`${envLogPrefix()} 🚨 Expo push ticket rejected`, {
             clientId,
             notificationId: notifDoc.id,
-            expoResult,
+            status: expoResult.status,
+            message: expoResult.message,
+            details: expoResult.details,
           });
 
           // Optional: auto-clean dead tokens
           if (expoResult.details?.error === "DeviceNotRegistered") {
-  await clientDoc.ref.update({
-    pushToken: admin.firestore.FieldValue.delete(),
-  });
-}
+            await clientDoc.ref.update({
+              pushToken: admin.firestore.FieldValue.delete(),
+            });
+          }
         } catch (err: any) {
           logger.error(`${envLogPrefix()}❌ [CF] Push failed`, {
             clientId,
@@ -202,18 +215,19 @@ export const dispatchScheduledNotifications = onSchedule(
     }
 
     logger.info(`${envLogPrefix()}🏁 [CF] Dispatch cycle finished`);
-  }
+  },
 );
 
 type AnnouncementDoc = {
   title: string;
-  body: string;
+  body: string; // 👈 match frontend
+  imageUrl?: string | null; // 👈 add this
   authorId: string;
 
   route?: string;
   params?: Record<string, any>;
 
-  expiresAt?: admin.firestore.Timestamp; // ✅ OPTIONAL
+  expiresAt?: admin.firestore.Timestamp | null;
 };
 function hasData(res: ExpoPushResponse): res is ExpoPushOkResponse {
   return "data" in res;
@@ -265,6 +279,7 @@ export const onAnnouncementCreated = onDocumentCreated(
 
     for (const clientDoc of clientsSnap.docs) {
       const client = clientDoc.data();
+      const notificationsEnabled = client.notificationsEnabled !== false;
 
       const notifRef = db
         .collection("clients")
@@ -275,14 +290,13 @@ export const onAnnouncementCreated = onDocumentCreated(
       batch.set(notifRef, {
         type: "announcement",
         title: announcement.title ?? "Announcement",
-        body: announcement.body,
-        route: announcement.route ?? "/announcements",
+        body: announcement.body ?? "",
+        imageUrl: announcement.imageUrl ?? null, // 👈 store image
+        route: "/(app)/client/announcements",
         params: { announcementId },
-        scheduledFor: admin.firestore.Timestamp.fromMillis(
-          Date.now() - 1000 * 5 // 5 seconds ago
-        ),
-        expiresAt: null,
-        sent: false,
+        scheduledFor: admin.firestore.Timestamp.now(),
+        expiresAt: announcement.expiresAt ?? null,
+        sent: !notificationsEnabled,
         read: false,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
@@ -290,11 +304,11 @@ export const onAnnouncementCreated = onDocumentCreated(
 
     await batch.commit();
 
-    logger.info(`${envLogPrefix()}📣 Announcement enqueued for all clients`, {
+    logger.info(`${envLogPrefix()}📣 Announcement enqueued`, {
       announcementId,
       count: clientsSnap.size,
     });
-  }
+  },
 );
 
 export const scheduleWeeklyPreferencesReminder = onSchedule(
@@ -314,7 +328,7 @@ export const scheduleWeeklyPreferencesReminder = onSchedule(
     saturday.setDate(now.getDate() + diff);
 
     const weekKey = `${saturday.getFullYear()}-${String(
-      saturday.getMonth() + 1
+      saturday.getMonth() + 1,
     ).padStart(2, "0")}-${String(saturday.getDate()).padStart(2, "0")}`;
 
     const clientsSnap = await db.collection("clients").get();
@@ -337,18 +351,21 @@ export const scheduleWeeklyPreferencesReminder = onSchedule(
           params: { weekKey },
           scheduledFor: admin.firestore.Timestamp.now(),
           expiresAt: admin.firestore.Timestamp.fromDate(
-            new Date(saturday.getTime() + 6 * 24 * 60 * 60 * 1000)
+            new Date(saturday.getTime() + 6 * 24 * 60 * 60 * 1000),
           ), // expires Friday
           sent: !notificationsEnabled,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
     }
 
-    logger.info(`${envLogPrefix()}✅ [CF] Weekly preferences notifications created`, {
-      weekKey,
-      count: clientsSnap.size,
-    });
-  }
+    logger.info(
+      `${envLogPrefix()}✅ [CF] Weekly preferences notifications created`,
+      {
+        weekKey,
+        count: clientsSnap.size,
+      },
+    );
+  },
 );
 
 // firebase deploy --only functions

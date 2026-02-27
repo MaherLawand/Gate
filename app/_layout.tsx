@@ -4,7 +4,7 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { View } from "react-native";
-
+import { colors } from "@/src/theme/colors";
 // export const unstable_settings = {
 //   initialRouteName: "entry",
 // };
@@ -22,17 +22,25 @@ export default function RootLayout() {
 
   // 🔔 FOREGROUND PUSH HANDLER
 
-  if (!fontsLoaded) {
-    return <View style={{ flex: 1 }} />;
-  }
 
+if (!fontsLoaded) {
   return (
-    <>
-      <StatusBar style="auto" />
-      <Stack screenOptions={{ headerShown: false }}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+      }}
+    />
+  );
+}
+
+return (
+  <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <StatusBar style="light" backgroundColor={colors.background} />
+    <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(app)" />
     </Stack>
-    </>
-  );
+  </View>
+);
 }

@@ -32,7 +32,7 @@ import {
   renewPackage,
   updatePackage,
 } from "../../../../../src/services/ClientService";
-
+import { BlurView } from "expo-blur";
 import { colors } from "../../../../../src/theme/colors";
 import { ClientPackage } from "../../../../../src/types/models";
 
@@ -47,7 +47,7 @@ export default function PackagesScreen() {
   const [client, setClient] = useState<any>(null);
   const [packages, setPackages] = useState<ClientPackage[]>([]);
   const [activePackage, setActivePackage] = useState<ClientPackage | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(true);
   const [packagePrice, setPackagePrice] = useState("");
@@ -67,7 +67,7 @@ export default function PackagesScreen() {
 
   const isSubmittingRef = useRef(false);
   const allowCloseRef = useRef(false);
-
+  const [issubmitting, setIsSubmitting] = useState(false);
   const resetPackageState = () => {
     setPackagePrice("");
     setPackageSessions("");
@@ -107,7 +107,7 @@ export default function PackagesScreen() {
     if (expired === "1") {
       Alert.alert(
         "Package expired",
-        "This client has no remaining sessions. Please add a new package."
+        "This client has no remaining sessions. Please add a new package.",
       );
 
       setHighlightAddPackage(true);
@@ -164,48 +164,58 @@ export default function PackagesScreen() {
   };
 
   const handleSavePackage = async () => {
+    if (issubmitting) return; // 🛑 prevent double tap
+
     if (!packagePrice || !packageSessions) {
       Alert.alert("Missing fields");
       return;
     }
+
     const hasCancelled = packages.some((p) => p.status === "cancelled");
-    isSubmittingRef.current = true;
+
     if (!editingPackage && hasCancelled) {
       if (Platform.OS === "web") {
         if (
           window.confirm(
-            "Cancelled package exists. You must reactivate or resolve the cancelled package first."
+            "Cancelled package exists. You must reactivate or resolve the cancelled package first.",
           )
         )
           return;
       } else {
         Alert.alert(
           "Cancelled package exists",
-          "You must reactivate or resolve the cancelled package first."
+          "You must reactivate or resolve the cancelled package first.",
         );
         return;
       }
     }
-    if (editingPackage && activePackage) {
-      // EDIT existing package
-      await updatePackage(id!, activePackage.id!, {
-        price: Number(packagePrice),
-        isPaid: packagePaid,
-        paidAt: packagePaid ? serverTimestamp() : null,
-      });
-    } else {
-      // RENEW (new package)
-      await renewPackage(id!, {
-        price: Number(packagePrice),
-        totalSessions: Number(packageSessions),
-        isPaid: packagePaid,
-      });
-    }
 
-    allowCloseRef.current = true; // 👈 THIS IS THE KEY
-    resetPackageState(); // 👈 CLEAN FIRST
-    sheetRef.current?.hide();
-    await fetchPackages();
+    try {
+      setIsSubmitting(true); // 🔒 lock button
+
+      if (editingPackage && activePackage) {
+        // EDIT existing package
+        await updatePackage(id!, activePackage.id!, {
+          price: Number(packagePrice),
+          isPaid: packagePaid,
+          paidAt: packagePaid ? serverTimestamp() : null,
+        });
+      } else {
+        // RENEW (new package)
+        await renewPackage(id!, {
+          price: Number(packagePrice),
+          totalSessions: Number(packageSessions),
+          isPaid: packagePaid,
+        });
+      }
+
+      allowCloseRef.current = true;
+      resetPackageState();
+      sheetRef.current?.hide();
+      await fetchPackages();
+    } finally {
+      setIsSubmitting(false); // 🔓 unlock no matter what
+    }
   };
 
   const handleCancelPackage = () => {
@@ -218,7 +228,7 @@ export default function PackagesScreen() {
 
     if (Platform.OS === "web") {
       const ok = window.confirm(
-        "Cancel package?\n\nThis will stop future sessions but keep the package."
+        "Cancel package?\n\nThis will stop future sessions but keep the package.",
       );
       if (ok) confirmCancel();
     } else {
@@ -232,37 +242,44 @@ export default function PackagesScreen() {
             style: "destructive",
             onPress: confirmCancel,
           },
-        ]
+        ],
       );
     }
   };
-  const handleReactivatePackage = (pkgId: string) => {
-    if (!id) return;
+const handleReactivatePackage = (pkgId: string) => {
+  if (!id || issubmitting) return; // 🛑 block double tap
 
-    const confirmReactivate = async () => {
+  const confirmReactivate = async () => {
+    try {
+      setIsSubmitting(true); // 🔒 lock
+
       await reactivatePackage(id!, pkgId);
-      await fetchPackages(); // refresh list + activePackage
-    };
+      await fetchPackages();
 
-    if (Platform.OS === "web") {
-      const ok = window.confirm(
-        "Reactivate package?\n\nThis will make this package active again."
-      );
-      if (ok) confirmReactivate();
-    } else {
-      Alert.alert(
-        "Reactivate package?",
-        "This will make this package active again.",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Reactivate",
-            onPress: confirmReactivate,
-          },
-        ]
-      );
+    } finally {
+      setIsSubmitting(false); // 🔓 always unlock
     }
   };
+
+  if (Platform.OS === "web") {
+    const ok = window.confirm(
+      "Reactivate package?\n\nThis will make this package active again."
+    );
+    if (ok) confirmReactivate();
+  } else {
+    Alert.alert(
+      "Reactivate package?",
+      "This will make this package active again.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reactivate",
+          onPress: confirmReactivate,
+        },
+      ]
+    );
+  }
+};
 
   /* ------------------ RENDER ------------------ */
 
@@ -434,8 +451,8 @@ export default function PackagesScreen() {
                       activePackage.status === "active"
                         ? styles.dotActive
                         : activePackage.status === "expired"
-                        ? styles.dotExpired
-                        : styles.dotWarning,
+                          ? styles.dotExpired
+                          : styles.dotWarning,
                     ]}
                   />
                   <Text style={styles.statusText}>
@@ -608,8 +625,8 @@ export default function PackagesScreen() {
                                 pkg.status === "active"
                                   ? styles.dotActive
                                   : pkg.status === "expired"
-                                  ? styles.dotExpired
-                                  : styles.dotWarning,
+                                    ? styles.dotExpired
+                                    : styles.dotWarning,
                               ]}
                             />
                             <Text style={[typography.small, styles.statusText]}>
@@ -620,7 +637,8 @@ export default function PackagesScreen() {
 
                         {pkg.status === "cancelled" && (
                           <AppButton
-                            title="Reactivate Package"
+                            title={issubmitting ? "Processing..." : "Reactivate Package"}
+                            disabled={issubmitting}
                             variant="small"
                             onPress={() => handleReactivatePackage(pkg.id!)}
                           />
@@ -629,6 +647,13 @@ export default function PackagesScreen() {
                     </View>
                   </AnimatedAppear>
                 ))
+            )}
+            {packages.length === 1 && (
+              <View style={styles.emptyPackagesContainer}>
+                <Text style={[typography.body, styles.emptyPackagesText]}>
+                  No past packages available
+                </Text>
+              </View>
             )}
           </View>
         )}
@@ -681,58 +706,81 @@ export default function PackagesScreen() {
                   sheetRef.current?.hide();
                 },
               },
-            ]
+            ],
           );
 
           return false;
         }}
       >
-        <SheetScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ padding: 15, paddingBottom: 30 }}
+        <BlurView
+          intensity={50}
+          tint="dark"
+          style={{
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            overflow: "hidden",
+            backgroundColor: "rgba(18,18,22,0.65)", // glass overlay
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.08)",
+          }}
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <AnimatedAppear delay={240}>
-                <Text style={[typography.heading, styles.title]}>
-                  Add Package
-                </Text>
-              </AnimatedAppear>
-              <AnimatedAppear delay={340}>
-                <TextInput
-                  style={[styles.input, editingPackage && styles.inputDisabled]}
-                  placeholder="Total Sessions (e.g. 16)"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="numeric"
-                  value={packageSessions}
-                  onChangeText={setPackageSessions}
-                  editable={!editingPackage}
-                />
-              </AnimatedAppear>
-              <AnimatedAppear delay={340}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Price (e.g. 240)"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="numeric"
-                  value={packagePrice}
-                  onChangeText={setPackagePrice}
-                />
-              </AnimatedAppear>
-              <AnimatedAppear delay={440}>
-                <AppButton
-                  title={packagePaid ? "Paid ✓" : "Mark as Paid"}
-                  onPress={() => setPackagePaid(!packagePaid)}
-                />
+          <SheetScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ padding: 15, paddingBottom: 30 }}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <AnimatedAppear delay={240}>
+                  <Text style={[typography.heading, styles.title]}>
+                    Add Package
+                  </Text>
+                </AnimatedAppear>
+                <AnimatedAppear delay={340}>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      editingPackage && styles.inputDisabled,
+                    ]}
+                    placeholder="Total Sessions (e.g. 16)"
+                    placeholderTextColor={colors.textSecondary}
+                    keyboardType="numeric"
+                    value={packageSessions}
+                    onChangeText={setPackageSessions}
+                    editable={!editingPackage}
+                  />
+                </AnimatedAppear>
+                <AnimatedAppear delay={340}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Price (e.g. 240)"
+                    placeholderTextColor={colors.textSecondary}
+                    keyboardType="numeric"
+                    value={packagePrice}
+                    onChangeText={setPackagePrice}
+                  />
+                </AnimatedAppear>
+                <AnimatedAppear delay={440}>
+                  <AppButton
+                    title={packagePaid ? "Paid ✓" : "Mark as Paid"}
+                    onPress={() => setPackagePaid(!packagePaid)}
+                  />
 
-                <AppButton
-                  title={editingPackage ? "Update Package" : "Create Package"}
-                  onPress={handleSavePackage}
-                />
-              </AnimatedAppear>
+                  <AppButton
+                    title={
+                      issubmitting
+                        ? "Saving..."
+                        : editingPackage
+                          ? "Update Package"
+                          : "Create Package"
+                    }
+                    onPress={handleSavePackage}
+                    disabled={issubmitting}
+                  />
+                </AnimatedAppear>
+              </View>
             </View>
-          </View>
-        </SheetScrollView>
+          </SheetScrollView>
+        </BlurView>
       </ActionSheet>
     </ScrollView>
   );
@@ -853,9 +901,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalContent: {
-    backgroundColor: colors.background,
     borderRadius: 12,
-    padding: 24,
   },
   input: {
     backgroundColor: colors.card,
@@ -949,5 +995,16 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: 12,
     fontWeight: "600",
+  },
+  emptyPackagesContainer: {
+    padding: 20,
+    borderRadius: 12,
+    backgroundColor: colors.card,
+    alignItems: "center",
+    marginTop: 12,
+  },
+  emptyPackagesText: {
+    color: colors.textPrimary,
+    fontSize: 14,
   },
 });

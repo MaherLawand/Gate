@@ -20,7 +20,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect, useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { log, error } from "@/src/utils/logger";
-
+import { BlurView } from "expo-blur";
 import {
   Alert,
   Animated,
@@ -52,7 +52,7 @@ import ActionSheet, {
 } from "react-native-actions-sheet";
 
 const DEV_SKELETON_DELAY = 2200; // ms
-const DEFAULT_AVATAR = require("../../../assets/images/avatar-placeholder.png");
+const DEFAULT_AVATAR = require("../../../assets/images/icons8-profile-96.png");
 
 const CARD_HEIGHT = 180;
 
@@ -171,7 +171,11 @@ function ClientCard({ item, index, onArchive, onUnarchive }: ClientCardProps) {
       },
     })
   ).current;
-
+const statusColor = item.hasActivePackage
+  ? "#22c55e"     // green
+  : item.needsRenewal
+  ? "#f59e0b"     // amber
+  : "#ef4444";    // red
   return (
     <Animated.View
       {...panResponder.panHandlers}
@@ -231,7 +235,7 @@ function ClientCard({ item, index, onArchive, onUnarchive }: ClientCardProps) {
               {item.firstName} {item.lastName}
             </Text>
 
-            <View
+            {/* <View
               style={[
                 styles.statusDot,
                 item.hasActivePackage
@@ -240,7 +244,7 @@ function ClientCard({ item, index, onArchive, onUnarchive }: ClientCardProps) {
                   ? styles.dotCancelled
                   : styles.dotInactive,
               ]}
-            />
+            /> */}
           </View>
         </View>
         {/* STATUS BLOCK */}
@@ -266,7 +270,15 @@ function ClientCard({ item, index, onArchive, onUnarchive }: ClientCardProps) {
           </Text>
         </View> */}
 
-        <View style={styles.cardActions}>
+        <View
+  style={[
+    styles.cardActions,
+    {
+      borderTopColor: statusColor,
+      borderTopWidth: 2, // make it slightly stronger
+    },
+  ]}
+>
           <Animated.View
             style={{
               transform: [
@@ -390,41 +402,41 @@ export default function ClientsScreen() {
     const rows = Math.ceil(itemsCount / COLUMNS); // COLUMNS = 2
     return rows * (CARD_HEIGHT + 16) + 8;
   };
-  useFocusEffect(
-    useCallback(() => {
-      const onBack = () => {
-        router.replace("/(app)/trainer/dashboard");
-        return true; // ⛔ block default back
-      };
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     const onBack = () => {
+  //       router.replace("/(app)/trainer/dashboard");
+  //       return true; // ⛔ block default back
+  //     };
 
-      // Android hardware back
-      const sub =
-        Platform.OS === "android"
-          ? BackHandler.addEventListener("hardwareBackPress", onBack)
-          : null;
+  //     // Android hardware back
+  //     const sub =
+  //       Platform.OS === "android"
+  //         ? BackHandler.addEventListener("hardwareBackPress", onBack)
+  //         : null;
 
-      return () => {
-        sub?.remove();
-      };
-    }, [])
-  );
+  //     return () => {
+  //       sub?.remove();
+  //     };
+  //   }, [])
+  // );
 
-  const navigation = useNavigation();
+  // const navigation = useNavigation();
 
-  useEffect(() => {
-    if (Platform.OS !== "ios") return;
+  // useEffect(() => {
+  //   if (Platform.OS !== "ios") return;
 
-    const unsub = navigation.addListener("beforeRemove", (e) => {
-      // Allow programmatic redirects
-      if (e.data.action?.type === "REPLACE") return;
+  //   const unsub = navigation.addListener("beforeRemove", (e) => {
+  //     // Allow programmatic redirects
+  //     if (e.data.action?.type === "REPLACE") return;
 
-      e.preventDefault();
+  //     e.preventDefault();
 
-      router.replace("/(app)/trainer/dashboard");
-    });
+  //     router.replace("/(app)/trainer/dashboard");
+  //   });
 
-    return unsub;
-  }, [navigation]);
+  //   return unsub;
+  // }, [navigation]);
   const [clients, setClients] = useState<ClientWithPackageStatus[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -440,7 +452,7 @@ export default function ClientsScreen() {
     "all"
   );
   const [isHijabi, setIsHijabi] = useState(false);
-
+const [submitting, setSubmitting] = useState(false);
   // Search filter
   const [search, setSearch] = useState("");
   const [filteredClients, setFilteredClients] = useState<
@@ -660,17 +672,9 @@ export default function ClientsScreen() {
     setFilteredClients(result);
   }, [search, clients, sortBy, showArchived, showNoPackageOnly, genderFilter]);
 
-  useFocusEffect(
-    useCallback(() => {
-      log("🟢 Clients screen focused → refresh data");
-
-      fetchClients(); // 👈 your refresh logic here
-
-      return () => {
-        log("🟡 Clients screen unfocused");
-      };
-    }, [])
-  );
+useEffect(() => {
+  fetchClients();
+}, []);
 
   const pages = useMemo(() => {
     const result: ClientWithPackageStatus[][] = [];
@@ -686,6 +690,7 @@ export default function ClientsScreen() {
   const totalPages = pages.length;
 
   const handleAddClient = async () => {
+    if(submitting) return; // prevent double submit
     if (!firstName || !lastName) {
       Alert.alert("Error", "First and last name are required");
       return;
@@ -703,6 +708,7 @@ export default function ClientsScreen() {
       );
       return;
     }
+  setSubmitting(true); // 🔒 lock button
 
     // 🔍 CHECK DUPLICATE PHONE
     const exists = await clientExistsByPhone(raw);
@@ -757,6 +763,8 @@ export default function ClientsScreen() {
       }
     } catch (err: any) {
       Alert.alert("Error", err.message);
+    }finally {
+      setSubmitting(false); // 🔓 unlock button
     }
   };
 
@@ -1087,7 +1095,7 @@ export default function ClientsScreen() {
         keyboardHandlerEnabled
         indicatorStyle={{ backgroundColor: "transparent" }} // ❌ removes white bar
         containerStyle={{
-          backgroundColor: colors.background,
+          backgroundColor: "transparent",
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
           paddingTop: 8, // tighter top
@@ -1132,6 +1140,18 @@ export default function ClientsScreen() {
           return false; // ⛔ block close
         }}
       >
+        <BlurView
+  intensity={50}
+  tint="dark"
+  style={{
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: "hidden",
+    backgroundColor: "rgba(18,18,22,0.65)", // glass overlay
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  }}
+>
         <AnimatedAppear delay={240}>
           <ScrollView
             keyboardShouldPersistTaps="handled"
@@ -1296,11 +1316,12 @@ export default function ClientsScreen() {
 
             {/* ACTIONS */}
             <View style={styles.footer}>
-              <AppButton title="Add Client" onPress={handleAddClient} />
+              <AppButton title={submitting ? "Creating..." : "Create Client"} onPress={handleAddClient} disabled={submitting}/>
               {/* <AppButton title="Cancel" variant="small" onPress={closeSheet} /> */}
             </View>
           </ScrollView>
         </AnimatedAppear>
+        </BlurView>
       </ActionSheet>
       {/* Clients Grid */}
       {loading ? (
@@ -1732,17 +1753,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.6,
     shadowRadius: 14,
   },
-  cardActions: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
+cardActions: {
+  flexDirection: "row",
+  justifyContent: "space-around",
+  alignItems: "center",
 
-    paddingTop: 14,
-    paddingBottom: 6,
+  paddingTop: 14,
+  paddingBottom: 6,
 
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.08)",
-  },
+  borderTopWidth: 1,
+  borderTopColor: "rgba(255,255,255,0.08)",
+},
   profileContent: {
     alignItems: "center",
     justifyContent: "center",

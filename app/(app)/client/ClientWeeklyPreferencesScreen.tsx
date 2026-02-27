@@ -22,6 +22,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import AnimatedAppear from "@/src/components/AnimatedAppear";
 /* ------------------ CONFIG ------------------ */
 
 const TRAINING_DAYS = [
@@ -325,7 +326,8 @@ useEffect(() => {
         });
 
         return (
-          <View key={day.key} style={styles.dayCard}>
+           <AnimatedAppear key={day.key} delay={index * 80}>
+    <View style={styles.dayCard}>
             <TouchableOpacity
               disabled={disabled}
               onPress={() => toggleDay(day.key)}
@@ -367,6 +369,7 @@ useEffect(() => {
               </View>
             </Animated.View>
           </View>
+  </AnimatedAppear>
         );
       })}
 

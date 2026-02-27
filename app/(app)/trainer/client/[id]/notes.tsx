@@ -24,7 +24,7 @@ import ActionSheet, {
   ActionSheetRef,
   ScrollView as SheetScrollView,
 } from "react-native-actions-sheet";
-
+import { BlurView } from "expo-blur";
 import NoteSkeleton from "@/src/components/skeletons/Notes/NoteSkeleton";
 import { typography } from "@/src/theme/typography";
 
@@ -41,7 +41,7 @@ export default function NotesScreen() {
   const [newNote, setNewNote] = useState("");
   const [originalNote, setOriginalNote] = useState("");
   const [editingNote, setEditingNote] = useState<any>(null);
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
   // const hasChanges = newNote.trim() !== originalNote.trim();
   const [loading, setLoading] = useState(true);
   const hasUnsavedChanges = newNote.trim() !== originalNote.trim();
@@ -125,7 +125,7 @@ export default function NotesScreen() {
       const clientRef = root().collection("clients").doc(clientId);
       const clientSnap = await clientRef.get();
 
-      if (!clientSnap.exists) throw new Error("Client not found");
+      if (!clientSnap.exists()) throw new Error("Client not found");
 
       const uid = auth().currentUser?.uid;
       if (!uid || clientSnap.data()?.trainerId !== uid) {
@@ -154,72 +154,91 @@ export default function NotesScreen() {
 
   /* ------------------ ADD NOTE ------------------ */
 
-  const handleAddNote = async (content: string) => {
-    if (!content || !id) return;
+const handleAddNote = async (content: string) => {
+  if (!content || !id || isSubmitting) return;
 
-    try {
-      await root().collection("clients").doc(id).collection("notes").add({
+  try {
+    setIsSubmitting(true);
+
+    await root()
+      .collection("clients")
+      .doc(id)
+      .collection("notes")
+      .add({
         content,
         createdAt: firestore.FieldValue.serverTimestamp(),
       });
 
-      allowCloseRef.current = true; // ✅ allow close
-      resetNoteState(); // ✅ neutralize dirty state
-      sheetRef.current?.hide();
-      fetchNotes(id);
-    } catch (e) {
-      error("Error adding note:", e);
-    }
-  };
+    allowCloseRef.current = true;
+    resetNoteState();
+    sheetRef.current?.hide();
+    fetchNotes(id);
+
+  } catch (e) {
+    error("Error adding note:", e);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   /* ------------------ UPDATE NOTE ------------------ */
 
-  const handleUpdateNote = async (noteId: string, content: string) => {
-    if (!content || !id) return;
+ const handleUpdateNote = async (noteId: string, content: string) => {
+  if (!content || !id || isSubmitting) return;
 
-    try {
-      await root()
-  .collection("clients")
-  .doc(id)
-  .collection("notes")
-  .doc(noteId)
-        .set(
-          {
-            content,
-            updatedAt: firestore.FieldValue.serverTimestamp(),
-          },
-          { merge: true }
-        );
+  try {
+    setIsSubmitting(true);
 
-      allowCloseRef.current = true; // ✅ allow close
-      resetNoteState(); // ✅ clean first
-      sheetRef.current?.hide();
-      fetchNotes(id);
-    } catch (e) {
-      error("Error updating note:", e);
-    }
-  };
+    await root()
+      .collection("clients")
+      .doc(id)
+      .collection("notes")
+      .doc(noteId)
+      .set(
+        {
+          content,
+          updatedAt: firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+    allowCloseRef.current = true;
+    resetNoteState();
+    sheetRef.current?.hide();
+    fetchNotes(id);
+
+  } catch (e) {
+    error("Error updating note:", e);
+  } finally {
+    setIsSubmitting(false);
+  }
+};;
 
   /* ------------------ DELETE NOTE ------------------ */
 
   const handleDeleteNote = async (noteId: string) => {
-    if (!id) return;
+  if (!id || isSubmitting) return;
 
-    try {
-     await root()
-  .collection("clients")
-  .doc(id)
-  .collection("notes")
-  .doc(noteId)
-  .delete();
+  try {
+    setIsSubmitting(true);
 
-      setEditingNote(null);
-      sheetRef.current?.hide();
-      fetchNotes(id);
-    } catch (e) {
-      error("Error deleting note:", e);
-    }
-  };
+    await root()
+      .collection("clients")
+      .doc(id)
+      .collection("notes")
+      .doc(noteId)
+      .delete();
+
+    setEditingNote(null);
+    sheetRef.current?.hide();
+    fetchNotes(id);
+
+  } catch (e) {
+    error("Error deleting note:", e);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   /* ------------------ RENDER ------------------ */
 
@@ -347,6 +366,18 @@ export default function NotesScreen() {
           return false;
         }}
       >
+        <BlurView
+  intensity={50}
+  tint="dark"
+  style={{
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: "hidden",
+    backgroundColor: "rgba(18,18,22,0.65)", // glass overlay
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  }}
+>
         <SheetScrollView contentContainerStyle={{ padding: 20 }}>
           <Text style={[typography.title, styles.sheetTitle]}>
             {editingNote ? "Edit Note" : "Add Note"}
@@ -362,17 +393,25 @@ export default function NotesScreen() {
           />
           <View style={styles.sheetActions}>
             <AppButton
-              title={editingNote ? "Update Note" : "Add Note"}
-              onPress={() => {
-                if (editingNote) {
-                  handleUpdateNote(editingNote.id, newNote);
-                } else {
-                  handleAddNote(newNote);
-                }
-              }}
-            />
+  title={
+    isSubmitting
+      ? "Saving..."
+      : editingNote
+      ? "Update Note"
+      : "Add Note"
+  }
+  onPress={() => {
+    if (editingNote) {
+      handleUpdateNote(editingNote.id, newNote);
+    } else {
+      handleAddNote(newNote);
+    }
+  }}
+  disabled={isSubmitting}
+/>
           </View>
         </SheetScrollView>
+          </BlurView>
       </ActionSheet>
     </ScrollView>
   );
@@ -482,6 +521,7 @@ const styles = StyleSheet.create({
   },
   sheetActions: {
     marginTop: 20,
+    paddingBottom:20,
   },
 
   deleteOutline: {

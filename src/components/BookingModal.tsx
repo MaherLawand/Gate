@@ -22,7 +22,9 @@ import ActionSheet, {
   ScrollView as SheetScrollView,
 } from "react-native-actions-sheet";
 import { log, error } from "@/src/utils/logger";
-
+import { BlurView } from "expo-blur";
+import AppButton from "./AppButton";
+import { typography } from "../theme/typography";
 type Client = {
   id: string;
   firstName: string;
@@ -66,6 +68,8 @@ export default function BookingModal({
   const [preferredTimes, setPreferredTimes] = useState<string[]>([]);
   const [loadingPrefs, setLoadingPrefs] = useState(false);
 
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const pendingClose = useRef(false);
   const isSubmittingRef = useRef(false);
   const allowCloseRef = useRef(false);
@@ -166,7 +170,7 @@ export default function BookingModal({
   weekKey
 ).get();
 
-        if (!prefSnap.exists) {
+        if (!prefSnap.exists()) {
           setPreferredTimes([]);
           return;
         }
@@ -775,6 +779,8 @@ export default function BookingModal({
   //   }
   // };
   const handleSave = async () => {
+      if (isSubmitting) return; // 🛑 prevent double tap
+
     try {
       if (!trainerId || !selectedClient || !fromTime || !toTime) {
         Alert.alert("Missing data", "Fill all fields");
@@ -801,6 +807,8 @@ export default function BookingModal({
         return;
       }
       isSubmittingRef.current = true;
+          setIsSubmitting(true); // 🔒 lock
+
       await bookSession({
         trainerId,
         dateKey,
@@ -830,7 +838,9 @@ export default function BookingModal({
       isSubmittingRef.current = false;
       error("🔥 Booking failed:", e);
       Alert.alert("Booking failed", e.message);
-    }
+    }finally {
+    setIsSubmitting(false); // 🔓 always unlock
+  }
   };
 
   return (
@@ -886,14 +896,27 @@ export default function BookingModal({
         return false;
       }}
     >
+      <BlurView
+  intensity={50}
+  tint="dark"
+  style={{
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: "hidden",
+    backgroundColor: "rgba(18,18,22,0.65)", // glass overlay
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  }}
+>
       <SheetScrollView
           keyboardShouldPersistTaps="always"
           contentContainerStyle={{
+            paddingTop: 20,
           paddingHorizontal: 20,
-          paddingBottom: 30,
+          paddingBottom:40,
         }}
       >
-        <Text style={styles.title}>
+        <Text style={[typography.title, styles.title]}>
           {isEdit ? "Edit booking" : "Book session"}
         </Text>
 
@@ -1076,17 +1099,22 @@ export default function BookingModal({
             <Text style={styles.cancel}>Cancel</Text>
           </TouchableOpacity> */}
 
-          <TouchableOpacity onPress={handleSave}>
-            <Text style={styles.save}>Save booking</Text>
-          </TouchableOpacity>
+         <AppButton
+  title={isSubmitting ? "Booking..." : "Save Session"}
+  onPress={handleSave}
+  disabled={isSubmitting}
+  style={{ flex: 1, marginLeft: 10 }}
+/>
         </View>
       </SheetScrollView>
+      </BlurView>
     </ActionSheet>
   );
 }
 
 const styles = StyleSheet.create({
   title: {
+    alignSelf: "center",
     color: colors.textPrimary,
     fontSize: 18,
     fontWeight: "600",

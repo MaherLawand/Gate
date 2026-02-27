@@ -1,0 +1,2634 @@
+[
+  {
+    "id": "dumbbell_bench_press",
+    "name": "Dumbbell Bench Press",
+    "category": "chest",
+    "muscleGroups": [
+      "chest"
+    ],
+    "equipments": [
+      "dumbbells",
+      "flat bench"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "dumbbell bench press",
+      "chest",
+      "dumbbells",
+      "flat bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "close-grip_bench_press",
+    "name": "Close-grip bench press",
+    "category": "chest",
+    "muscleGroups": [
+      "chest"
+    ],
+    "equipments": [
+      "barbell",
+      "flat bench",
+      "rack"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "close-grip bench press",
+      "chest",
+      "barbell",
+      "flat bench",
+      "rack"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "dumbbell_flyes",
+    "name": "Dumbbell Flyes",
+    "category": "chest",
+    "muscleGroups": [
+      "chest"
+    ],
+    "equipments": [
+      "dumbbells",
+      "flat bench"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "dumbbell flyes",
+      "chest",
+      "dumbbells",
+      "flat bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "low-cable_cross-over",
+    "name": "Low-cable cross-over",
+    "category": "chest",
+    "muscleGroups": [
+      "chest"
+    ],
+    "equipments": [
+      "cable machine",
+      "single-grip handles"
+    ],
+    "primaryEquipment": "cable",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "low-cable cross-over",
+      "chest",
+      "cable machine",
+      "single-grip handles"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "incline_dumbbell_bench_press",
+    "name": "Incline dumbbell bench press",
+    "category": "chest",
+    "muscleGroups": [
+      "chest"
+    ],
+    "equipments": [
+      "dumbbells",
+      "incline bench"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "incline dumbbell bench press",
+      "chest",
+      "dumbbells",
+      "incline bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "pushups",
+    "name": "Pushups",
+    "category": "chest",
+    "muscleGroups": [
+      "chest"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "pushups",
+      "chest"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "barbell_bench_press_-_medium_grip",
+    "name": "Barbell Bench Press - Medium Grip",
+    "category": "chest",
+    "muscleGroups": [
+      "chest"
+    ],
+    "equipments": [
+      "barbell",
+      "flat bench",
+      "bench press rack",
+      "weight plates"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "barbell bench press - medium grip",
+      "chest",
+      "barbell",
+      "flat bench",
+      "bench press rack",
+      "weight plates"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "chest_dip",
+    "name": "Chest dip",
+    "category": "chest",
+    "muscleGroups": [
+      "chest"
+    ],
+    "equipments": [
+      "parallel bars",
+      "dip assist machine",
+      "weight belt",
+      "weight plates"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "chest dip",
+      "chest",
+      "parallel bars",
+      "dip assist machine",
+      "weight belt",
+      "weight plates"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "wide-grip_decline_barbell_bench_press",
+    "name": "Wide-Grip Decline Barbell Bench Press",
+    "category": "chest",
+    "muscleGroups": [
+      "chest"
+    ],
+    "equipments": [
+      "barbell",
+      "decline bench",
+      "barbell rack"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "wide-grip decline barbell bench press",
+      "chest",
+      "barbell",
+      "decline bench",
+      "barbell rack"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "cable_crossover",
+    "name": "Cable Crossover",
+    "category": "chest",
+    "muscleGroups": [
+      "chest"
+    ],
+    "equipments": [
+      "cable crossover machine",
+      "pair of single-grip cable handles"
+    ],
+    "primaryEquipment": "cable",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "cable crossover",
+      "chest",
+      "cable crossover machine",
+      "pair of single-grip cable handles"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "incline_hammer_curls",
+    "name": "Incline Hammer Curls",
+    "category": "biceps",
+    "muscleGroups": [
+      "biceps"
+    ],
+    "equipments": [
+      "dumbbells",
+      "incline bench"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "incline hammer curls",
+      "biceps",
+      "dumbbells",
+      "incline bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "wide-grip_barbell_curl",
+    "name": "Wide-grip barbell curl",
+    "category": "biceps",
+    "muscleGroups": [
+      "biceps"
+    ],
+    "equipments": [
+      "barbell"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "wide-grip barbell curl",
+      "biceps",
+      "barbell"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "hammer_curls",
+    "name": "Hammer Curls",
+    "category": "biceps",
+    "muscleGroups": [
+      "biceps"
+    ],
+    "equipments": [
+      "dumbbells"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "hammer curls",
+      "biceps",
+      "dumbbells"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "zottman_curl",
+    "name": "Zottman Curl",
+    "category": "biceps",
+    "muscleGroups": [
+      "biceps"
+    ],
+    "equipments": [
+      "dumbbells"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "zottman curl",
+      "biceps",
+      "dumbbells"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "barbell_curl",
+    "name": "Barbell Curl",
+    "category": "biceps",
+    "muscleGroups": [
+      "biceps"
+    ],
+    "equipments": [
+      "barbell"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "barbell curl",
+      "biceps",
+      "barbell"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "ez-bar_spider_curl",
+    "name": "EZ-bar spider curl",
+    "category": "biceps",
+    "muscleGroups": [
+      "biceps"
+    ],
+    "equipments": [
+      "barbell",
+      "preacher bench"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "ez-bar spider curl",
+      "biceps",
+      "barbell",
+      "preacher bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "biceps_curl_to_shoulder_press",
+    "name": "Biceps curl to shoulder press",
+    "category": "biceps",
+    "muscleGroups": [
+      "biceps"
+    ],
+    "equipments": [
+      "dumbbells"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "biceps curl to shoulder press",
+      "biceps",
+      "dumbbells"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "concentration_curl",
+    "name": "Concentration curl",
+    "category": "biceps",
+    "muscleGroups": [
+      "biceps"
+    ],
+    "equipments": [
+      "dumbbell",
+      "flat bench"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "concentration curl",
+      "biceps",
+      "dumbbell",
+      "flat bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "flexor_incline_dumbbell_curls",
+    "name": "Flexor Incline Dumbbell Curls",
+    "category": "biceps",
+    "muscleGroups": [
+      "biceps"
+    ],
+    "equipments": [
+      "dumbbells",
+      "incline bench"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "flexor incline dumbbell curls",
+      "biceps",
+      "dumbbells",
+      "incline bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "dumbbell_floor_press",
+    "name": "Dumbbell floor press",
+    "category": "triceps",
+    "muscleGroups": [
+      "triceps"
+    ],
+    "equipments": [
+      "dumbbells"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "dumbbell floor press",
+      "triceps",
+      "dumbbells"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "cable_v-bar_push-down",
+    "name": "Cable V-bar push-down",
+    "category": "triceps",
+    "muscleGroups": [
+      "triceps"
+    ],
+    "equipments": [
+      "cable machine",
+      "v-bar attachment"
+    ],
+    "primaryEquipment": "cable",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "cable v-bar push-down",
+      "triceps",
+      "cable machine",
+      "v-bar attachment"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "ez-bar_skullcrusher",
+    "name": "EZ-Bar Skullcrusher",
+    "category": "triceps",
+    "muscleGroups": [
+      "triceps"
+    ],
+    "equipments": [
+      "ez curl bar",
+      "bench"
+    ],
+    "primaryEquipment": "bench",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "ez-bar skullcrusher",
+      "triceps",
+      "ez curl bar",
+      "bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "decline_ez-bar_skullcrusher",
+    "name": "Decline EZ-bar skullcrusher",
+    "category": "triceps",
+    "muscleGroups": [
+      "triceps"
+    ],
+    "equipments": [
+      "ez curl bar",
+      "decline bench",
+      "barbell rack"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "decline ez-bar skullcrusher",
+      "triceps",
+      "ez curl bar",
+      "decline bench",
+      "barbell rack"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "weighted_bench_dip",
+    "name": "Weighted bench dip",
+    "category": "triceps",
+    "muscleGroups": [
+      "triceps"
+    ],
+    "equipments": [
+      "two flat benches",
+      "dumbbell",
+      "weight plates"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "weighted bench dip",
+      "triceps",
+      "two flat benches",
+      "dumbbell",
+      "weight plates"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "reverse_grip_triceps_pushdown",
+    "name": "Reverse Grip Triceps Pushdown",
+    "category": "triceps",
+    "muscleGroups": [
+      "triceps"
+    ],
+    "equipments": [
+      "cable machine",
+      "straight bar attachment",
+      "e-z bar attachment",
+      "single handle"
+    ],
+    "primaryEquipment": "cable",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "reverse grip triceps pushdown",
+      "triceps",
+      "cable machine",
+      "straight bar attachment",
+      "e-z bar attachment",
+      "single handle"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "single-arm_cable_triceps_extension",
+    "name": "Single-arm cable triceps extension",
+    "category": "triceps",
+    "muscleGroups": [
+      "triceps"
+    ],
+    "equipments": [
+      "cable machine",
+      "single handle attachment"
+    ],
+    "primaryEquipment": "cable",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "single-arm cable triceps extension",
+      "triceps",
+      "cable machine",
+      "single handle attachment"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "triceps_pushdown_-_rope_attachment",
+    "name": "Triceps Pushdown - Rope Attachment",
+    "category": "triceps",
+    "muscleGroups": [
+      "triceps"
+    ],
+    "equipments": [
+      "cable machine with high pulley",
+      "rope attachment"
+    ],
+    "primaryEquipment": "cable",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "triceps pushdown - rope attachment",
+      "triceps",
+      "cable machine with high pulley",
+      "rope attachment"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "seated_triceps_press",
+    "name": "Seated triceps press",
+    "category": "triceps",
+    "muscleGroups": [
+      "triceps"
+    ],
+    "equipments": [
+      "dumbbell",
+      "bench with back support"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "seated triceps press",
+      "triceps",
+      "dumbbell",
+      "bench with back support"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "dumbbell_front_raise_to_lateral_raise",
+    "name": "Dumbbell front raise to lateral raise",
+    "category": "shoulders",
+    "muscleGroups": [
+      "shoulders"
+    ],
+    "equipments": [
+      "dumbbells"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "dumbbell front raise to lateral raise",
+      "shoulders",
+      "dumbbells"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "single-arm_palm-in_dumbbell_shoulder_press",
+    "name": "Single-arm palm-in dumbbell shoulder press",
+    "category": "shoulders",
+    "muscleGroups": [
+      "shoulders"
+    ],
+    "equipments": [
+      "dumbbell",
+      "incline bench"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "single-arm palm-in dumbbell shoulder press",
+      "shoulders",
+      "dumbbell",
+      "incline bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "seated_barbell_shoulder_press",
+    "name": "Seated barbell shoulder press",
+    "category": "shoulders",
+    "muscleGroups": [
+      "shoulders"
+    ],
+    "equipments": [
+      "barbell",
+      "military press bench"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "seated barbell shoulder press",
+      "shoulders",
+      "barbell",
+      "military press bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "seated_dumbbell_press",
+    "name": "Seated Dumbbell Press",
+    "category": "shoulders",
+    "muscleGroups": [
+      "shoulders"
+    ],
+    "equipments": [
+      "dumbbells",
+      "bench with back support"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "seated dumbbell press",
+      "shoulders",
+      "dumbbells",
+      "bench with back support"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "standing_dumbbell_shoulder_press",
+    "name": "Standing dumbbell shoulder press",
+    "category": "shoulders",
+    "muscleGroups": [
+      "shoulders"
+    ],
+    "equipments": [
+      "dumbbells"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "standing dumbbell shoulder press",
+      "shoulders",
+      "dumbbells"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "military_press",
+    "name": "Military press",
+    "category": "shoulders",
+    "muscleGroups": [
+      "shoulders"
+    ],
+    "equipments": [
+      "barbell",
+      "weight plates",
+      "squat rack"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "military press",
+      "shoulders",
+      "barbell",
+      "weight plates",
+      "squat rack"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "incline_dumbbell_reverse_fly",
+    "name": "Incline dumbbell reverse fly",
+    "category": "shoulders",
+    "muscleGroups": [
+      "shoulders"
+    ],
+    "equipments": [
+      "dumbbells",
+      "incline bench"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "incline dumbbell reverse fly",
+      "shoulders",
+      "dumbbells",
+      "incline bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "clean_and_press",
+    "name": "Clean and press",
+    "category": "shoulders",
+    "muscleGroups": [
+      "shoulders"
+    ],
+    "equipments": [
+      "barbell"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "clean and press",
+      "shoulders",
+      "barbell"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "single-arm_lateral_raise",
+    "name": "Single-arm lateral raise",
+    "category": "shoulders",
+    "muscleGroups": [
+      "shoulders"
+    ],
+    "equipments": [
+      "dumbbell",
+      "incline bench"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "single-arm lateral raise",
+      "shoulders",
+      "dumbbell",
+      "incline bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "single-leg_press",
+    "name": "Single-Leg Press",
+    "category": "quadriceps",
+    "muscleGroups": [
+      "quadriceps"
+    ],
+    "equipments": [
+      "leg press machine",
+      "weight plates"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "single-leg press",
+      "quadriceps",
+      "leg press machine",
+      "weight plates"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "barbell_back_squat_to_box",
+    "name": "Barbell back squat to box",
+    "category": "quadriceps",
+    "muscleGroups": [
+      "quadriceps"
+    ],
+    "equipments": [
+      "barbell",
+      "power rack",
+      "box"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "barbell back squat to box",
+      "quadriceps",
+      "barbell",
+      "power rack",
+      "box"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "power_snatch-",
+    "name": "Power snatch-",
+    "category": "quadriceps",
+    "muscleGroups": [
+      "quadriceps"
+    ],
+    "equipments": [
+      "barbell"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "expert",
+    "searchKeywords": [
+      "power snatch-",
+      "quadriceps",
+      "barbell"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "reverse_band_box_squat",
+    "name": "Reverse Band Box Squat",
+    "category": "quadriceps",
+    "muscleGroups": [
+      "quadriceps"
+    ],
+    "equipments": [
+      "power rack",
+      "barbell",
+      "resistance bands",
+      "box"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "reverse band box squat",
+      "quadriceps",
+      "power rack",
+      "barbell",
+      "resistance bands",
+      "box"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "barbell_walking_lunge",
+    "name": "Barbell walking lunge",
+    "category": "quadriceps",
+    "muscleGroups": [
+      "quadriceps"
+    ],
+    "equipments": [
+      "barbell"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "barbell walking lunge",
+      "quadriceps",
+      "barbell"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "olympic_squat",
+    "name": "Olympic Squat",
+    "category": "quadriceps",
+    "muscleGroups": [
+      "quadriceps"
+    ],
+    "equipments": [
+      "barbell"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "olympic squat",
+      "quadriceps",
+      "barbell"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "stair_climber",
+    "name": "Stair climber",
+    "category": "quadriceps",
+    "muscleGroups": [
+      "quadriceps"
+    ],
+    "equipments": [
+      "stair climber machine"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "stair climber",
+      "quadriceps",
+      "stair climber machine"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "barbell_deadlift",
+    "name": "Barbell Deadlift",
+    "category": "hamstrings",
+    "muscleGroups": [
+      "hamstrings"
+    ],
+    "equipments": [
+      "barbell"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "barbell deadlift",
+      "hamstrings",
+      "barbell"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "clean_deadlift",
+    "name": "Clean Deadlift",
+    "category": "hamstrings",
+    "muscleGroups": [
+      "hamstrings"
+    ],
+    "equipments": [
+      "barbell"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "clean deadlift",
+      "hamstrings",
+      "barbell"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "sumo_deadlift",
+    "name": "Sumo deadlift",
+    "category": "hamstrings",
+    "muscleGroups": [
+      "hamstrings"
+    ],
+    "equipments": [
+      "barbell",
+      "weight plates"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "sumo deadlift",
+      "hamstrings",
+      "barbell",
+      "weight plates"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "romanian_deadlift_from_deficit",
+    "name": "Romanian Deadlift from Deficit",
+    "category": "hamstrings",
+    "muscleGroups": [
+      "hamstrings"
+    ],
+    "equipments": [
+      "barbell",
+      "raised platform"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "romanian deadlift from deficit",
+      "hamstrings",
+      "barbell",
+      "raised platform"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "power_snatch",
+    "name": "Power Snatch",
+    "category": "hamstrings",
+    "muscleGroups": [
+      "hamstrings"
+    ],
+    "equipments": [
+      "barbell",
+      "weight plates"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "power snatch",
+      "hamstrings",
+      "barbell",
+      "weight plates"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "power_clean_from_blocks",
+    "name": "Power Clean from Blocks",
+    "category": "hamstrings",
+    "muscleGroups": [
+      "hamstrings"
+    ],
+    "equipments": [
+      "barbell",
+      "blocks"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "power clean from blocks",
+      "hamstrings",
+      "barbell",
+      "blocks"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "natural_glute_ham_raise",
+    "name": "Natural Glute Ham Raise",
+    "category": "hamstrings",
+    "muscleGroups": [
+      "hamstrings"
+    ],
+    "equipments": [
+      "lat pulldown machine",
+      "preacher bench",
+      "resistance band",
+      "box"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "natural glute ham raise",
+      "hamstrings",
+      "lat pulldown machine",
+      "preacher bench",
+      "resistance band",
+      "box"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "romanian_deadlift_with_dumbbells",
+    "name": "Romanian Deadlift With Dumbbells",
+    "category": "hamstrings",
+    "muscleGroups": [
+      "hamstrings"
+    ],
+    "equipments": [
+      "dumbbells"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "romanian deadlift with dumbbells",
+      "hamstrings",
+      "dumbbells"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "snatch_deadlift",
+    "name": "Snatch Deadlift",
+    "category": "hamstrings",
+    "muscleGroups": [
+      "hamstrings"
+    ],
+    "equipments": [
+      "barbell"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "snatch deadlift",
+      "hamstrings",
+      "barbell"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "smith_machine_calf_raise",
+    "name": "Smith Machine Calf Raise",
+    "category": "calves",
+    "muscleGroups": [
+      "calves"
+    ],
+    "equipments": [
+      "smith machine",
+      "block",
+      "weight plates"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "smith machine calf raise",
+      "calves",
+      "smith machine",
+      "block",
+      "weight plates"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "standing_calf_raises",
+    "name": "Standing Calf Raises",
+    "category": "calves",
+    "muscleGroups": [
+      "calves"
+    ],
+    "equipments": [
+      "calf raise machine"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "standing calf raises",
+      "calves",
+      "calf raise machine"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "standing_dumbbell_calf_raise",
+    "name": "Standing Dumbbell Calf Raise",
+    "category": "calves",
+    "muscleGroups": [
+      "calves"
+    ],
+    "equipments": [
+      "dumbbells",
+      "wooden board"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "standing dumbbell calf raise",
+      "calves",
+      "dumbbells",
+      "wooden board"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "seated_single-leg_calf_press_-_gethin_variation",
+    "name": "Seated Single-Leg Calf Press - Gethin Variation",
+    "category": "calves",
+    "muscleGroups": [
+      "calves"
+    ],
+    "equipments": [
+      "seated calf press machine"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "seated single-leg calf press - gethin variation",
+      "calves",
+      "seated calf press machine"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "seated_calf_raise_-_gethin_variation",
+    "name": "Seated Calf Raise - Gethin Variation",
+    "category": "calves",
+    "muscleGroups": [
+      "calves"
+    ],
+    "equipments": [
+      "seated calf raise machine"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "seated calf raise - gethin variation",
+      "calves",
+      "seated calf raise machine"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "donkey_calf_raise_-_gethin_variation",
+    "name": "Donkey Calf Raise - Gethin Variation",
+    "category": "calves",
+    "muscleGroups": [
+      "calves"
+    ],
+    "equipments": [
+      "donkey calf raise machine"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "donkey calf raise - gethin variation",
+      "calves",
+      "donkey calf raise machine"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "barbell_glute_bridge",
+    "name": "Barbell glute bridge",
+    "category": "glutes",
+    "muscleGroups": [
+      "glutes"
+    ],
+    "equipments": [
+      "barbell",
+      "weight plates",
+      "bar pad"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "barbell glute bridge",
+      "glutes",
+      "barbell",
+      "weight plates",
+      "bar pad"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "barbell_hip_thrust",
+    "name": "Barbell Hip Thrust",
+    "category": "glutes",
+    "muscleGroups": [
+      "glutes"
+    ],
+    "equipments": [
+      "barbell",
+      "bench",
+      "bar pad",
+      "weight plates"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "barbell hip thrust",
+      "glutes",
+      "barbell",
+      "bench",
+      "bar pad",
+      "weight plates"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "single-leg_cable_hip_extension",
+    "name": "Single-leg cable hip extension",
+    "category": "glutes",
+    "muscleGroups": [
+      "glutes"
+    ],
+    "equipments": [
+      "cable machine",
+      "ankle cuff"
+    ],
+    "primaryEquipment": "cable",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "single-leg cable hip extension",
+      "glutes",
+      "cable machine",
+      "ankle cuff"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "glute_bridge",
+    "name": "Glute bridge",
+    "category": "glutes",
+    "muscleGroups": [
+      "glutes"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "glute bridge",
+      "glutes"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "seated_glute_stretch",
+    "name": "Seated Glute Stretch",
+    "category": "glutes",
+    "muscleGroups": [
+      "glutes"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "seated glute stretch",
+      "glutes"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "glute_bridge_hamstring_walkout",
+    "name": "Glute Bridge Hamstring Walkout",
+    "category": "glutes",
+    "muscleGroups": [
+      "glutes"
+    ],
+    "equipments": [
+      "exercise mat"
+    ],
+    "primaryEquipment": "mat",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "glute bridge hamstring walkout",
+      "glutes",
+      "exercise mat"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "neck_bridge_supine",
+    "name": "Neck Bridge Supine",
+    "category": "glutes",
+    "muscleGroups": [
+      "glutes"
+    ],
+    "equipments": [
+      "exercise mat"
+    ],
+    "primaryEquipment": "mat",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "neck bridge supine",
+      "glutes",
+      "exercise mat"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "walking_high_knee",
+    "name": "Walking High Knee",
+    "category": "glutes",
+    "muscleGroups": [
+      "glutes"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "walking high knee",
+      "glutes"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "landmine_twist",
+    "name": "Landmine twist",
+    "category": "abdominals",
+    "muscleGroups": [
+      "abdominals"
+    ],
+    "equipments": [
+      "barbell",
+      "landmine attachment",
+      "weight plates"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "landmine twist",
+      "abdominals",
+      "barbell",
+      "landmine attachment",
+      "weight plates"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "elbow_plank",
+    "name": "Elbow plank",
+    "category": "abdominals",
+    "muscleGroups": [
+      "abdominals"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "elbow plank",
+      "abdominals"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "bottoms_up",
+    "name": "Bottoms Up",
+    "category": "abdominals",
+    "muscleGroups": [
+      "abdominals"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "bottoms up",
+      "abdominals"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "standing_cable_low-to-high_twist",
+    "name": "Standing cable low-to-high twist",
+    "category": "abdominals",
+    "muscleGroups": [
+      "abdominals"
+    ],
+    "equipments": [
+      "cable machine",
+      "standard handle"
+    ],
+    "primaryEquipment": "cable",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "standing cable low-to-high twist",
+      "abdominals",
+      "cable machine",
+      "standard handle"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "dumbbell_spell_caster",
+    "name": "Dumbbell spell caster",
+    "category": "abdominals",
+    "muscleGroups": [
+      "abdominals"
+    ],
+    "equipments": [
+      "dumbbells"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "dumbbell spell caster",
+      "abdominals",
+      "dumbbells"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "spider_crawl",
+    "name": "Spider crawl",
+    "category": "abdominals",
+    "muscleGroups": [
+      "abdominals"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "spider crawl",
+      "abdominals"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "cocoons",
+    "name": "Cocoons",
+    "category": "abdominals",
+    "muscleGroups": [
+      "abdominals"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "cocoons",
+      "abdominals"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "cross-body_crunch",
+    "name": "Cross-Body Crunch",
+    "category": "abdominals",
+    "muscleGroups": [
+      "abdominals"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "cross-body crunch",
+      "abdominals"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "elbow-to-knee_crunch",
+    "name": "Elbow-to-knee crunch",
+    "category": "abdominals",
+    "muscleGroups": [
+      "abdominals"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "elbow-to-knee crunch",
+      "abdominals"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "pullups",
+    "name": "Pullups",
+    "category": "lats",
+    "muscleGroups": [
+      "lats"
+    ],
+    "equipments": [
+      "pull-up bar",
+      "chin assist machine",
+      "weight belt",
+      "weight plates"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "pullups",
+      "lats",
+      "pull-up bar",
+      "chin assist machine",
+      "weight belt",
+      "weight plates"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "close-grip_pull-down",
+    "name": "Close-grip pull-down",
+    "category": "lats",
+    "muscleGroups": [
+      "lats"
+    ],
+    "equipments": [
+      "lat pulldown machine",
+      "v-bar attachment"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "close-grip pull-down",
+      "lats",
+      "lat pulldown machine",
+      "v-bar attachment"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "shotgun_row",
+    "name": "Shotgun row",
+    "category": "lats",
+    "muscleGroups": [
+      "lats"
+    ],
+    "equipments": [
+      "cable machine",
+      "single handle attachment"
+    ],
+    "primaryEquipment": "cable",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "shotgun row",
+      "lats",
+      "cable machine",
+      "single handle attachment"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "close-grip_front_lat_pulldown",
+    "name": "Close-Grip Front Lat Pulldown",
+    "category": "lats",
+    "muscleGroups": [
+      "lats"
+    ],
+    "equipments": [
+      "lat pulldown machine",
+      "lat pulldown bar"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "close-grip front lat pulldown",
+      "lats",
+      "lat pulldown machine",
+      "lat pulldown bar"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "rocky_pull-ups/pulldowns",
+    "name": "Rocky Pull-Ups/Pulldowns",
+    "category": "lats",
+    "muscleGroups": [
+      "lats"
+    ],
+    "equipments": [
+      "pull-up bar",
+      "chin assist machine",
+      "pull-down machine"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "rocky pull-ups/pulldowns",
+      "lats",
+      "pull-up bar",
+      "chin assist machine",
+      "pull-down machine"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "assisted_chin-up",
+    "name": "Assisted Chin-Up",
+    "category": "lats",
+    "muscleGroups": [
+      "lats"
+    ],
+    "equipments": [
+      "assisted pull-up machine",
+      "pull-up bar",
+      "resistance band"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "assisted chin-up",
+      "lats",
+      "assisted pull-up machine",
+      "pull-up bar",
+      "resistance band"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "t-bar_row_with_handle",
+    "name": "T-Bar Row with Handle",
+    "category": "middle_back",
+    "muscleGroups": [
+      "middle_back"
+    ],
+    "equipments": [
+      "barbell",
+      "weight plates",
+      "landmine attachment",
+      "double d row handle"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "t-bar row with handle",
+      "middle_back",
+      "barbell",
+      "weight plates",
+      "landmine attachment",
+      "double d row handle"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "reverse-grip_bent-over_row",
+    "name": "Reverse-grip bent-over row",
+    "category": "middle_back",
+    "muscleGroups": [
+      "middle_back"
+    ],
+    "equipments": [
+      "barbell"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "reverse-grip bent-over row",
+      "middle_back",
+      "barbell"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "one-arm_dumbbell_row",
+    "name": "One-Arm Dumbbell Row",
+    "category": "middle_back",
+    "muscleGroups": [
+      "middle_back"
+    ],
+    "equipments": [
+      "dumbbell",
+      "flat bench"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "one-arm dumbbell row",
+      "middle_back",
+      "dumbbell",
+      "flat bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "one-arm_long_bar_row",
+    "name": "One-Arm Long Bar Row",
+    "category": "middle_back",
+    "muscleGroups": [
+      "middle_back"
+    ],
+    "equipments": [
+      "barbell",
+      "landmine attachment",
+      "weight plates"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "one-arm long bar row",
+      "middle_back",
+      "barbell",
+      "landmine attachment",
+      "weight plates"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "t-bar_row",
+    "name": "T-Bar Row",
+    "category": "middle_back",
+    "muscleGroups": [
+      "middle_back"
+    ],
+    "equipments": [
+      "t-bar row machine",
+      "weight plates"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "t-bar row",
+      "middle_back",
+      "t-bar row machine",
+      "weight plates"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "alternating_sit-through_with_crunch",
+    "name": "Alternating sit-through with crunch",
+    "category": "middle_back",
+    "muscleGroups": [
+      "middle_back"
+    ],
+    "equipments": [
+      "olympic barbell",
+      "weight plates"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "alternating sit-through with crunch",
+      "middle_back",
+      "olympic barbell",
+      "weight plates"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "rower",
+    "name": "Rower",
+    "category": "middle_back",
+    "muscleGroups": [
+      "middle_back"
+    ],
+    "equipments": [
+      "rowing machine"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "rower",
+      "middle_back",
+      "rowing machine"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "seated_cable_rows",
+    "name": "Seated Cable Rows",
+    "category": "middle_back",
+    "muscleGroups": [
+      "middle_back"
+    ],
+    "equipments": [
+      "low pulley row machine",
+      "v-bar handle",
+      "straight bar"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "seated cable rows",
+      "middle_back",
+      "low pulley row machine",
+      "v-bar handle",
+      "straight bar"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "incline_dumbbell_row",
+    "name": "Incline dumbbell row",
+    "category": "middle_back",
+    "muscleGroups": [
+      "middle_back"
+    ],
+    "equipments": [
+      "dumbbells",
+      "incline bench"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "incline dumbbell row",
+      "middle_back",
+      "dumbbells",
+      "incline bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "bent_over_two-arm_long_bar_row",
+    "name": "Bent Over Two-Arm Long Bar Row",
+    "category": "middle_back",
+    "muscleGroups": [
+      "middle_back"
+    ],
+    "equipments": [
+      "olympic barbell",
+      "weight plates",
+      "heavy object to anchor barbell"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "bent over two-arm long bar row",
+      "middle_back",
+      "olympic barbell",
+      "weight plates",
+      "heavy object to anchor barbell"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "back_extension",
+    "name": "Back extension",
+    "category": "lower_back",
+    "muscleGroups": [
+      "lower_back"
+    ],
+    "equipments": [
+      "hyperextension bench",
+      "weight plate"
+    ],
+    "primaryEquipment": "bench",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "back extension",
+      "lower_back",
+      "hyperextension bench",
+      "weight plate"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "barbell_deficit_deadlift",
+    "name": "Barbell deficit deadlift",
+    "category": "lower_back",
+    "muscleGroups": [
+      "lower_back"
+    ],
+    "equipments": [
+      "barbell",
+      "weight plates",
+      "platform"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "barbell deficit deadlift",
+      "lower_back",
+      "barbell",
+      "weight plates",
+      "platform"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "partner_flat-bench_back_extension",
+    "name": "Partner Flat-Bench Back Extension",
+    "category": "lower_back",
+    "muscleGroups": [
+      "lower_back"
+    ],
+    "equipments": [
+      "flat bench",
+      "partner"
+    ],
+    "primaryEquipment": "bench",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "partner flat-bench back extension",
+      "lower_back",
+      "flat bench",
+      "partner"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "superman",
+    "name": "Superman",
+    "category": "lower_back",
+    "muscleGroups": [
+      "lower_back"
+    ],
+    "equipments": [
+      "exercise mat",
+      "partner"
+    ],
+    "primaryEquipment": "mat",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "partner superman with alternating high-five",
+      "lower_back",
+      "exercise mat",
+      "partner"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "partner_bench_back_extension",
+    "name": "Partner bench back extension",
+    "category": "lower_back",
+    "muscleGroups": [
+      "lower_back"
+    ],
+    "equipments": [
+      "flat bench",
+      "partner"
+    ],
+    "primaryEquipment": "bench",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "partner bench back extension",
+      "lower_back",
+      "flat bench",
+      "partner"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "yoga_plex",
+    "name": "Yoga plex",
+    "category": "lower_back",
+    "muscleGroups": [
+      "lower_back"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "yoga plex",
+      "lower_back"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "leverage_shrug",
+    "name": "Leverage Shrug",
+    "category": "traps",
+    "muscleGroups": [
+      "traps"
+    ],
+    "equipments": [
+      "leverage shrug machine",
+      "weight plates"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "leverage shrug",
+      "traps",
+      "leverage shrug machine",
+      "weight plates"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "smith_machine_shrug",
+    "name": "Smith machine shrug",
+    "category": "traps",
+    "muscleGroups": [
+      "traps"
+    ],
+    "equipments": [
+      "smith machine",
+      "weight plates"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "smith machine shrug",
+      "traps",
+      "smith machine",
+      "weight plates"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "machine_low_row-",
+    "name": "Machine low row-",
+    "category": "traps",
+    "muscleGroups": [
+      "traps"
+    ],
+    "equipments": [
+      "low row machine"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "machine low row-",
+      "traps",
+      "low row machine"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "single-arm_inverted_row",
+    "name": "Single-arm inverted row",
+    "category": "traps",
+    "muscleGroups": [
+      "traps"
+    ],
+    "equipments": [
+      "barbell"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "single-arm inverted row",
+      "traps",
+      "barbell"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "machine_shrug_-_gethin_variation",
+    "name": "Machine Shrug - Gethin Variation",
+    "category": "traps",
+    "muscleGroups": [
+      "traps"
+    ],
+    "equipments": [
+      "shrug machine"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "machine shrug - gethin variation",
+      "traps",
+      "shrug machine"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "dumbbell_pull-over",
+    "name": "Dumbbell pull-over",
+    "category": "traps",
+    "muscleGroups": [
+      "traps"
+    ],
+    "equipments": [
+      "dumbbell",
+      "bench"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "dumbbell pull-over",
+      "traps",
+      "dumbbell",
+      "bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "standing_dumbbell_shrug_-_gethin_variation",
+    "name": "Standing Dumbbell Shrug - Gethin Variation",
+    "category": "traps",
+    "muscleGroups": [
+      "traps"
+    ],
+    "equipments": [
+      "dumbbells"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "standing dumbbell shrug - gethin variation",
+      "traps",
+      "dumbbells"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "single-arm_dumbbell_row",
+    "name": "Single-arm dumbbell row",
+    "category": "traps",
+    "muscleGroups": [
+      "traps"
+    ],
+    "equipments": [
+      "dumbbell"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "single-arm dumbbell row",
+      "traps",
+      "dumbbell"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "smith_machine_single-arm_shrug",
+    "name": "Smith machine single-arm shrug",
+    "category": "traps",
+    "muscleGroups": [
+      "traps"
+    ],
+    "equipments": [
+      "smith machine",
+      "weight plates"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "smith machine single-arm shrug",
+      "traps",
+      "smith machine",
+      "weight plates"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "standing_dumbbell_upright_row",
+    "name": "Standing dumbbell upright row",
+    "category": "traps",
+    "muscleGroups": [
+      "traps"
+    ],
+    "equipments": [
+      "dumbbells"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "standing dumbbell upright row",
+      "traps",
+      "dumbbells"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "palms-down_wrist_curl_over_bench",
+    "name": "Palms-down wrist curl over bench",
+    "category": "forearms",
+    "muscleGroups": [
+      "forearms"
+    ],
+    "equipments": [
+      "barbell",
+      "flat bench"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "palms-down wrist curl over bench",
+      "forearms",
+      "barbell",
+      "flat bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "straight-bar_wrist_roll-up",
+    "name": "Straight-bar wrist roll-up",
+    "category": "forearms",
+    "muscleGroups": [
+      "forearms"
+    ],
+    "equipments": [
+      "barbell"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "straight-bar wrist roll-up",
+      "forearms",
+      "barbell"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "palms-up_wrist_curl_over_bench",
+    "name": "Palms-up wrist curl over bench",
+    "category": "forearms",
+    "muscleGroups": [
+      "forearms"
+    ],
+    "equipments": [
+      "barbell",
+      "flat bench"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "palms-up wrist curl over bench",
+      "forearms",
+      "barbell",
+      "flat bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "standing_behind-the-back_wrist_curl",
+    "name": "Standing behind-the-back wrist curl",
+    "category": "forearms",
+    "muscleGroups": [
+      "forearms"
+    ],
+    "equipments": [
+      "barbell"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "standing behind-the-back wrist curl",
+      "forearms",
+      "barbell"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "seated_finger_curl",
+    "name": "Seated finger curl",
+    "category": "forearms",
+    "muscleGroups": [
+      "forearms"
+    ],
+    "equipments": [
+      "barbell",
+      "bench"
+    ],
+    "primaryEquipment": "barbell",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "seated finger curl",
+      "forearms",
+      "barbell",
+      "bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "dumbbell_farmer's_walk",
+    "name": "Dumbbell farmer's walk",
+    "category": "forearms",
+    "muscleGroups": [
+      "forearms"
+    ],
+    "equipments": [
+      "dumbbells",
+      "farmer's walk implements",
+      "short bars"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "dumbbell farmer's walk",
+      "forearms",
+      "dumbbells",
+      "farmer's walk implements",
+      "short bars"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "seated_two-arm_palms-up_low-pulley_wrist_curl",
+    "name": "Seated Two-Arm Palms-Up Low-Pulley Wrist Curl",
+    "category": "forearms",
+    "muscleGroups": [
+      "forearms"
+    ],
+    "equipments": [
+      "bench",
+      "low pulley cable machine",
+      "straight bar cable attachment",
+      "ez-curl cable attachment"
+    ],
+    "primaryEquipment": "cable",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "seated two-arm palms-up low-pulley wrist curl",
+      "forearms",
+      "bench",
+      "low pulley cable machine",
+      "straight bar cable attachment",
+      "ez-curl cable attachment"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "seated_one-arm_dumbbell_palms-up_wrist_curl",
+    "name": "Seated One-Arm Dumbbell Palms-Up Wrist Curl",
+    "category": "forearms",
+    "muscleGroups": [
+      "forearms"
+    ],
+    "equipments": [
+      "dumbbell",
+      "flat bench"
+    ],
+    "primaryEquipment": "dumbbell",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "seated one-arm dumbbell palms-up wrist curl",
+      "forearms",
+      "dumbbell",
+      "flat bench"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "hip_circles_(prone)",
+    "name": "Hip Circles (Prone)",
+    "category": "abductors",
+    "muscleGroups": [
+      "abductors"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "hip circles (prone)",
+      "abductors"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "lateral_band_walk",
+    "name": "Lateral Band Walk",
+    "category": "abductors",
+    "muscleGroups": [
+      "abductors"
+    ],
+    "equipments": [
+      "loop resistance band"
+    ],
+    "primaryEquipment": "band",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "lateral band walk",
+      "abductors",
+      "loop resistance band"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "dynamic_pigeon_stretch",
+    "name": "Dynamic pigeon stretch",
+    "category": "abductors",
+    "muscleGroups": [
+      "abductors"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "dynamic pigeon stretch",
+      "abductors"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "cross-over_jack",
+    "name": "Cross-over jack",
+    "category": "abductors",
+    "muscleGroups": [
+      "abductors"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "cross-over jack",
+      "abductors"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "traveling_thigh_killa",
+    "name": "Traveling thigh killa",
+    "category": "abductors",
+    "muscleGroups": [
+      "abductors"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "traveling thigh killa",
+      "abductors"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "fyr_thigh_killa",
+    "name": "FYR Thigh Killa",
+    "category": "abductors",
+    "muscleGroups": [
+      "abductors"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "fyr thigh killa",
+      "abductors"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "hm_straddle_stretch",
+    "name": "HM Straddle Stretch",
+    "category": "abductors",
+    "muscleGroups": [
+      "abductors"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "hm straddle stretch",
+      "abductors"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "hm_right_leg_swing",
+    "name": "HM Right Leg Swing",
+    "category": "abductors",
+    "muscleGroups": [
+      "abductors"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "hm right leg swing",
+      "abductors"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "hm_right_side-kick",
+    "name": "HM Right Side-Kick",
+    "category": "abductors",
+    "muscleGroups": [
+      "abductors"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "hm right side-kick",
+      "abductors"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "thigh_adductor",
+    "name": "Thigh adductor",
+    "category": "adductors",
+    "muscleGroups": [
+      "adductors"
+    ],
+    "equipments": [
+      "adductor machine"
+    ],
+    "primaryEquipment": "machine",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "thigh adductor",
+      "adductors",
+      "adductor machine"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "side-to-side_adductor_stretch",
+    "name": "Side-To-Side Adductor Stretch",
+    "category": "adductors",
+    "muscleGroups": [
+      "adductors"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "side-to-side adductor stretch",
+      "adductors"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "groiners",
+    "name": "Groiners",
+    "category": "adductors",
+    "muscleGroups": [
+      "adductors"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "groiners",
+      "adductors"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "hm_left_leg_swing",
+    "name": "HM Left Leg Swing",
+    "category": "adductors",
+    "muscleGroups": [
+      "adductors"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "hm left leg swing",
+      "adductors"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "band_hip_adductions",
+    "name": "Band Hip Adductions",
+    "category": "adductors",
+    "muscleGroups": [
+      "adductors"
+    ],
+    "equipments": [
+      "resistance band",
+      "solid post"
+    ],
+    "primaryEquipment": "band",
+    "difficulty": "beginner",
+    "searchKeywords": [
+      "band hip adductions",
+      "adductors",
+      "resistance band",
+      "solid post"
+    ],
+    "isActive": true
+  },
+  {
+    "id": "side-lying_leg_adduction_scissor",
+    "name": "Side-lying leg adduction scissor",
+    "category": "adductors",
+    "muscleGroups": [
+      "adductors"
+    ],
+    "equipments": [],
+    "primaryEquipment": "bodyweight",
+    "difficulty": "intermediate",
+    "searchKeywords": [
+      "side-lying leg adduction scissor",
+      "adductors"
+    ],
+    "isActive": true
+  }
+]

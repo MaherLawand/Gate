@@ -42,5 +42,18 @@
         "simulator": false
       }
     }
+  },
+  "submit": {
+    "closed": {
+      "android": {
+        "track": "closed"
+      }
+    },
+      "production": {
+        "ios": {
+          "ascAppId": "6759503938"
+        }
+      }
+    }
   }
-}
+

@@ -12,13 +12,13 @@ export async function uploadImage(
 
   let path = "";
 if (type === "avatar")
-  path = `${ENV}/profilePictures/${uid}/avatar.jpg`;
+  path = `profilePictures/${uid}/avatar.jpg`;
 
 if (type === "cover")
-  path = `${ENV}/profilePictures/${uid}/cover.jpg`;
+  path = `profilePictures/${uid}/cover.jpg`;
 
 if (type === "announcement")
-  path = `${ENV}/announcements/${uid}/${Date.now()}.jpg`;
+  path = `announcements/${uid}/${Date.now()}.jpg`;
 
   const fileRef = storage().ref(path);
 
@@ -33,7 +33,7 @@ export async function uploadBugImage(localUri: string) {
   const uid = auth().currentUser?.uid;
   if (!uid) throw new Error("Not authenticated");
 
-  const path = `${ENV}/bugs/${uid}/${Date.now()}.jpg`;
+  const path = `bugs/${uid}/${Date.now()}.jpg`;
   const fileRef = storage().ref(path);
 
   await fileRef.putFile(

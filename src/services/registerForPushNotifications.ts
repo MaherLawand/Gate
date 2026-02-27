@@ -1,7 +1,7 @@
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import { Platform } from "react-native";
-import { collection } from "./fireStoreHelpers"; // 👈 IMPORTANT
+import { collection } from "./db"; // 👈 IMPORTANT
 import {log,warn,error,info} from "../utils/logger"
 
 export async function registerForPushNotifications() {
@@ -59,12 +59,14 @@ export async function registerForPushNotifications() {
     /* ================= SAVE TOKEN ================= */
 
     const uid = auth().currentUser?.uid;
+    log("🔐 Current user UID:", uid);
     if (!uid) return;
 
     // 🔵 TRAINER
     const trainerSnap = await collection("users").doc(uid).get();
 
-    if (trainerSnap.exists) {
+    if (trainerSnap.exists()) {
+      log("👤 User is a TRAINER. Saving push token...");
       await trainerSnap.ref.set(
         {
           pushToken,
@@ -76,7 +78,8 @@ export async function registerForPushNotifications() {
       log("✅ Push token saved for TRAINER");
       return;
     }
-
+    log("No trainer document found for UID:", uid);
+    log("Checking clients collection for push token registration...");  
     // 🟢 CLIENT
     const clientSnap = await collection("clients")
       .where("authUid", "==", uid)
@@ -84,6 +87,7 @@ export async function registerForPushNotifications() {
       .get();
 
     if (!clientSnap.empty) {
+      log("👤 User is a CLIENT. Saving push token...");
       await clientSnap.docs[0].ref.set(
         {
           pushToken,

@@ -47,7 +47,9 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [savingNotif, setSavingNotif] = useState(false);
-
+const [notificationMode, setNotificationMode] = useState<
+  "sound" | "vibrate" | "silent"
+>("sound");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [bio, setBio] = useState("");
@@ -98,6 +100,7 @@ export default function ProfileScreen() {
           setLastName(data.lastName ?? "");
           setBio(data.bio ?? "");
           setNotificationsEnabled(data.notificationsEnabled ?? true);
+          setNotificationMode(data.notificationSettings?.mode ?? "sound");
         }
       } catch (e: any) {
         Alert.alert("Error", e.message);
@@ -125,6 +128,14 @@ export default function ProfileScreen() {
       setSavingNotif(false);
     }
   };
+  const updateNotificationMode = async (mode: "sound" | "vibrate" | "silent") => {
+  if (!clientDocId) return;
+
+  await doc("clients", clientDocId).update({
+    "notificationSettings.mode": mode,
+    updatedAt: firestore.FieldValue.serverTimestamp(),
+  });
+};
 
   const handleToggleNotifications = (value: boolean) => {
     setNotificationsEnabled(value);
@@ -156,7 +167,6 @@ export default function ProfileScreen() {
 
   const handleChangePhoto = async () => {
     if (!clientDocId || !profile) return;
-   log("TYTYHT");
    log("AUTH UID:", auth().currentUser?.uid);
    log("AUTH TOKEN:", await auth().currentUser?.getIdToken());
 
@@ -197,7 +207,7 @@ export default function ProfileScreen() {
       Alert.alert("Upload failed", e.message);
     } finally {
       setUploading(false);
-      Image.prefetch("");
+      //Image.prefetch("");
     }
   };
 
@@ -344,36 +354,37 @@ export default function ProfileScreen() {
           </View>
           {section === "account" && (
             <>
-              <Text style={[typography.heading, { color: colors.textPrimary }]}>
+              <Text style={[typography.heading, { color: colors.textPrimary }, styles.header]}>
                 Account Information
               </Text>
-              <View style={styles.avatarContainer}>
-                <TouchableOpacity
-                  onPress={handleChangePhoto}
-                  disabled={uploading}
-                >
-                  <View style={styles.avatarWrapper}>
-                    {uploading && (
-                      <View style={styles.avatarOverlay}>
-                        <ActivityIndicator color="#fff" />
-                      </View>
-                    )}
+             <View style={styles.avatarContainer}>
+  <TouchableOpacity
+    onPress={handleChangePhoto}
+    disabled={uploading}
+    style={styles.avatarButton}
+  >
+    <View style={styles.avatarWrapper}>
+      {uploading && (
+        <View style={styles.avatarOverlay}>
+          <ActivityIndicator color="#fff" />
+        </View>
+      )}
 
-                    <Image
-                      source={
-                        profile.profilePicture
-                          ? { uri: profile.profilePicture }
-                          : require("../../assets/images/avatar-placeholder.png")
-                      }
-                      style={styles.avatar}
-                    />
-                  </View>
+      <Image
+        source={
+          profile.profilePicture
+            ? { uri: profile.profilePicture }
+            : require("../../assets/images/icons8-profile-96.png")
+        }
+        style={styles.avatar}
+      />
+    </View>
 
-                  <Text style={[typography.small, { color: colors.primary }]}>
-                    {uploading ? "Uploading..." : "Change photo"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+    <Text style={[typography.small, styles.changePhotoText]}>
+      {uploading ? "Uploading..." : "Change photo"}
+    </Text>
+  </TouchableOpacity>
+</View>
               {/* NAME */}
               <>
                 <Text
@@ -451,6 +462,38 @@ export default function ProfileScreen() {
                 You’ll be able to control detailed notification types here
                 later.
               </Text>
+              <Text style={[typography.small, { color: colors.textSecondary }]}>
+  Notification Style
+</Text>
+
+<View style={styles.notificationOptions}>
+  {["sound", "vibrate", "silent"].map((mode) => (
+    <TouchableOpacity
+      key={mode}
+      style={[
+        styles.optionButton,
+        notificationMode === mode && styles.optionActive,
+      ]}
+      onPress={() => {
+        setNotificationMode(mode as any);
+        updateNotificationMode(mode as any);
+      }}
+    >
+      <Text
+        style={[
+          styles.optionText,
+          notificationMode === mode && styles.optionTextActive,
+        ]}
+      >
+        {mode === "sound"
+          ? "Sound + Vibration"
+          : mode === "vibrate"
+          ? "Vibration Only"
+          : "Silent"}
+      </Text>
+    </TouchableOpacity>
+  ))}
+</View>
             </>
           )}
           {section === "bug" && (
@@ -508,6 +551,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     padding: 24,
+      gap: 10, // 👈 ADD THIS (React Native 0.71+ supports gap)
+
   },
   loading: {
     flex: 1,
@@ -590,7 +635,7 @@ const styles = StyleSheet.create({
 
   tabText: {
     color: colors.textSecondary,
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "600",
   },
 
@@ -635,4 +680,44 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 14,
   },
+  header:{
+    fontSize:19,
+  },
+  avatarButton: {
+  alignItems: "center", // 👈 centers text under image
+},
+
+changePhotoText: {
+  color: colors.primary,
+  marginTop: 10,
+  textAlign: "center",
+},
+notificationOptions: {
+  marginTop: 12,
+  gap: 10,
+},
+
+optionButton: {
+  paddingVertical: 12,
+  paddingHorizontal: 16,
+  backgroundColor: colors.card,
+  borderRadius: 10,
+  borderWidth: 1,
+  borderColor: colors.border,
+},
+
+optionActive: {
+  backgroundColor: colors.primary,
+  borderColor: colors.primary,
+},
+
+optionText: {
+  color: colors.textPrimary,
+  fontSize: 14,
+},
+
+optionTextActive: {
+  color: "#fff",
+  fontWeight: "600",
+},
 });

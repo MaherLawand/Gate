@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getClientSessions } from "@/src/services/ClientService";
 import { SessionWithId } from "@/src/types/models";
-
+import AnimatedAppear from "@/src/components/AnimatedAppear";
 export default function ClientExercisesScreen() {
   const { sessionId, date } = useLocalSearchParams<{
     sessionId: string;
@@ -56,13 +56,26 @@ export default function ClientExercisesScreen() {
   return (
     <View style={styles.container}>
       {/* HEADER */}
-      <Text style={[typography.title, styles.title]}>
-        Session • {date}
-      </Text>
+{session && (
+  <AnimatedAppear
+    key={session.id}   // 🔥 forces remount
+    delay={40}
+    style={{ width: "100%" }}
+  >
+    <Text style={[typography.title, styles.title]}>
+      Session • {date}
+    </Text>
+  </AnimatedAppear>
+)}
 
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {session?.exercises?.length ? (
           session.exercises.map((ex, i) => (
+              <AnimatedAppear
+    key={i}
+    delay={80 + i * 60}
+    style={{ width: "100%" }}
+  >
             <View key={i} style={styles.exerciseCard}>
               <Text style={[typography.title, styles.exerciseName]}>
                 {ex.name}
@@ -82,16 +95,19 @@ export default function ClientExercisesScreen() {
                 ))}
               </View>
             </View>
+            </AnimatedAppear>
           ))
         ) : (
-          <Text
-            style={[
-              typography.body,
-              { color: colors.textSecondary, marginTop: 20 },
-            ]}
-          >
-            No exercises assigned for this session.
-          </Text>
+          <AnimatedAppear delay={80} style={{ width: "100%" }}>
+  <Text
+    style={[
+      typography.body,
+      { color: colors.textSecondary, marginTop: 20 },
+    ]}
+  >
+    No exercises assigned for this session.
+  </Text>
+</AnimatedAppear>
         )}
       </ScrollView>
     </View>

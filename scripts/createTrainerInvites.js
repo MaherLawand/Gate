@@ -1,5 +1,5 @@
 const admin = require("firebase-admin");
-const serviceAccount = require("./serviceAccountsKeyDev.json");
+const serviceAccount = require("./serviceAccountsKey.json");
 require("dotenv").config();
 
 // 🔐 Initialize Admin SDK
@@ -15,23 +15,47 @@ const db = admin.firestore();
 const trainerInvites = [
   {
     role: "trainer",
-    firstName: "Joelle",
-    lastName: "Sakr",
-    phone: "+96170300981",
-    profilePicture: "",
-    bio: "",
-    notificationsEnabled: true,
-    isActive: true,
-  },
-  {
-    role: "trainer",
-    firstName: "Nicole",
-    lastName: "beainy",
+    firstName: "First",
+    lastName: "Trainer",
     phone: "+96170300982",
     profilePicture: "",
     bio: "",
     notificationsEnabled: true,
     isActive: true,
+    isAdmin: false,
+  },
+  {
+    role: "trainer",
+    firstName: "Second",
+    lastName: "Trainer",
+    phone: "+96170300983",
+    profilePicture: "",
+    bio: "",
+    notificationsEnabled: true,
+    isActive: true,
+    isAdmin:false,
+  },
+    {
+    role: "trainer",
+    firstName: "Third",
+    lastName: "Trainer",
+    phone: "+96170300984",
+    profilePicture: "",
+    bio: "",
+    notificationsEnabled: true,
+    isActive: true,
+    isAdmin:false,
+  },
+      {
+    role: "trainer",
+    firstName: "Fourth",
+    lastName: "Trainer",
+    phone: "+96170300981",
+    profilePicture: "",
+    bio: "",
+    notificationsEnabled: true,
+    isActive: true,
+    isAdmin:false,
   },
 ];
 
@@ -60,6 +84,7 @@ async function run() {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: null,
       lastLoginAt: null,
+      isAdmin: trainer.isAdmin ?? false,
     });
 
     console.log(

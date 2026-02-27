@@ -28,9 +28,11 @@ import {
   SessionExercise,
   SessionWithId,
 } from "../../../../../src/types/models";
+import AnimatedAppear from "@/src/components/AnimatedAppear";
+import { SCREEN_WIDTH } from "@gorhom/bottom-sheet";
 
 /* ------------------ DATE HELPERS ------------------ */
-
+const CARD_WIDTH = (SCREEN_WIDTH - 40 - 16) / 3;
 const formatDateKey = (date: Date) => date.toISOString().split("T")[0]; // YYYY-MM-DD
 
 const getStartOfWeek = (date: Date) => {
@@ -189,7 +191,7 @@ export default function ClientSessionsScreen() {
       {/* WEEK GRID */}
       <View style={styles.calendarCenter}>
         <View style={styles.weekGrid}>
-          {weekDays.map((d) => {
+          {weekDays.map((d, index) => {
             const key = formatDateKey(d);
             const session = sessions.find((s) => s.date === key);
 
@@ -204,6 +206,11 @@ export default function ClientSessionsScreen() {
               attendance === "confirmed" || attendance === "attended";
 
             return (
+              <AnimatedAppear
+  key={key}
+  delay={index * 80}
+  style={{ width: CARD_WIDTH }}   // 👈 THIS FIXES GRID
+>
               <Pressable
                 key={key}
                 disabled={!isClickable}
@@ -224,6 +231,7 @@ export default function ClientSessionsScreen() {
                   },
                 ]}
               >
+               
                 <Text
                   style={[typography.small, { color: colors.textSecondary }]}
                 >
@@ -243,6 +251,7 @@ export default function ClientSessionsScreen() {
                   />
                 )}
               </Pressable>
+              </AnimatedAppear>
             );
           })}
         </View>
@@ -287,16 +296,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 
-  dayCard: {
-    width: "30%",
-    minHeight: 170,
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 8,
-    marginBottom: 5,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+dayCard: {
+  width: CARD_WIDTH,
+  minHeight: 170,
+  backgroundColor: colors.card,
+  borderRadius: 16,
+  padding: 8,
+  marginBottom: 12,
+  marginRight: 8,
+  justifyContent: "center",
+  alignItems: "center",
+},
   sessionIndicator: {
     width: 28,
     height: 4,

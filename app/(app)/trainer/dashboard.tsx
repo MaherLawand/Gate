@@ -1,5 +1,5 @@
 import auth from "@react-native-firebase/auth";
-import firestore from "@react-native-firebase/firestore";
+import firestore, { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 import { doc, collection } from "@/src/services/db";
 import AnimatedAppear from "@/src/components/AnimatedAppear";
 import AppButton from "@/src/components/AppButton";
@@ -10,7 +10,7 @@ import { uploadImage } from "@/src/services/uploadImage";
 import { colors } from "@/src/theme/colors";
 import { typography } from "@/src/theme/typography";
 import { log, error } from "@/src/utils/logger";
-
+import { BlurView } from "expo-blur";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect, useNavigation } from "expo-router";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -121,7 +121,9 @@ useEffect(() => {
     null
   );
   const [postingAnnouncement, setPostingAnnouncement] = useState(false);
-
+const [announcementDuration, setAnnouncementDuration] = useState<
+  "3d" | "7d" | "30d" | "forever"
+>("7d");
   // Cover image loading
   const coverOpacity = useRef(new Animated.Value(0)).current;
   const [coverLoading, setCoverLoading] = useState(true);
@@ -224,7 +226,7 @@ useEffect(() => {
       try {
         const snap = await doc("users", uid).get();
 
-        if (!snap.exists) return;
+        if (!snap.exists()) return;
 
         const data = snap.data()!;
        log("data: " , data)
@@ -277,37 +279,53 @@ useEffect(() => {
     setAnnouncementImage(result.assets[0].uri);
   };
 
-  const handlePostAnnouncement = async () => {
-    if (!uid) return;
+const handlePostAnnouncement = async () => {
+  if (!uid) return;
 
-    try {
-      setPostingAnnouncement(true);
+  try {
+    setPostingAnnouncement(true);
 
-      let imageUrl: string | null = null;
+    let imageUrl: string | null = null;
 
-      if (announcementImage) {
-        const compressed = await compressImage(announcementImage);
-        imageUrl = await uploadImage(compressed, "announcement");
-      }
-
-      await createAnnouncement({
-        title: announcementTitle,
-        authorId: uid,
-        text: announcementText,
-        imageUrl,
-      });
-
-      setAnnouncementText("");
-      setAnnouncementImage(null);
-      adminSheetRef.current?.hide();
-
-      Alert.alert("Posted", "Announcement published successfully");
-    } catch (e: any) {
-      Alert.alert("Error", e.message);
-    } finally {
-      setPostingAnnouncement(false);
+    if (announcementImage) {
+      const compressed = await compressImage(announcementImage);
+      imageUrl = await uploadImage(compressed, "announcement");
     }
-  };
+
+    // 🔥 Calculate expiration
+    let expiresAt: FirebaseFirestoreTypes.Timestamp | null = null;
+
+    if (announcementDuration !== "forever") {
+      const daysMap = {
+        "3d": 3,
+        "7d": 7,
+        "30d": 30,
+      };
+
+      const days = daysMap[announcementDuration];
+      const future = new Date();
+      future.setDate(future.getDate() + days);
+
+      expiresAt = firestore.Timestamp.fromDate(future);
+    }
+
+    await createAnnouncement({
+      title: announcementTitle,
+      authorId: uid,
+      text: announcementText,
+      imageUrl,
+      expiresAt,
+    });
+
+    setAnnouncementText("");
+    setAnnouncementImage(null);
+    adminSheetRef.current?.hide();
+
+    Alert.alert("Posted", "Announcement published successfully");
+  } finally {
+    setPostingAnnouncement(false);
+  }
+};
 
   return (
     <TouchableWithoutFeedback
@@ -334,7 +352,7 @@ useEffect(() => {
             source={
               profile.coverImage
                 ? { uri: profile.coverImage }
-                : require("../../../assets/images/avatar-placeholder.png")
+                : require("../../../assets/images/gate-logo2.png")
             }
             style={[styles.cover, { opacity: coverOpacity }]}
             resizeMode="cover"
@@ -371,7 +389,7 @@ useEffect(() => {
               source={
                 profile.profilePicture
                   ? { uri: profile.profilePicture }
-                  : require("../../../assets/images/avatar-placeholder.png")
+                  : require("../../../assets/images/icons8-profile-96.png")
               }
               style={[styles.avatar, { opacity: avatarOpacity }]}
               resizeMode="cover"
@@ -466,17 +484,60 @@ useEffect(() => {
         closeOnTouchBackdrop
         indicatorStyle={{ backgroundColor: colors.primary }}
         containerStyle={{
-          backgroundColor: colors.background,
+          backgroundColor: "transparent",
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
           paddingTop: 10,
         }}
       >
+        <BlurView
+  intensity={50}
+  tint="dark"
+  style={{
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: "hidden",
+    backgroundColor: "rgba(18,18,22,0.65)", // glass overlay
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  }}
+>
         <SheetScrollView contentContainerStyle={{ padding: 20 }}>
           <Text style={[typography.title, styles.sheetTitle]}>
             New Announcement
           </Text>
+  <View style={{ marginBottom: 16 }}>
+  <Text style={[typography.small, { color: colors.textSecondary }]}>
+    Duration
+  </Text>
 
+  <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+    {[
+      { label: "3 Days", value: "3d" },
+      { label: "7 Days", value: "7d" },
+      { label: "30 Days", value: "30d" },
+      { label: "Forever", value: "forever" },
+    ].map((item) => (
+      <TouchableOpacity
+        key={item.value}
+        onPress={() => setAnnouncementDuration(item.value as any)}
+        style={{
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          borderRadius: 14,
+          backgroundColor:
+            announcementDuration === item.value
+              ? colors.primary
+              : colors.card,
+        }}
+      >
+        <Text style={{ color: "#fff", fontSize: 12 }}>
+          {item.label}
+        </Text>
+      </TouchableOpacity>
+    ))}
+  </View>
+</View>
           <TextInput
             style={[typography.body, styles.announcementInput]}
             placeholder="Write a Title"
@@ -518,6 +579,7 @@ useEffect(() => {
             disabled={postingAnnouncement}
           />
         </SheetScrollView>
+        </BlurView>
       </ActionSheet>
     </View>
     </TouchableWithoutFeedback>
@@ -616,6 +678,7 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   sheetTitle: {
+    color: colors.textPrimary,
     marginBottom: 12,
   },
 

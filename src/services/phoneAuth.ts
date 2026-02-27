@@ -1,8 +1,9 @@
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
-import { serverTimestamp, collection, doc } from "./fireStoreHelpers";
+import { serverTimestamp, collection, doc, root } from "./db";
 import {log,warn,error,info} from "../utils/logger"
-
+import { authBootstrap } from "./authState";
+import crashlytics from "@react-native-firebase/crashlytics";
 /* ================= STATE ================= */
 
 let confirmationResult: FirebaseAuthTypes.ConfirmationResult | null = null;
@@ -37,7 +38,7 @@ export async function sendOtp(phone: string) {
     const attemptRef = collection("otp_attempts").doc(normalizedPhone);
     const attemptSnap = await attemptRef.get();
 
-    if (attemptSnap.exists) {
+    if (attemptSnap.exists()) {
       const data = attemptSnap.data();
       const lastRequest = data?.lastRequest ?? 0;
       const requestCount = data?.count ?? 0;
@@ -73,15 +74,24 @@ export async function sendOtp(phone: string) {
     }
 
     log("✅ OTP sent successfully");
-  } catch (err: any) {
-    error("🔥 sendOtp error:", err?.message);
-    throw new Error(err?.message || "Unable to send OTP. Please try again.");
-  }
+ } catch (err: any) {
+  error("🔥 sendOtp error:", err?.message);
+
+  crashlytics().log("sendOtp failed");
+  crashlytics().setAttribute("otp_phone", phone?.slice(-4) ?? "unknown");
+  crashlytics().setAttribute("otp_error_code", err?.code ?? "none");
+  crashlytics().recordError(err);
+
+  throw new Error(err?.message || "Unable to send OTP. Please try again.");
+}
 }
 
 /* ================= CONFIRM OTP ================= */
 
 export const confirmOtp = async (code: string) => {
+  if (authBootstrap.isBootstrapping) return;
+
+  authBootstrap.isBootstrapping = true;
   try {
     log("🔐 Starting OTP confirmation...");
 
@@ -95,13 +105,18 @@ export const confirmOtp = async (code: string) => {
     }
 
     confirmAttempts++;
+if (!code || code.length !== 6) {
+  throw new Error("Invalid verification code.");
+}
 
     const result = await confirmationResult.confirm(code);
 
     if (!result) {
       throw new Error("OTP verification failed.");
     }
+await result.user.getIdToken(true);
 
+//authBootstrap.isBootstrapping = false;
     log("✅ OTP confirmed");
 
     // Reset attempts on success
@@ -119,7 +134,8 @@ export const confirmOtp = async (code: string) => {
 
     log("📱 Normalized phone:", phone);
     log("👤 Auth UID:", uid);
-
+crashlytics().log("OTP confirmed successfully");
+crashlytics().setUserId(uid);
     /* ================= CHECK INVITE ================= */
 
     log("🔎 Checking trainer_invites...");
@@ -141,6 +157,7 @@ export const confirmOtp = async (code: string) => {
         notificationsEnabled: true,
         authUid: uid,
         isActive: true,
+        isAdmin: inviteData?.isAdmin ?? false,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         lastLoginAt: serverTimestamp(),
@@ -161,28 +178,25 @@ log("Invite doc id:", phone);
 
     /* ================= CHECK EXISTING TRAINER ================= */
 
-    const trainerSnap = await collection("users")
-      .where("phone", "==", phone)
-      .limit(1)
-      .get();
+const trainerSnap = await doc("users", uid).get();
 
-    if (!trainerSnap.empty) {
-      log("👤 Existing trainer found");
-      return {
-        role: "trainer" as const,
-        id: trainerSnap.docs[0].id,
-      };
-    }
+if (trainerSnap.exists()) {
+  log("👤 Existing trainer found");
 
+  return {
+    role: "trainer" as const,
+    id: trainerSnap.id,   // ✅ Correct
+  };
+}
     /* ================= CHECK CLIENT ================= */
-
-    const clientSnap = await collection("clients")
-      .where("phone", "==", phone)
-      .limit(1)
-      .get();
+const clientSnap = await root()
+  .collection("clients")
+  .where("phone", "==", phone)
+  .limit(1)
+  .get();
 
     if (clientSnap.empty) {
-      await auth().signOut();
+      await auth().signOut();  
       throw new Error(
         "Account not found. Please contact your trainer or administrator."
       );
@@ -205,10 +219,64 @@ log("Invite doc id:", phone);
       id: clientDoc.id,
     };
 
-  } catch (err: any) {
-    error("🔥 CONFIRM OTP ERROR:");
-    error("Message:", err?.message);
-    error("Code:", err?.code);
-    throw err;
+} catch (err: any) {
+  error("🔥 CONFIRM OTP ERROR:");
+  error("Message:", err?.message);
+  error("Code:", err?.code);
+
+  crashlytics().log("confirmOtp failed");
+  crashlytics().setAttribute("otp_error_code", err?.code ?? "none");
+  crashlytics().setAttribute("otp_error_message", err?.message ?? "none");
+
+  const currentUser = auth().currentUser;
+
+  if (currentUser) {
+    crashlytics().setAttribute("auth_user_exists", "true");
+    crashlytics().setUserId(currentUser.uid);
+  } else {
+    crashlytics().setAttribute("auth_user_exists", "false");
+  }
+
+  // 🔥 If user already authenticated, resolve role
+  if (currentUser && currentUser.phoneNumber) {
+    crashlytics().log("OTP threw error but user already signed in. Using fallback role resolution.");
+
+    confirmAttempts = 0;
+    confirmationResult = null;
+
+    const phone = normalizePhone(currentUser.phoneNumber);
+    const uid = currentUser.uid;
+
+    try {
+      const trainerSnap = await doc("users", uid).get();
+      if (trainerSnap.exists()) {
+        crashlytics().log("Fallback resolved as trainer");
+        return { role: "trainer" as const, id: trainerSnap.id };
+      }
+
+      const clientSnap = await root()
+        .collection("clients")
+        .where("phone", "==", phone)
+        .limit(1)
+        .get();
+
+      if (!clientSnap.empty) {
+        crashlytics().log("Fallback resolved as client");
+        return { role: "client" as const, id: clientSnap.docs[0].id };
+      }
+
+      crashlytics().log("Fallback failed to resolve role");
+    } catch (fallbackErr: any) {
+      crashlytics().recordError(fallbackErr);
+    }
+  }
+
+  confirmationResult = null;
+
+  crashlytics().recordError(err);
+
+  throw err;
+}finally {
+    authBootstrap.isBootstrapping = false;  // ✅ ALWAYS RESET HERE
   }
 };

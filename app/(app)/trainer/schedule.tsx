@@ -9,7 +9,7 @@ import { resolveAttendance } from "@/src/services/resolveAttendance";
 import { colors } from "@/src/theme/colors";
 import { ScheduledSession } from "@/src/types/models";
 import { log, error } from "@/src/utils/logger";
-
+import { BlurView } from "expo-blur";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -26,6 +26,7 @@ import { useNavigation } from "expo-router";
 import { ActionSheetRef } from "react-native-actions-sheet";
 import BookingModal from "@/src/components/BookingModal";
 import { root } from "@/src/services/db";
+import AnimatedAppear from "@/src/components/AnimatedAppear";
 
 type EnrichedScheduledSession = ScheduledSession & {
   clientIsHijabi?: boolean;
@@ -78,41 +79,41 @@ type HijabiBlock = {
 };
 // -------- component --------
 export default function TrainerScheduleScreen() {
-  useFocusEffect(
-    useCallback(() => {
-      const onBack = () => {
-        router.replace("/(app)/trainer/dashboard");
-        return true; // ⛔ block default back
-      };
+//   useFocusEffect(
+//     useCallback(() => {
+//       const onBack = () => {
+//         router.replace("/(app)/trainer/dashboard");
+//         return true; // ⛔ block default back
+//       };
 
-      // Android hardware back
-      const sub =
-        Platform.OS === "android"
-          ? BackHandler.addEventListener("hardwareBackPress", onBack)
-          : null;
+//       // Android hardware back
+//       const sub =
+//         Platform.OS === "android"
+//           ? BackHandler.addEventListener("hardwareBackPress", onBack)
+//           : null;
 
-      return () => {
-        sub?.remove();
-      };
-    }, [])
-  );
+//       return () => {
+//         sub?.remove();
+//       };
+//     }, [])
+//   );
 
-  const navigation = useNavigation();
+//   const navigation = useNavigation();
 
-useEffect(() => {
-  if (Platform.OS !== "ios") return;
+// useEffect(() => {
+//   if (Platform.OS !== "ios") return;
 
-  const unsub = navigation.addListener("beforeRemove", (e) => {
-    // Allow programmatic redirects
-    if (e.data.action?.type === "REPLACE") return;
+//   const unsub = navigation.addListener("beforeRemove", (e) => {
+//     // Allow programmatic redirects
+//     if (e.data.action?.type === "REPLACE") return;
 
-    e.preventDefault();
+//     e.preventDefault();
 
-    router.replace("/(app)/trainer/dashboard");
-  });
+//     router.replace("/(app)/trainer/dashboard");
+//   });
 
-  return unsub;
-}, [navigation]);
+//   return unsub;
+// }, [navigation]);
   const [uid, setUid] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
 
@@ -389,6 +390,8 @@ for (const trainerDoc of trainersSnap.docs) {
   return (
     <View style={styles.container}>
       {/* HEADER */}
+      <AnimatedAppear delay={40} style={{ width: "100%" }}>
+
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => setCurrentDate(addDays(currentDate, -1))}
@@ -404,6 +407,7 @@ for (const trainerDoc of trainersSnap.docs) {
           <Text style={styles.nav}>▶</Text>
         </TouchableOpacity>
       </View>
+      </AnimatedAppear>
       {loading ? (
         <>
           <ScheduleHeaderSkeleton />
@@ -429,6 +433,9 @@ for (const trainerDoc of trainersSnap.docs) {
                 const h = Math.floor(minutes / 60);
                 const m = minutes % 60;
                 return (
+                  <AnimatedAppear
+  delay={120 + slots.indexOf(minutes) * 50}
+>
                   <View
                     key={minutes}
                     style={[
@@ -440,6 +447,7 @@ for (const trainerDoc of trainersSnap.docs) {
                       {String(h).padStart(2, "0")}:{String(m).padStart(2, "0")}
                     </Text>
                   </View>
+                  </AnimatedAppear>
                 );
               })}
             </View>
@@ -509,7 +517,11 @@ for (const trainerDoc of trainersSnap.docs) {
                   )
                 );
                 return (
-                  <TouchableOpacity
+                  <AnimatedAppear
+  key={session.id}
+  delay={320 + sessions.indexOf(session) * 100}
+>
+  <TouchableOpacity
                     key={session.id}
                     //check this out later
                     pressRetentionOffset={{
@@ -629,6 +641,7 @@ for (const trainerDoc of trainersSnap.docs) {
                       )}
                     </View>
                   </TouchableOpacity>
+                  </AnimatedAppear>
                 );
               })}
             </View>

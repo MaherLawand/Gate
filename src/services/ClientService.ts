@@ -33,7 +33,7 @@ export const redirectAfterLogin = async (uid: string) => {
 
   const snap = await getDoc(doc("users", uid));
 
-  if (!snap.exists) {
+  if (!snap.exists()) {
     warn("[Auth] User record not found", { uid });
     return;
   }

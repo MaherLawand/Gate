@@ -15,11 +15,14 @@ export async function getExercises(): Promise<Exercise[]> {
     count: snap.docs.length,
   });
 
-  const exercises = snap.docs.map((d) => ({
+const exercises: Exercise[] = snap.docs.map((d) => {
+  const data = d.data() as Omit<Exercise, "id">;
+
+  return {
     id: d.id,
-    name: d.data().name,
-    category: d.data().category,
-  }));
+    ...data,
+  };
+});
 
   info("[Exercise:getExercises] success");
 

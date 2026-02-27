@@ -1,12 +1,13 @@
-import firestore from "@react-native-firebase/firestore";
+import firestore, { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 import { root } from "./db";
 import { log, error } from "@/src/utils/logger";
 
-export type CreateAnnouncementParams = {
-  title?: string;
+type CreateAnnouncementParams = {
+  title: string;
   authorId: string;
   text: string;
   imageUrl?: string | null;
+  expiresAt?: FirebaseFirestoreTypes.Timestamp | null; // 👈 ADD THIS
 };
 
 export async function createAnnouncement({
@@ -14,6 +15,7 @@ export async function createAnnouncement({
   authorId,
   text,
   imageUrl,
+  expiresAt,
 }: CreateAnnouncementParams) {
   if (!text.trim() && !imageUrl) {
     throw new Error("Announcement must contain text or an image");
@@ -32,9 +34,7 @@ export async function createAnnouncement({
       params: null,
 
       createdAt: firestore.FieldValue.serverTimestamp(),
-
-      // Optional expiry (can be null)
-      expiresAt: null,
+    expiresAt: expiresAt ?? null, // 👈 ADD THIS,
     });
 
   log("📢 Announcement created → Cloud Function will dispatch");

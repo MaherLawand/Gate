@@ -60,7 +60,7 @@ export async function resolveAttendance({
   await firestore().runTransaction(async (tx) => {
     const scheduleSnap = await tx.get(scheduleRef);
 
-    if (!scheduleSnap.exists) {
+    if (!scheduleSnap.exists()) {
       throw new Error("Scheduled session not found");
     }
 
@@ -75,7 +75,7 @@ export async function resolveAttendance({
     if (mode === "confirmed" || mode === "charged-no-show") {
       const packageSnap = await tx.get(packageRef);
 
-      if (!packageSnap.exists) {
+      if (!packageSnap.exists()) {
         throw new Error("Active package not found.");
       }
 

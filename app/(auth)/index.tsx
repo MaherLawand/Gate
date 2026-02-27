@@ -32,6 +32,7 @@ import { colors } from "../../src/theme/colors";
 import { typography } from "../../src/theme/typography";
 import { auth, firestore } from "@/src/services/firebase";
 import * as Notifications from "expo-notifications";
+import { authBootstrap } from "@/src/services/authState";
 const { width, height } = Dimensions.get("window");
 
 type AppState =
@@ -39,11 +40,10 @@ type AppState =
   | "signedOutIntro"
   | "login"
   | "signedInLoading";
-
+let hasPlayedIntro = false;
 export default function Index() {
   const router = useRouter();
   const videoRef = useRef<Video>(null);
-
   // const { ready, user } = useAuthReady();
 
   // const [showLogin, setShowLogin] = useState(false);
@@ -53,16 +53,34 @@ export default function Index() {
 const [appState, setAppState] = useState<
   "checking" | "signedOutIntro" | "login" | "signedInLoading"
 >("checking");
-
+const [isSubmitting, setIsSubmitting] = useState(false);
+useEffect(() => {
+  log("🟦 [AUTH INDEX] Mounted");
+  return () => log("🟥 [AUTH INDEX] Unmounted");
+}, []);
 useEffect(() => {
   const unsub = auth().onAuthStateChanged((user) => {
-    if (!user) {
-      setAppState("signedOutIntro");
+
+    log("🔐 [AUTH INDEX] Auth changed:", user?.uid ?? "NO USER");
+
+    // 🛑 IGNORE auth changes during OTP bootstrap
+    if (authBootstrap.isBootstrapping) {
+      log("⏳ [AUTH INDEX] Ignoring auth change (bootstrapping)");
       return;
     }
 
-    // 🔥 JUST redirect to app root
-    router.replace("/(app)");
+    if (!user) {
+      if (!hasPlayedIntro) {
+        setAppState("signedOutIntro");
+        hasPlayedIntro = true;
+      } else {
+        setAppState("login");
+      }
+      return;
+    }
+
+    // log("🚦 [AUTH INDEX] Routing → /(app)");
+    // router.replace("/(app)");
   });
 
   return unsub;
@@ -119,7 +137,9 @@ useEffect(() => {
           return;
         }
   log("Firebase Project ID:", getApp().options.projectId);
-        const token = await Notifications.getExpoPushTokenAsync();
+        const token = await Notifications.getExpoPushTokenAsync({
+      projectId: "5bc10cd6-e679-4eb4-a6d5-3bb4abc257d7",
+    });
         log("📲 Expo Push Token:", token.data);
       } catch (e) {
         log("❌ Push permission error:", e);
@@ -181,6 +201,7 @@ useEffect(() => {
   };
 
   const handleLogin = async () => {
+    if(isSubmitting) return; // prevent double submit
     const phoneRaw = getPhoneRaw();
 
     if (!phoneRaw) {
@@ -189,6 +210,7 @@ useEffect(() => {
     }
 
     try {
+      setIsSubmitting(true);
       setLoading(true);
       await sendOtp(phoneRaw);
       router.push("/otp");
@@ -196,6 +218,7 @@ useEffect(() => {
       Alert.alert("Login failed", e.message);
     } finally {
       setLoading(false);
+      setIsSubmitting(false);
     }
   };
   const impulseX = useSharedValue(0);
@@ -384,8 +407,9 @@ if (appState === "checking" || appState === "signedInLoading") {
 
               <AnimatedAppear delay={160}>
                 <AppButton
-                  title={loading ? "Sending code..." : "Continue"}
+                  title={isSubmitting ? "Sending code..." : "Continue"}
                   onPress={handleLogin}
+                  disabled={isSubmitting}
                 />
               </AnimatedAppear>
             </View>

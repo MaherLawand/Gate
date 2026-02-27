@@ -2,24 +2,29 @@ import AnimatedAppear from "@/src/components/AnimatedAppear";
 import { colors } from "@/src/theme/colors";
 import { useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
-import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Animated,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  Image,
+} from "react-native";
 import { Easing } from "react-native-reanimated";
 import { log, error } from "@/src/utils/logger";
 
 function normalizeParam(label: string, value?: string | string[]) {
- log(`🔎 PARAM [${label}] RAW →`, value, typeof value);
+  log(`🔎 PARAM [${label}] RAW →`, value, typeof value);
 
   if (!value) return undefined;
   if (Array.isArray(value)) {
-   log(`⚠️ PARAM [${label}] was array, using first element`);
+    log(`⚠️ PARAM [${label}] was array, using first element`);
     return value[0];
   }
   return value;
 }
 
 export default function TrainerDashboard() {
-
-  
   const params = useLocalSearchParams();
   function fixFirebaseUrl(url?: string) {
     if (!url) return undefined;
@@ -39,7 +44,7 @@ export default function TrainerDashboard() {
       return url;
     }
   }
- log("🧪 RAW PARAMS OBJECT:", params);
+  log("🧪 RAW PARAMS OBJECT:", params);
 
   const firstName = normalizeParam("firstName", params.firstName) ?? "Trainer";
   const lastName = normalizeParam("lastName", params.lastName) ?? "";
@@ -51,7 +56,7 @@ export default function TrainerDashboard() {
   const coverImage = fixFirebaseUrl(rawCoverImage);
 
   const [activeImage, setActiveImage] = useState<"cover" | "avatar" | null>(
-    null
+    null,
   );
 
   const viewerOpacity = useRef(new Animated.Value(0)).current;
@@ -109,7 +114,7 @@ export default function TrainerDashboard() {
     });
   };
 
- log("🧾 FINAL VALUES", {
+  log("🧾 FINAL VALUES", {
     firstName,
     lastName,
     bio,
@@ -118,7 +123,7 @@ export default function TrainerDashboard() {
   });
 
   const fadeIn = (opacity: Animated.Value, label: string) => {
-   log(`🎞️ fadeIn triggered for ${label}`);
+    log(`🎞️ fadeIn triggered for ${label}`);
     Animated.timing(opacity, {
       toValue: 1,
       duration: 300,
@@ -130,54 +135,50 @@ export default function TrainerDashboard() {
   return (
     <View style={styles.container}>
       {/* COVER */}
+      {/* COVER */}
       <View style={styles.coverWrap}>
         <Pressable disabled={!coverImage} onPress={() => openViewer("cover")}>
-          <Animated.Image
-            source={
-              coverImage
-                ? { uri: coverImage }
-                : require("../../../assets/images/avatar-placeholder.png")
-            }
-            style={[styles.cover, { opacity: coverOpacity }]}
-            resizeMode="cover"
-            onLoadStart={() => {
-             log("📸 COVER load start");
-              coverOpacity.setValue(0);
-            }}
-            onLoadEnd={() => {
-             log("✅ COVER load end");
-              fadeIn(coverOpacity, "cover");
-            }}
-            onError={(e) => {
-             log("❌ COVER IMAGE ERROR", e.nativeEvent);
-            }}
-          />
+          {coverImage ? (
+            <Animated.Image
+              source={{ uri: coverImage }}
+              style={[styles.cover, { opacity: coverOpacity }]}
+              resizeMode="cover"
+              onLoadStart={() => coverOpacity.setValue(0)}
+              onLoadEnd={() => fadeIn(coverOpacity, "cover")}
+            />
+          ) : (
+            <View style={styles.coverFallback}>
+              <Image
+                source={require("../../../assets/images/gate-logo.png")}
+                style={styles.coverLogo}
+                resizeMode="contain"
+              />
+            </View>
+          )}
         </Pressable>
       </View>
 
       {/* AVATAR */}
       <View style={styles.avatarWrap}>
         <View style={styles.avatarInner}>
-          <Pressable onPress={() => openViewer("avatar")}>
+          <Pressable
+            disabled={!profilePicture}
+            onPress={() => {
+              if (profilePicture) {
+                openViewer("avatar");
+              }
+            }}
+          >
             <Animated.Image
               source={
                 profilePicture
                   ? { uri: profilePicture }
-                  : require("../../../assets/images/avatar-placeholder.png")
+                  : require("../../../assets/images/icons8-profile-96.png")
               }
               style={[styles.avatar, { opacity: avatarOpacity }]}
               resizeMode="cover"
-              onLoadStart={() => {
-               log("📸 AVATAR load start");
-                avatarOpacity.setValue(0);
-              }}
-              onLoadEnd={() => {
-               log("✅ AVATAR load end");
-                fadeIn(avatarOpacity, "avatar");
-              }}
-              onError={(e) => {
-               log("❌ AVATAR IMAGE ERROR", e.nativeEvent);
-              }}
+              onLoadStart={() => avatarOpacity.setValue(0)}
+              onLoadEnd={() => fadeIn(avatarOpacity, "avatar")}
             />
           </Pressable>
         </View>
@@ -228,14 +229,14 @@ export default function TrainerDashboard() {
                   ? { uri: coverImage }
                   : require("../../../assets/images/avatar-placeholder.png")
                 : profilePicture
-                ? { uri: profilePicture }
-                : require("../../../assets/images/avatar-placeholder.png")
+                  ? { uri: profilePicture }
+                  : require("../../../assets/images/icons8-profile-96.png")
             }
             style={[
               styles.viewerImage,
               {
                 transform: [
-                  { scale: viewerScale},
+                  { scale: viewerScale },
                   //check this out later
                   { translateY: viewerTranslateY },
                 ],
@@ -288,5 +289,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 14,
     fontStyle: "italic",
+  },
+  coverFallback: {
+    width: "100%",
+    height: 160,
+    backgroundColor: "#0B0F14",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  coverLogo: {
+    width: 80,
+    height: 80,
+    opacity: 0.8,
   },
 });

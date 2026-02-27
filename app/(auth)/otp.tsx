@@ -3,7 +3,7 @@ import { VenomBubble } from "@/src/components/InteractiveGlassBubbles";
 import { registerForPushNotifications } from "@/src/services/registerForPushNotifications";
 import { typography } from "@/src/theme/typography";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Dimensions,
@@ -22,6 +22,8 @@ import {
 import AppButton from "../../src/components/AppButton";
 import { confirmOtp } from "../../src/services/phoneAuth";
 import { colors } from "../../src/theme/colors";
+import { auth } from "@/src/services/firebase";
+import { log } from "@/src/utils/logger";
 
 const { width, height } = Dimensions.get("window");
 
@@ -30,10 +32,13 @@ export default function OTPScreen() {
 
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const impulseX = useSharedValue(0);
   const impulseY = useSharedValue(0);
-
+useEffect(() => {
+  log("🟦 [OTP] Mounted");
+  return () => log("🟥 [OTP] Unmounted");
+}, []);
   const onBackgroundPress = (x: number, y: number) => {
     const cx = width / 2;
     const cy = height / 2;
@@ -67,29 +72,47 @@ export default function OTPScreen() {
     );
   };
 
-  const handleConfirm = async () => {
-    if (!code || code.length < 6) {
-      Alert.alert("Invalid code", "Enter the 6-digit OTP");
-      return;
-    }
+const handleConfirm = async () => {
+    log("🔘 [OTP] Confirm pressed");
 
-    try {
-      setLoading(true);
+  if (isSubmitting) return;
+  
 
-      const client = await confirmOtp(code);
+  if (!code || code.length < 6) {
+    Alert.alert("Invalid code", "Enter the 6-digit OTP");
+    return;
+  }
+
+  try {
+    setLoading(true);
+    setIsSubmitting(true);
+    log("🔐 [OTP] Calling confirmOtp");
+
+    const result = await confirmOtp(code);
+    log("✅ [OTP] confirmOtp success:", result);
+
+      if (result?.role === "trainer") {
+            log("🚦 [OTP] Routing to /(app)/trainer/dashboard");
+        router.replace("/(app)/trainer/dashboard");
+      } else {
+        log("🚦 [OTP] Routing to /(app)/client/Gate");
+        router.replace("/(app)/client/Gate");
+      }
+
+    // Only register push if login succeeded
+    if (result?.role === "trainer" || result?.role === "client") {
       await registerForPushNotifications();
-
-      // if (client.role === "trainer") {
-      //   router.replace("/(app)/trainer/dashboard");
-      // } else {
-      //   router.replace("/(app)/client/Gate");
-      // }
-    } catch (e: any) {
-      Alert.alert("OTP Failed", e.message);
-    } finally {
-      setLoading(false);
     }
-  };
+
+  } catch (e: any) {
+    log("🚦 [OTP] Routing to /(auth)");
+    router.replace("/(auth)")
+    Alert.alert("OTP Failed", e.message);
+  } finally {
+    setLoading(false);
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <View style={styles.root}>
@@ -173,8 +196,9 @@ export default function OTPScreen() {
 
               <AnimatedAppear delay={160}>
                 <AppButton
-                  title={loading ? "Verifying..." : "Verify OTP"}
+                  title={isSubmitting ? "Verifying..." : "Verify OTP"}
                   onPress={handleConfirm}
+                  disabled={isSubmitting}
                 />
               </AnimatedAppear>
             </View>

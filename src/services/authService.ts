@@ -84,7 +84,7 @@ export async function loginTrainer(email: string, password: string) {
     // 2️⃣ Load Firestore user profile
     const snap = await getDoc(doc("users", uid));
 
-    if (!snap.exists) {
+    if (!snap.exists()) {
       warn("[AuthService] User document missing", { uid });
       throw new Error("Access denied");
     }

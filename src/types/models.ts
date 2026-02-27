@@ -53,9 +53,14 @@ export interface ClientProfile {
   lastLoginAt?: Timestamp;
 }
 export type Exercise = {
-  id: string; // 🔥 Firestore doc ID
+  id: string; // Firestore doc ID
   name: string;
-  category: "Push" | "Pull" | "Legs";
+  category: string; // e.g. chest, back, legs
+  muscleGroups: string[];
+  equipment: string;
+  difficulty: "beginner" | "intermediate" | "advanced";
+  searchKeywords: string[];
+  isActive: boolean;
 };
 
 export type ExerciseSet = {

@@ -100,6 +100,7 @@ export function listenUnreadNotificationsCount(
     .where("read", "==", false)
     .where("sent", "==", true)
     .where("expiresAt", ">", firestore.Timestamp.now())
+    .where("type", "!=", "announcement") // 👈 ADD THIS
     .onSnapshot(
       (snap) => {
         if (!snap) {

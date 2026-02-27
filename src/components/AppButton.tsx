@@ -107,7 +107,7 @@ export default function AppButton({
           inputRange: [0, 1],
           outputRange: [1, 0.4],
         }),
-        backgroundColor: disabled ? "#3A3A3A" : "#7A0F16", // 👈 here
+        backgroundColor: disabled ? "#3A3A3A" : "#b61823", // 👈 here
       },
     ]}
   />
@@ -119,7 +119,7 @@ export default function AppButton({
       {
         backgroundColor: anim.interpolate({
           inputRange: [0, 1],
-          outputRange: ["#2A2A2A", "#DE1F2E"],
+          outputRange: ["#2A2A2A", "#ff0015"],
         }),
       },
     ]}
