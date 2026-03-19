@@ -7,13 +7,13 @@ console.log("isDev:", isDev);
 export default {
   expo: {
     slug: "Gate",
-    splash: { backgroundColor: "#0B0F14" },
+    splash: { backgroundColor: "#000000" },
     name: isDev ? "Gate (Dev)" : "Gate",
-    version: "1.0.0",
+    version: "1.0.1",
     orientation: "portrait",
-    icon: "./assets/images/gate-logo2.png",
+    icon: "./assets/images/gate-logo4.png",
     scheme: "gate",
-    userInterfaceStyle: "automatic",
+    userInterfaceStyle: "dark",
     newArchEnabled: true,
     notification: {
       iosDisplayInForeground: true,
@@ -21,9 +21,9 @@ export default {
     platforms: ["ios", "android"],
 
     ios: {
-      icon: "./assets/images/gate-logo2.png",
+      icon: "./assets/images/gate-logo4.png",
       supportsTablet: true,
-      buildNumber: "2", // 🔥 increase this every submission
+      buildNumber: "3", // 🔥 increase this every submission
       bundleIdentifier: isDev
         ? "com.maherlawand.GatePrivateGym.dev"
         : "com.maherlawand.GatePrivateGym",
@@ -48,14 +48,14 @@ export default {
     },
 
     android: {
-      versionCode: 2,// 🔥 increase this every submission
+      versionCode: 6, // 🔥 increase this every submission
       adaptiveIcon: {
-        foregroundImage: "./assets/images/gate-logo2.png",
+        foregroundImage: "./assets/images/gate-logo4.png",
         backgroundColor: "#000000",
       },
       notification: {
         color: "#ffffff",
-        icon: "./assets/images/gate-logo2.png",
+        icon: "./assets/images/gate-logo4.png",
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
@@ -94,18 +94,19 @@ export default {
       [
         "expo-notifications",
         {
-          icon: "./assets/images/gate-logo2.png",
+          icon: "./assets/images/gate-logo4.png",
           color: "#E6F4Fe",
         },
       ],
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/gate-logo.png",
+          image: "./assets/images/gate-logo5.png",
           imageWidth: 200,
           resizeMode: "contain",
-          backgroundColor: "#ffffff",
+          backgroundColor: "#000000",
           dark: {
+            image: "./assets/images/gate-logo5.png",
             backgroundColor: "#000000",
           },
         },

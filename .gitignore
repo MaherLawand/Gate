@@ -1,57 +1,85 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
+# ===============================
+# 📦 Dependencies
+# ===============================
 node_modules/
 
-.git.zip
-
-# Expo
+# ===============================
+# 🧪 Expo / React Native
+# ===============================
 .expo/
+.expo-shared/
 dist/
 web-build/
 expo-env.d.ts
-.expo/shared
 
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
+# ===============================
+# ⚙️ Native Build Artifacts
+# ===============================
+# android/build/
+# android/app/build/
+# ios/build/
+# .gradle/
+# build/
 
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
-.DS_Store
-*.pem
-
-# local env files
-.env*.local
-
-# typescript
-*.tsbuildinfo
-
-app-example
-
-#firebase
-.firebase/
-*.log
-
-# generated native folders
-# /ios
-# /android
+# ===============================
+# 🔐 Secrets (NEVER COMMIT)
+# ===============================
+# Firebase Admin / backend keys
 serviceAccountKey.json
 serviceAccountKeyDev.json
+*-firebase-adminsdk-*.json
 
-#android / ios
-android/build/
-ios/build/
+# Apple secrets
+*.p8
+*.p12
+*.mobileprovision
+*.key
+
+# Android signing
 *.keystore
+*.jks
+
+# Env files
+.env
+.env*.local
+
+# ===============================
+# 🔥 Firebase (local cache/logs)
+# ===============================
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# ===============================
+# 🧠 Metro / Debug
+# ===============================
+.metro-health-check*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===============================
+# 🍎 macOS
+# ===============================
+.DS_Store
+
+# ===============================
+# 🧾 TypeScript
+# ===============================
+*.tsbuildinfo
+
+# ===============================
+# 🧪 Misc
+# ===============================
+*.orig.*
+*.log
+.git.zip
+
+# ===============================
+# ✅ IMPORTANT (DO NOT IGNORE)
+# ===============================
+# ios/
+# android/
+# google-services.json
+# GoogleService-Info.plist

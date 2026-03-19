@@ -176,7 +176,7 @@ export default function TrainerDashboard() {
                   : require("../../../assets/images/icons8-profile-96.png")
               }
               style={[styles.avatar, { opacity: avatarOpacity }]}
-              resizeMode="cover"
+              resizeMode="contain"
               onLoadStart={() => avatarOpacity.setValue(0)}
               onLoadEnd={() => fadeIn(avatarOpacity, "avatar")}
             />
@@ -264,13 +264,13 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     borderColor: colors.background,
   },
-  avatarInner: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    overflow: "hidden",
-    backgroundColor: colors.card,
-  },
+avatarInner: {
+  width: 96,
+  height: 96,
+  borderRadius: 48,
+  overflow: "hidden",
+  backgroundColor: "#000", // or colors.card
+},
   viewerImage: {
     position: "absolute",
     top: 0,

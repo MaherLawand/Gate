@@ -8,6 +8,7 @@
  */
 
 import * as admin from "firebase-admin";
+import * as functions from "firebase-functions";
 import { setGlobalOptions } from "firebase-functions";
 import * as logger from "firebase-functions/logger";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
@@ -368,5 +369,22 @@ export const scheduleWeeklyPreferencesReminder = onSchedule(
   },
 );
 
-// firebase deploy --only functions
+export const getTestToken = functions.https.onRequest(async (req, res) => {
+  try {
+    const uid = "test-client-uid";
+
+    const token = await admin.auth().createCustomToken(uid);
+
+    res.json({ token });
+  } catch (e: any) {
+    console.error("🔥 TOKEN ERROR FULL:", e);
+    res.status(500).json({
+      error: e.message,
+      stack: e.stack,
+    });
+  }
+});
+
+
+// npx firebase-tools deploy --only functions
 //! currently undeployed

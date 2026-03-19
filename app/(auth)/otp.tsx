@@ -73,10 +73,9 @@ useEffect(() => {
   };
 
 const handleConfirm = async () => {
-    log("🔘 [OTP] Confirm pressed");
+  log("🔘 [OTP] Confirm pressed");
 
   if (isSubmitting) return;
-  
 
   if (!code || code.length < 6) {
     Alert.alert("Invalid code", "Enter the 6-digit OTP");
@@ -86,28 +85,39 @@ const handleConfirm = async () => {
   try {
     setLoading(true);
     setIsSubmitting(true);
+
     log("🔐 [OTP] Calling confirmOtp");
 
     const result = await confirmOtp(code);
+
     log("✅ [OTP] confirmOtp success:", result);
 
-      if (result?.role === "trainer") {
-            log("🚦 [OTP] Routing to /(app)/trainer/dashboard");
-        router.replace("/(app)/trainer/dashboard");
-      } else {
-        log("🚦 [OTP] Routing to /(app)/client/Gate");
-        router.replace("/(app)/client/Gate");
-      }
-
-    // Only register push if login succeeded
-    if (result?.role === "trainer" || result?.role === "client") {
-      await registerForPushNotifications();
+    // 🚨 HARD VALIDATION
+    if (!result || !result.role) {
+      throw new Error("Invalid authentication state.");
     }
+
+    if (result.role === "trainer") {
+      log("🚦 [OTP] Routing to /(app)/trainer/dashboard");
+      router.replace("/(app)/trainer/dashboard");
+
+    } else if (result.role === "client") {
+      log("🚦 [OTP] Routing to /(app)/client/Gate");
+      router.replace("/(app)/client/Gate");
+
+    } else {
+      // 🚨 Unknown role → block access
+      throw new Error("Unauthorized role.");
+    }
+
+    // Only register push if valid role
+    await registerForPushNotifications();
 
   } catch (e: any) {
     log("🚦 [OTP] Routing to /(auth)");
-    router.replace("/(auth)")
-    Alert.alert("OTP Failed", e.message);
+    router.replace("/(auth)");
+
+    Alert.alert("OTP Failed", e?.message || "Something went wrong.");
   } finally {
     setLoading(false);
     setIsSubmitting(false);

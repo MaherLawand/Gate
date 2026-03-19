@@ -1,15 +1,15 @@
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
-import firestore from "@react-native-firebase/firestore";
-import { serverTimestamp, collection, doc, root } from "./db";
-import {log,warn,error,info} from "../utils/logger"
-import { authBootstrap } from "./authState";
 import crashlytics from "@react-native-firebase/crashlytics";
+import firestore from "@react-native-firebase/firestore";
+import { error, log } from "../utils/logger";
+import { authBootstrap } from "./authState";
+import { collection, doc, root, serverTimestamp } from "./db";
 /* ================= STATE ================= */
 
 let confirmationResult: FirebaseAuthTypes.ConfirmationResult | null = null;
 let lastOtpRequestTime: number | null = null;
 let confirmAttempts = 0;
-
+let lastPhoneUsed: string | null = null;
 /* ================= NORMALIZE PHONE ================= */
 
 export function normalizePhone(phone: string) {
@@ -27,6 +27,7 @@ export function normalizePhone(phone: string) {
 export async function sendOtp(phone: string) {
   try {
     const normalizedPhone = normalizePhone(phone);
+    lastPhoneUsed = normalizedPhone;
     const now = Date.now();
 
     // ✅ 1. Client cooldown (60 seconds)
@@ -54,7 +55,7 @@ export async function sendOtp(phone: string) {
           count: now - lastRequest > tenMinutes ? 1 : requestCount + 1,
           lastRequest: now,
         },
-        { merge: true }
+        { merge: true },
       );
     } else {
       await attemptRef.set({
@@ -74,16 +75,16 @@ export async function sendOtp(phone: string) {
     }
 
     log("✅ OTP sent successfully");
- } catch (err: any) {
-  error("🔥 sendOtp error:", err?.message);
+  } catch (err: any) {
+    error("🔥 sendOtp error:", err?.message);
 
-  crashlytics().log("sendOtp failed");
-  crashlytics().setAttribute("otp_phone", phone?.slice(-4) ?? "unknown");
-  crashlytics().setAttribute("otp_error_code", err?.code ?? "none");
-  crashlytics().recordError(err);
+    crashlytics().log("sendOtp failed");
+    crashlytics().setAttribute("otp_phone", phone?.slice(-4) ?? "unknown");
+    crashlytics().setAttribute("otp_error_code", err?.code ?? "none");
+    crashlytics().recordError(err);
 
-  throw new Error(err?.message || "Unable to send OTP. Please try again.");
-}
+    throw new Error(err?.message || "Unable to send OTP. Please try again.");
+  }
 }
 
 /* ================= CONFIRM OTP ================= */
@@ -92,34 +93,133 @@ export const confirmOtp = async (code: string) => {
   if (authBootstrap.isBootstrapping) return;
 
   authBootstrap.isBootstrapping = true;
+
   try {
     log("🔐 Starting OTP confirmation...");
+    // 🔥 TEST ACCOUNT BYPASS (App Store review)
+    const TEST_PHONE = "+96112345679";
+    const TEST_CODE = "123456";
 
+    if (lastPhoneUsed === TEST_PHONE && code === TEST_CODE) {
+      console.log("🧪 TEST MODE START");
+
+      try {
+        // 🔥 STEP 1: Fetch token
+        console.log("➡️ Fetching custom token...");
+
+        const res = await fetch(
+          "https://us-central1-gate-2056a.cloudfunctions.net/getTestToken",
+        );
+
+        console.log("🌐 Fetch response status:", res.status);
+
+        if (!res.ok) {
+          console.log("❌ Fetch failed");
+          throw new Error("Failed to fetch custom token");
+        }
+
+        const data = await res.json();
+        console.log("📦 Token response:", data);
+
+        if (!data?.token) {
+          console.log("❌ No token in response");
+          throw new Error("Invalid token response");
+        }
+
+        // 🔥 STEP 2: Firebase login
+        console.log("➡️ Signing in with custom token...");
+
+        const userCredential = await auth().signInWithCustomToken(data.token);
+
+        console.log("✅ Sign in success");
+
+        // 🔥 FORCE SYNC
+        await userCredential.user.getIdToken(true);
+        console.log("🔄 Token refreshed");
+
+        console.log("👤 AUTH USER:", auth().currentUser);
+        console.log("🆔 AUTH UID:", auth().currentUser?.uid);
+
+        const token = await auth().currentUser?.getIdToken();
+        console.log("🔑 TOKEN EXISTS:", !!token);
+
+        const user = userCredential.user;
+
+        if (!user?.uid) {
+          console.log("❌ No UID after login");
+          throw new Error("Auth failed");
+        }
+
+        const uid = user.uid;
+
+        console.log("✅ Authenticated UID:", uid);
+
+        // 🔥 STEP 3: Firestore read
+        console.log("➡️ Fetching client doc...");
+
+        const clientDocRef = root()
+          .collection("clients")
+          .doc("DBKJ4ncJ3P05qko6GSnY");
+
+        console.log("📄 Doc path:", clientDocRef.path);
+
+        const clientDoc = await clientDocRef.get();
+
+        console.log("📄 Doc exists:", clientDoc.exists);
+
+        if (clientDoc.exists()) {
+          console.log("📄 Doc data:", clientDoc.data());
+        } else {
+          console.log("❌ Doc does not exist");
+        }
+
+        if (!clientDoc.exists) {
+          throw new Error("Test client not found");
+        }
+
+        console.log("✅ TEST MODE SUCCESS");
+
+        return {
+          role: "client" as const,
+          id: clientDoc.id,
+        };
+      } catch (err: any) {
+        console.log("🔥 TEST MODE ERROR:");
+        console.log("Message:", err?.message);
+        console.log("Code:", err?.code);
+        console.log("Full error:", err);
+
+        throw err;
+      }
+    }
     if (!confirmationResult) {
       throw new Error("OTP session expired. Please request a new code.");
     }
 
-    // ✅ Limit brute-force attempts
     if (confirmAttempts >= 5) {
       throw new Error("Too many incorrect attempts. Request a new code.");
     }
 
+    if (!code || code.length !== 6) {
+      throw new Error("Invalid verification code.");
+    }
+
     confirmAttempts++;
-if (!code || code.length !== 6) {
-  throw new Error("Invalid verification code.");
-}
+
+    // We need the phone used in sendOtp → store it globally
+    // If you don’t have it yet, I’ll show you below
 
     const result = await confirmationResult.confirm(code);
 
-    if (!result) {
+    if (!result?.user) {
       throw new Error("OTP verification failed.");
     }
-await result.user.getIdToken(true);
 
-//authBootstrap.isBootstrapping = false;
+    await result.user.getIdToken(true);
+
     log("✅ OTP confirmed");
 
-    // Reset attempts on success
+    // reset session
     confirmAttempts = 0;
     confirmationResult = null;
 
@@ -134,11 +234,12 @@ await result.user.getIdToken(true);
 
     log("📱 Normalized phone:", phone);
     log("👤 Auth UID:", uid);
-crashlytics().log("OTP confirmed successfully");
-crashlytics().setUserId(uid);
-    /* ================= CHECK INVITE ================= */
 
-    log("🔎 Checking trainer_invites...");
+    crashlytics().log("OTP confirmed successfully");
+    crashlytics().setUserId(uid);
+
+    /* ================= INVITE → TRAINER ================= */
+
     const inviteRef = doc("trainer_invites", phone);
     const inviteSnap = await inviteRef.get();
 
@@ -147,23 +248,24 @@ crashlytics().setUserId(uid);
 
       const inviteData = inviteSnap.data();
 
-      await collection("users").doc(uid).set({
-        role: "trainer",
-        firstName: inviteData?.firstName ?? "",
-        lastName: inviteData?.lastName ?? "",
-        phone,
-        profilePicture: "",
-        bio: "",
-        notificationsEnabled: true,
-        authUid: uid,
-        isActive: true,
-        isAdmin: inviteData?.isAdmin ?? false,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        lastLoginAt: serverTimestamp(),
-      });
-log("Auth token phone:", auth().currentUser?.phoneNumber);
-log("Invite doc id:", phone);
+      await collection("users")
+        .doc(uid)
+        .set({
+          role: "trainer",
+          firstName: inviteData?.firstName ?? "",
+          lastName: inviteData?.lastName ?? "",
+          phone,
+          profilePicture: "",
+          bio: "",
+          notificationsEnabled: true,
+          authUid: uid,
+          isActive: true,
+          isAdmin: inviteData?.isAdmin ?? false,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          lastLoginAt: serverTimestamp(),
+        });
+
       await collection("trainer_schedules").doc(uid).set({
         trainerId: uid,
         createdAt: firestore.FieldValue.serverTimestamp(),
@@ -171,34 +273,43 @@ log("Invite doc id:", phone);
 
       await inviteRef.delete();
 
-      log("✅ Trainer created successfully");
+      log("✅ Trainer created");
 
       return { role: "trainer" as const };
     }
 
-    /* ================= CHECK EXISTING TRAINER ================= */
+    /* ================= EXISTING TRAINER ================= */
 
-const trainerSnap = await doc("users", uid).get();
+    const trainerSnap = await doc("users", uid).get();
 
-if (trainerSnap.exists()) {
-  log("👤 Existing trainer found");
+    if (trainerSnap.exists()) {
+      log("👤 Existing trainer");
 
-  return {
-    role: "trainer" as const,
-    id: trainerSnap.id,   // ✅ Correct
-  };
-}
-    /* ================= CHECK CLIENT ================= */
-const clientSnap = await root()
-  .collection("clients")
-  .where("phone", "==", phone)
-  .limit(1)
-  .get();
+      return {
+        role: "trainer" as const,
+        id: trainerSnap.id,
+      };
+    }
+
+    /* ================= CLIENT ================= */
+
+    const clientSnap = await root()
+      .collection("clients")
+      .where("phone", "==", phone)
+      .limit(1)
+      .get();
 
     if (clientSnap.empty) {
-      await auth().signOut();  
+      log("❌ No client found → signing out");
+
+      await auth().signOut();
+
+      // important cleanup
+      confirmationResult = null;
+      confirmAttempts = 0;
+
       throw new Error(
-        "Account not found. Please contact your trainer or administrator."
+        "Account not found. Please contact your trainer or administrator.",
       );
     }
 
@@ -218,65 +329,20 @@ const clientSnap = await root()
       role: "client" as const,
       id: clientDoc.id,
     };
+  } catch (err: any) {
+    error("🔥 CONFIRM OTP ERROR:", err?.message);
 
-} catch (err: any) {
-  error("🔥 CONFIRM OTP ERROR:");
-  error("Message:", err?.message);
-  error("Code:", err?.code);
+    crashlytics().log("confirmOtp failed");
+    crashlytics().setAttribute("otp_error_code", err?.code ?? "none");
+    crashlytics().setAttribute("otp_error_message", err?.message ?? "none");
 
-  crashlytics().log("confirmOtp failed");
-  crashlytics().setAttribute("otp_error_code", err?.code ?? "none");
-  crashlytics().setAttribute("otp_error_message", err?.message ?? "none");
-
-  const currentUser = auth().currentUser;
-
-  if (currentUser) {
-    crashlytics().setAttribute("auth_user_exists", "true");
-    crashlytics().setUserId(currentUser.uid);
-  } else {
-    crashlytics().setAttribute("auth_user_exists", "false");
-  }
-
-  // 🔥 If user already authenticated, resolve role
-  if (currentUser && currentUser.phoneNumber) {
-    crashlytics().log("OTP threw error but user already signed in. Using fallback role resolution.");
-
-    confirmAttempts = 0;
+    // 🚨 NO FALLBACK ANYMORE → SECURITY FIX
     confirmationResult = null;
 
-    const phone = normalizePhone(currentUser.phoneNumber);
-    const uid = currentUser.uid;
+    crashlytics().recordError(err);
 
-    try {
-      const trainerSnap = await doc("users", uid).get();
-      if (trainerSnap.exists()) {
-        crashlytics().log("Fallback resolved as trainer");
-        return { role: "trainer" as const, id: trainerSnap.id };
-      }
-
-      const clientSnap = await root()
-        .collection("clients")
-        .where("phone", "==", phone)
-        .limit(1)
-        .get();
-
-      if (!clientSnap.empty) {
-        crashlytics().log("Fallback resolved as client");
-        return { role: "client" as const, id: clientSnap.docs[0].id };
-      }
-
-      crashlytics().log("Fallback failed to resolve role");
-    } catch (fallbackErr: any) {
-      crashlytics().recordError(fallbackErr);
-    }
-  }
-
-  confirmationResult = null;
-
-  crashlytics().recordError(err);
-
-  throw err;
-}finally {
-    authBootstrap.isBootstrapping = false;  // ✅ ALWAYS RESET HERE
+    throw err;
+  } finally {
+    authBootstrap.isBootstrapping = false;
   }
 };

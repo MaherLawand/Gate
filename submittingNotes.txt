@@ -1,5 +1,5 @@
 #### IOS ####
-increase build number in app.config.jsm and in the info plist bundle version
+increase build number in app.config.jsm and in the info plist bundle version and build gradle
 
 eas build -p ios --profile production
 
@@ -11,8 +11,8 @@ eas submit -p ios --latest
 eas submit -p ios --id YOUR_BUILD_ID
 
 #### ANDROID ####
-increase build number in app.config.js
+increase build number in app.config.js and build.gradle
 
-eas build -p android --profile production
+
 
 eas submit -p android --latest
