@@ -48,7 +48,7 @@ export default {
     },
 
     android: {
-      versionCode: 6, // 🔥 increase this every submission
+      versionCode: 7, // 🔥 increase this every submission
       adaptiveIcon: {
         foregroundImage: "./assets/images/gate-logo4.png",
         backgroundColor: "#000000",

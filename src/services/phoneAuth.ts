@@ -329,20 +329,124 @@ export const confirmOtp = async (code: string) => {
       role: "client" as const,
       id: clientDoc.id,
     };
-  } catch (err: any) {
-    error("🔥 CONFIRM OTP ERROR:", err?.message);
+ } catch (err: any) {
+  error("🔥 CONFIRM OTP ERROR:", err?.message);
 
-    crashlytics().log("confirmOtp failed");
-    crashlytics().setAttribute("otp_error_code", err?.code ?? "none");
-    crashlytics().setAttribute("otp_error_message", err?.message ?? "none");
+  crashlytics().log("confirmOtp failed");
+  crashlytics().setAttribute("otp_error_code", err?.code ?? "none");
+  crashlytics().setAttribute("otp_error_message", err?.message ?? "none");
 
-    // 🚨 NO FALLBACK ANYMORE → SECURITY FIX
-    confirmationResult = null;
+  const currentUser = auth().currentUser;
 
-    crashlytics().recordError(err);
+  // 🔥 SAFE FALLBACK: user might already be authenticated
+  if (
+    currentUser?.phoneNumber &&
+    err?.message !== "Account not found. Please contact your trainer or administrator."
+  ) {
+    log("⚠️ confirm failed but user exists → recovering");
 
-    throw err;
-  } finally {
+    crashlytics().log("Fallback triggered: user already authenticated");
+    crashlytics().setUserId(currentUser.uid);
+
+    const phone = normalizePhone(currentUser.phoneNumber);
+    const uid = currentUser.uid;
+
+    try {
+      /* ================= INVITE → TRAINER ================= */
+
+      const inviteRef = doc("trainer_invites", phone);
+      const inviteSnap = await inviteRef.get();
+
+      if (inviteSnap.exists()) {
+        const inviteData = inviteSnap.data();
+
+        await collection("users")
+          .doc(uid)
+          .set({
+            role: "trainer",
+            firstName: inviteData?.firstName ?? "",
+            lastName: inviteData?.lastName ?? "",
+            phone,
+            profilePicture: "",
+            bio: "",
+            notificationsEnabled: true,
+            authUid: uid,
+            isActive: true,
+            isAdmin: inviteData?.isAdmin ?? false,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            lastLoginAt: serverTimestamp(),
+          });
+
+        await collection("trainer_schedules").doc(uid).set({
+          trainerId: uid,
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        });
+
+        await inviteRef.delete();
+
+        confirmAttempts = 0;
+        confirmationResult = null;
+
+        return { role: "trainer" as const };
+      }
+
+      /* ================= EXISTING TRAINER ================= */
+
+      const trainerSnap = await doc("users", uid).get();
+
+      if (trainerSnap.exists()) {
+        confirmAttempts = 0;
+        confirmationResult = null;
+
+        return {
+          role: "trainer" as const,
+          id: trainerSnap.id,
+        };
+      }
+
+      /* ================= CLIENT ================= */
+
+      const clientSnap = await root()
+        .collection("clients")
+        .where("phone", "==", phone)
+        .limit(1)
+        .get();
+
+      if (!clientSnap.empty) {
+        const clientDoc = clientSnap.docs[0];
+        const clientData = clientDoc.data();
+
+        // ✅ IMPORTANT FIX: ensure authUid is set
+        if (!clientData.authUid) {
+          await clientDoc.ref.update({
+            authUid: uid,
+            phoneVerified: true,
+          });
+        }
+
+        confirmAttempts = 0;
+        confirmationResult = null;
+
+        return {
+          role: "client" as const,
+          id: clientDoc.id,
+        };
+      }
+
+      crashlytics().log("Fallback failed to resolve role");
+    } catch (fallbackErr: any) {
+      crashlytics().recordError(fallbackErr);
+    }
+  }
+
+  // ❌ No recovery possible → real failure
+  confirmationResult = null;
+
+  crashlytics().recordError(err);
+
+  throw err;
+} finally {
     authBootstrap.isBootstrapping = false;
   }
 };

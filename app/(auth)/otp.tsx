@@ -20,10 +20,11 @@ import {
   withTiming,
 } from "react-native-reanimated";
 import AppButton from "../../src/components/AppButton";
-import { confirmOtp } from "../../src/services/phoneAuth";
+import { confirmOtp, normalizePhone } from "../../src/services/phoneAuth";
 import { colors } from "../../src/theme/colors";
 import { auth } from "@/src/services/firebase";
 import { log } from "@/src/utils/logger";
+import { doc,root } from "@/src/services/db";
 
 const { width, height } = Dimensions.get("window");
 
@@ -39,6 +40,60 @@ useEffect(() => {
   log("🟦 [OTP] Mounted");
   return () => log("🟥 [OTP] Unmounted");
 }, []);
+
+useEffect(() => {
+  const unsubscribe = auth().onAuthStateChanged(async (user) => {
+    if (!user) return;
+
+    log("🔥 [OTP] Auth state changed → user detected:", user.uid);
+
+    try {
+      const phone = normalizePhone(user.phoneNumber || "");
+      const uid = user.uid;
+
+      // 🔥 SAME LOGIC (reuse ideally)
+      const trainerSnap = await doc("users", uid).get();
+
+      if (trainerSnap.exists()) {
+        log("🚦 [OTP] Auto-route trainer");
+        router.replace("/(app)/trainer/dashboard");
+        return;
+      }
+
+      const clientSnap = await root()
+        .collection("clients")
+        .where("phone", "==", phone)
+        .limit(1)
+        .get();
+
+      if (!clientSnap.empty) {
+        const clientDoc = clientSnap.docs[0];
+        const clientData = clientDoc.data();
+
+        if (!clientData.authUid) {
+          await clientDoc.ref.update({
+            authUid: uid,
+            phoneVerified: true,
+          });
+        }
+
+        log("🚦 [OTP] Auto-route client");
+        router.replace("/(app)/client/Gate");
+        return;
+      }
+
+      log("❌ [OTP] No role found → signing out");
+      await auth().signOut();
+      router.replace("/(auth)");
+
+    } catch (err: any) {
+      log("🔥 [OTP] Auto auth error:", err?.message);
+    }
+  });
+
+  return unsubscribe;
+}, []);
+
   const onBackgroundPress = (x: number, y: number) => {
     const cx = width / 2;
     const cy = height / 2;

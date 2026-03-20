@@ -9,9 +9,7 @@ const isDev = ENV === "dev";
 /* ================= DEBUG LOGS (DEV ONLY) ================= */
 
 export const log = (...args: any[]) => {
-  if (isDev) {
     console.log(...args);
-  }
 };
 
 export const info = (...args: any[]) => {
