@@ -83,3 +83,10 @@ yarn-error.log*
 # android/
 # google-services.json
 # GoogleService-Info.plist
+# --- secrets: never commit (purged from history 2026-08-26) ---
+*firebase-adminsdk*.json
+**/serviceAccountsKey*.json
+scripts/serviceAccountsKey*.json
+firestore-migrate/*adminsdk*.json
+push-server/.env
+notes.txt
