@@ -1,50 +1,82 @@
-# Welcome to your Expo app 👋
+# 🏋️ GATE — Private Gym Management App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A cross-platform **iOS & Android** app for a private gym and personal trainers. Trainers manage their clients, schedule sessions on a calendar, track attendance, and log workouts set-by-set; clients get their schedule and training history in their pocket. Built with React Native (Expo) and a Firebase backend, shipped to both stores.
 
-## Get started
+<!-- 📸 SCREENSHOTS PLACEHOLDER
+     Drop your promo/app screenshots into the docs/ folder (e.g. docs/promo.png,
+     docs/clients.png, docs/session.png) and uncomment the lines below.
 
-1. Install dependencies
+![GATE promo](docs/promo.png)
+![Client list](docs/clients.png)
+![Session logging](docs/session.png)
+-->
 
-   ```bash
-   npm install
-   ```
+> 📸 _Screenshots coming soon — add images to `docs/` and enable them in the block above._
 
-2. Start the app
+---
 
-   ```bash
-   npx expo start
-   ```
+## ✨ Features
 
-In the output, you'll find options to open the app in a
+- **Cross-platform** — one codebase runs as a native **iOS** and **Android** app (available on the App Store and Google Play).
+- **Client management** — trainers see all their clients, search, sort, filter (by package, archived, etc.), and add new ones.
+- **Session scheduling** — a daily **calendar** of sessions with time slots and client names.
+- **Attendance tracking** — mark each session **Attended** or **No-show**.
+- **Workout logging** — add exercises to a session and record **sets, reps, and weight** (e.g. "Barbell Bench Press — Set 1: 10 reps × 100 kg").
+- **Trainer invites** — invite-only onboarding for trainers via generated invite links.
+- **Push notifications** — reminders and updates delivered even when the app is closed (Firebase Cloud Messaging).
+- **Real-time data** — schedules and clients stay in sync via Firestore.
+- **Privacy-aware sessions** — support for private/gender-specific session handling.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 🧱 Tech Stack
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+| Layer | Technology |
+|---|---|
+| **Framework** | React Native + **Expo** (TypeScript) |
+| **Routing** | expo-router (file-based) |
+| **Database** | Firebase **Firestore** (real-time) |
+| **Backend logic** | Firebase **Cloud Functions** |
+| **Notifications** | Firebase Cloud Messaging + a small push server |
+| **Builds** | EAS (Expo Application Services), separate **dev / prod** environments |
 
-## Get a fresh project
-
-When you're ready, run:
+## 🚀 Getting Started
 
 ```bash
-npm run reset-project
+# 1. Install dependencies
+npm install
+
+# 2. Add your Firebase config
+#    (google-services.json / GoogleService-Info.plist and env files)
+
+# 3. Start the Expo dev server
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Open in the **Expo Go** app, an Android emulator, or an iOS simulator.
 
-## Learn more
+## 🏗️ Architecture
 
-To learn more about developing your project with Expo, look at the following resources:
+- **App (`app/`, `src/`)** — the React Native UI, file-based routes for trainer/client flows.
+- **Firebase** — Firestore holds trainers, clients, sessions, and bookings; Cloud Functions (`functions/`) handle server-side logic like invites.
+- **Push server (`push-server/`)** — sends notifications through FCM.
+- **Environments** — `.env.dev` / `.env.prod` and separate Firebase projects keep development and production isolated.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## 📁 Project Structure
 
-## Join the community
+```
+Gate/
+├── app/            # Screens (expo-router)
+├── src/            # Components & logic
+├── functions/      # Firebase Cloud Functions
+├── push-server/    # Push notification server
+├── firestore-migrate/  # Data migration scripts
+├── assets/         # Images & icons
+└── docs/           # Screenshots
+```
 
-Join our community of developers creating universal apps.
+## 📝 Notes
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- Firebase config and Expo tokens should be provided via environment/config files and kept out of version control.
+
+---
+
+_Built by [Maher Lawand](https://github.com/MaherLawand)._
