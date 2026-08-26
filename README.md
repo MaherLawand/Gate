@@ -2,16 +2,7 @@
 
 A cross-platform **iOS & Android** app for a private gym and personal trainers. Trainers manage their clients, schedule sessions on a calendar, track attendance, and log workouts set-by-set; clients get their schedule and training history in their pocket. Built with React Native (Expo) and a Firebase backend, shipped to both stores.
 
-<!-- 📸 SCREENSHOTS PLACEHOLDER
-     Drop your promo/app screenshots into the docs/ folder (e.g. docs/promo.png,
-     docs/clients.png, docs/session.png) and uncomment the lines below.
-
-![GATE promo](docs/promo.png)
-![Client list](docs/clients.png)
-![Session logging](docs/session.png)
--->
-
-> 📸 _Screenshots coming soon — add images to `docs/` and enable them in the block above._
+![GATE — Manage your clients and workouts](docs/demo.gif)
 
 ---
 
